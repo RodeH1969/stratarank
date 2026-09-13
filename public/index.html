@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QLD Strata Rankings</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .font-serif { font-family: Georgia, "Times New Roman", serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/plain" id="app-source">
+
+const { useState, useEffect, useMemo } = React;
+
+const emptyData = { managers: [], schemes: [], events: [], sponsors: [], sponsorInvites: [], agencyLogos: {}, seasonYear: new Date().getFullYear() };
+
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const yearOf = (dateStr) => new Date(dateStr).getFullYear();
+const BCCM_MODULES = [
+  "Standard Module",
+  "Accommodation Module",
+  "Commercial Module",
+  "Small Schemes Module",
+  "Specified Two-lot Schemes Module",
+];
+const schemeLabel = (scheme) => {
+  if (!scheme) return "Building";
+  const parts = [scheme.suburb, scheme.planType, scheme.module, scheme.lotCount ? `${scheme.lotCount} lots` : null].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Building";
+};
+function computePoints(type, newTerm, prevTerm) {
+  const t = Number(newTerm);
+  const p = prevTerm != null && prevTerm !== "" ? Number(prevTerm) : null;
+  if (type === "competitor") {
+    if (t === 3) return 10;
+    if (t === 2) return 9;
+    if (t === 1) return 8;
+    return 0;
+  }
+  if (type === "renewal") {
+    if (t === 3) {
+      if (p === 1 || p === 2) return 7;
+      if (p === 3) return 3;
+      return 0;
+    }
+    if (t === 2) return 2;
+    if (t === 1) return 1;
+    return 0;
+  }
+  return 0;
+}
+
+async function api(path, options) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...(options && options.headers) },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
+  return body;
+}
+
+function PointsInfoButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mb-6 inline-flex items-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold text-sm px-4 py-2 rounded-full border border-amber-300 transition-colors"
+      >
+        <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0">?</span>
+        How are ranking points calculated?
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="font-serif text-2xl">How points work</h3>
+              <button onClick={() => setOpen(false)} aria-label="Close" className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+            </div>
+            <table className="w-full text-sm">
+              <tbody>
+                <tr className="border-b border-slate-100">
+                  <td className="py-2 pr-3 text-slate-700">Signed from a competitor — 3 year term</td>
+                  <td className="py-2 text-right font-semibold text-slate-900">10</td>
+                </tr>
+                <tr className="border-b border-slate-100">
+                  <td className="py-2 pr-3 text-slate-700">Signed from a competitor — 2 year term</td>
+                  <td className="py-2 text-right font-semibold text-slate-900">9</td>
+                </tr>
+                <tr className="border-b border-slate-100">
+                  <td className="py-2 pr-3 text-slate-700">Signed from a competitor — 1 year term</td>
+                  <td className="py-2 text-right font-semibold text-slate-900">8</td>
+                </tr>
+                <tr className="border-b border-slate-100">
+                  <td className="py-2 pr-3 text-slate-700">Renewed to a 3 year term (was 1 or 2 years)</td>
+                  <td className="py-2 text-right font-semibold text-slate-900">7</td>
+                </tr>
+                <tr className="border-b border-slate-100">
+                  <td className="py-2 pr-3 text-slate-700">Renewed to a 3 year term (was 3 years)</td>
+                  <td className="py-2 text-right font-semibold text-slate-900">3</td>
+                </tr>
+                <tr className="border-b border-slate-100">
+                  <td className="py-2 pr-3 text-slate-700">Renewed to a 2 year term</td>
+                  <td className="py-2 text-right font-semibold text-slate-900">2</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 text-slate-700">Renewed to a 1 year term</td>
+                  <td className="py-2 text-right font-semibold text-slate-900">1</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+function InfoTooltip({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex align-middle ml-1">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => setOpen(false)}
+        aria-label="More info"
+        className="w-4 h-4 rounded-full bg-slate-300 text-white text-[10px] font-bold leading-none flex items-center justify-center hover:bg-slate-400"
+      >
+        i
+      </button>
+      {open && (
+        <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 w-60 bg-slate-900 text-white text-xs rounded-lg p-3 shadow-lg">
+          {text}
+        </div>
+      )}
+    </span>
+  );
+}
+
+function App() {
+  const [data, setData] = useState(emptyData);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [tab, setTab] = useState("rankings");
+
+  const refresh = async () => {
+    try {
+      const fresh = await api("/api/data");
+      setData(fresh);
+      setLoadError(null);
+    } catch (e) {
+      setLoadError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const managerById = (id) => data.managers.find((m) => m.id === id);
+  const schemeById = (id) => data.schemes.find((s) => s.id === id);
+
+  const standings = useMemo(() => {
+    const totals = {};
+    for (const m of data.managers) {
+      totals[m.id] = { manager: m, points: 0, events: 0, competitorWins: 0, renewals: 0 };
+    }
+    for (const ev of data.events) {
+      if (yearOf(ev.date) !== data.seasonYear) continue;
+      if (!totals[ev.managerId]) continue;
+      totals[ev.managerId].points += ev.points;
+      totals[ev.managerId].events += 1;
+      if (ev.type === "competitor") totals[ev.managerId].competitorWins += 1;
+      if (ev.type === "renewal") totals[ev.managerId].renewals += 1;
+    }
+    return Object.values(totals)
+      .filter((row) => row.events > 0)
+      .sort((a, b) => b.points - a.points);
+  }, [data]);
+
+  const sortedEvents = useMemo(
+    () => [...data.events].filter((e) => yearOf(e.date) === data.seasonYear).sort((a, b) => new Date(b.date) - new Date(a.date)),
+    [data]
+  );
+
+  return (
+    <div className="min-h-screen bg-stone-50 text-slate-900">
+      <div className="max-w-3xl mx-auto px-6 py-10">
+        <header className="border-b-2 border-slate-900 pb-5 mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-4xl sm:text-5xl leading-tight">QLD Strata Rankings</h1>
+            <p className="text-slate-700 mt-2 font-medium">Queensland's strata managers, ranked.</p>
+          </div>
+          <nav className="flex gap-1 bg-slate-900 rounded-full p-1">
+            {[
+              { id: "rankings", label: "Rankings" },
+              { id: "log", label: "Recent wins" },
+              { id: "report", label: "Nominate a win" },
+            ].map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        </header>
+
+        {loadError && (
+          <div className="mb-6 bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">
+            Couldn't reach the rankings server: {loadError}
+          </div>
+        )}
+
+        {loading ? (
+          <p className="text-slate-500">Loading rankings…</p>
+        ) : tab === "rankings" ? (
+          <Rankings standings={standings} sponsors={data.sponsors} agencyLogos={data.agencyLogos} seasonYear={data.seasonYear} />
+        ) : tab === "log" ? (
+          <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
+        ) : (
+          <ReportWin data={data} refresh={refresh} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AgencyBadge({ agency, agencyLogos }) {
+  if (!agency) return null;
+  const key = agency.trim().toLowerCase();
+  const match = (agencyLogos || {})[key];
+
+  if (match && match.logoUrl) {
+    return <img src={match.logoUrl} alt={agency} className="h-6 w-auto object-contain shrink-0" />;
+  }
+  const initials = agency.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  return (
+    <div className="h-6 min-w-6 px-1.5 rounded bg-slate-200 text-slate-600 text-[10px] font-medium flex items-center justify-center shrink-0">
+      {initials}
+    </div>
+  );
+}
+
+function SponsorStrip({ sponsors }) {
+  const active = (sponsors || []).filter((s) => s.active !== false);
+  if (!active.length) return null;
+  return (
+    <div className="mb-10 border-y border-slate-200 py-8">
+      <div className="text-sm text-slate-500 text-center mb-5">Rankings brought to you by:</div>
+      <div className="flex flex-wrap items-center justify-center gap-10">
+        {active.map((s) => (
+          <div key={s.id} className="h-20 w-40 flex items-center justify-center">
+            {s.logoUrl ? <img src={s.logoUrl} alt={s.name} className="max-h-20 max-w-40 object-contain" /> : <span className="font-medium text-slate-600">{s.name}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
+  return (
+    <div>
+      <PointsInfoButton />
+      <SponsorStrip sponsors={sponsors} />
+      {standings.length === 0 ? (
+        <p className="text-slate-500 text-center py-16">No wins reported yet for {seasonYear}.</p>
+      ) : (
+        standings.map((row, i) => (
+          <div key={row.manager.id} className={`flex items-center gap-4 py-4 border-b border-slate-200 ${i === 0 ? "bg-amber-50 -mx-4 px-4 rounded-lg border-b-0" : ""}`}>
+            <div className="w-10 text-center font-serif text-2xl text-slate-400 shrink-0">{i === 0 ? <span className="text-lg font-semibold text-amber-600">1st</span> : i + 1}</div>
+            <div className="flex-1 min-w-0 flex items-center gap-2.5">
+              <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} />
+              <div className="min-w-0">
+                <p className="font-medium truncate">{row.manager.name}</p>
+                {row.manager.agency && <p className="text-sm text-slate-500 truncate">{row.manager.agency}</p>}
+              </div>
+            </div>
+            <div className="font-serif text-2xl w-20 text-right shrink-0">{row.points}</div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites }) {
+  const findWinSponsor = (eventId) =>
+    (sponsorInvites || []).find((inv) => inv.eventId === eventId && inv.status === "accepted" && inv.logoUrl);
+  return (
+    <div>
+      <PointsInfoButton />
+      {events.length === 0 ? (
+        <p className="text-slate-500 text-center py-16">No wins reported yet.</p>
+      ) : (
+        <div className="space-y-0">
+          {events.map((ev) => {
+            const manager = managerById(ev.managerId);
+            const scheme = schemeById(ev.schemeId);
+            const winSponsor = findWinSponsor(ev.id);
+            return (
+              <div key={ev.id} className="py-4 border-b border-slate-200">
+                <div className="flex items-start gap-4">
+                  <AgencyBadge agency={manager?.agency} agencyLogos={agencyLogos} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-base">{manager?.name || "Unknown"}{manager?.agency && <span className="font-normal text-slate-500"> · {manager.agency}</span>}</p>
+                    <p className="text-sm text-slate-500">{schemeLabel(scheme)} · {ev.date}</p>
+                  </div>
+                  <div className="font-serif text-lg w-14 text-right text-teal-700 shrink-0">+{ev.points}</div>
+                </div>
+                {winSponsor && (
+                  <div className="mt-3 ml-10 flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-lg p-2.5">
+                    <img src={winSponsor.logoUrl} alt={winSponsor.businessName} className="h-8 max-w-24 object-contain shrink-0" />
+                    <p className="text-xs text-slate-600">
+                      <span className="font-medium text-slate-700">{winSponsor.businessName}</span>
+                      {winSponsor.tagline && <span> — {winSponsor.tagline}</span>}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReportWin({ data, refresh }) {
+  const [managerChoice, setManagerChoice] = useState("__new__");
+  const [managerName, setManagerName] = useState("");
+  const [agency, setAgency] = useState("");
+  const [schemeChoice, setSchemeChoice] = useState("__new__");
+  const [suburb, setSuburb] = useState("");
+  const [planType, setPlanType] = useState("BFP");
+  const [module, setModule] = useState("");
+  const [lotCount, setLotCount] = useState("");
+  const [schemeName, setSchemeName] = useState("");
+  const [cts, setCts] = useState("");
+  const [winType, setWinType] = useState("competitor");
+  const [newTerm, setNewTerm] = useState(3);
+  const [prevTerm, setPrevTerm] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const [tradieBusiness, setTradieBusiness] = useState("");
+  const [tradieName, setTradieName] = useState("");
+  const [confirmation, setConfirmation] = useState(null);
+  const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const sortedManagers = [...data.managers].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedSchemes = [...data.schemes].sort((a, b) => schemeLabel(a).localeCompare(schemeLabel(b)));
+  const previewPoints = computePoints(winType, newTerm, prevTerm);
+
+  const labelClass = (key) => `block text-sm mb-1 ${fieldErrors[key] ? "text-rose-600 font-medium" : "text-slate-600"}`;
+  const inputClass = (key) => `w-full rounded px-3 py-2 text-sm border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
+  const selectClass = (key) => `w-full rounded px-3 py-2 text-sm bg-white border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
+
+  const submit = async () => {
+    const isNewManager = managerChoice === "__new__";
+    const isNewScheme = schemeChoice === "__new__";
+    const errs = {};
+    if (isNewManager && !managerName.trim()) errs.managerName = true;
+    if (isNewManager && !agency.trim()) errs.agency = true;
+    if (isNewScheme && !suburb.trim()) errs.suburb = true;
+    if (isNewScheme && !module.trim()) errs.module = true;
+    if (isNewScheme && !lotCount) errs.lotCount = true;
+    if (isNewScheme && !schemeName.trim()) errs.schemeName = true;
+    if (isNewScheme && !cts.trim()) errs.cts = true;
+    if (winType === "renewal" && !prevTerm) errs.prevTerm = true;
+    if (!tradieBusiness.trim()) errs.tradieBusiness = true;
+    if (!tradieName.trim()) errs.tradieName = true;
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      setError("Please fill in the fields marked in red.");
+      return;
+    }
+    setFieldErrors({});
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await api("/api/events", {
+        method: "POST",
+        body: JSON.stringify({
+          managerId: isNewManager ? null : managerChoice,
+          managerName: isNewManager ? managerName : undefined,
+          agency: isNewManager ? agency : undefined,
+          schemeId: isNewScheme ? null : schemeChoice,
+          suburb: isNewScheme ? suburb : undefined,
+          planType: isNewScheme ? planType : undefined,
+          module: isNewScheme ? module : undefined,
+          lotCount: isNewScheme ? lotCount : undefined,
+          schemeName: isNewScheme ? schemeName : undefined,
+          cts: isNewScheme ? cts : undefined,
+          type: winType,
+          newTerm,
+          prevTerm: winType === "renewal" ? prevTerm : undefined,
+          date,
+          source: "public",
+          businessName: tradieBusiness.trim(),
+          contactName: tradieName.trim(),
+        }),
+      });
+
+      await refresh();
+      setManagerChoice("__new__"); setManagerName(""); setAgency("");
+      setSchemeChoice("__new__"); setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
+      setWinType("competitor"); setNewTerm(3); setPrevTerm(""); setDate(todayStr());
+      setTradieBusiness(""); setTradieName("");
+      if (result.inviteError) {
+        setError(`Win saved, but the tradie suggestion didn't go through: ${result.inviteError}`);
+      }
+      setConfirmation({ points: result.event.points, label: `Win reported for ${result.manager.name} — ${result.event.points} points` });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-lg space-y-4">
+      <h2 className="font-serif text-2xl mb-2">Nominate a win</h2>
+      <PointsInfoButton />
+
+      {sortedManagers.length > 0 && (
+        <div>
+          <label className="block text-sm text-slate-600 mb-1">Manager</label>
+          <select value={managerChoice} onChange={(e) => setManagerChoice(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+            <option value="__new__">+ Add new manager…</option>
+            {sortedManagers.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}{m.agency ? ` · ${m.agency}` : ""}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      {managerChoice === "__new__" && (
+        <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
+          <div><label className={labelClass("managerName")}>Manager's name</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
+          <div><label className={labelClass("agency")}>Manager's agency</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
+        </div>
+      )}
+
+      {sortedSchemes.length > 0 && (
+        <div>
+          <label className="block text-sm text-slate-600 mb-1">Scheme</label>
+          <select value={schemeChoice} onChange={(e) => setSchemeChoice(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+            <option value="__new__">+ Add new scheme…</option>
+            {sortedSchemes.map((s) => (
+              <option key={s.id} value={s.id}>{schemeLabel(s)}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      {schemeChoice === "__new__" && (
+        <div className={sortedSchemes.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
+          <div><label className={labelClass("suburb")}>Suburb (where the scheme is located)</label><input value={suburb} onChange={(e) => setSuburb(e.target.value)} placeholder="e.g. New Farm" className={inputClass("suburb")} /></div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Scheme type</label>
+            <select value={planType} onChange={(e) => setPlanType(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+              <option value="BFP">BFP</option>
+              <option value="SFP">SFP</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass("module")}>Module</label>
+            <select value={module} onChange={(e) => setModule(e.target.value)} className={selectClass("module")}>
+              <option value="">Select…</option>
+              {BCCM_MODULES.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div><label className={labelClass("lotCount")}>Number of lots</label><input type="number" min="1" value={lotCount} onChange={(e) => setLotCount(e.target.value)} className={inputClass("lotCount")} /></div>
+          <div>
+            <label className={labelClass("schemeName") + " flex items-center"}>
+              Scheme name
+              <InfoTooltip text="We never publish this — it's kept privately so we can verify the win is genuine." />
+            </label>
+            <input value={schemeName} onChange={(e) => setSchemeName(e.target.value)} className={inputClass("schemeName")} />
+          </div>
+          <div>
+            <label className={labelClass("cts") + " flex items-center"}>
+              CTS number
+              <InfoTooltip text="We never publish this — it's kept privately so we can verify the win is genuine." />
+            </label>
+            <input value={cts} onChange={(e) => setCts(e.target.value)} className={inputClass("cts")} />
+          </div>
+        </div>
+      )}
+
+      <div>
+        <label className="block text-sm text-slate-600 mb-1">How was this scheme secured?</label>
+        <select value={winType} onChange={(e) => { setWinType(e.target.value); setPrevTerm(""); }} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+          <option value="competitor">Signed from a competitor</option>
+          <option value="renewal">Renewed with us</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm text-slate-600 mb-1">New term (years)</label>
+        <select value={newTerm} onChange={(e) => setNewTerm(Number(e.target.value))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+
+      {winType === "renewal" && (
+        <div>
+          <label className={labelClass("prevTerm")}>Previous term (years)</label>
+          <select value={prevTerm} onChange={(e) => setPrevTerm(e.target.value)} className={selectClass("prevTerm")}>
+            <option value="">Select…</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+      )}
+
+      <p className="text-sm text-slate-500">Worth <span className="font-semibold text-slate-700">{previewPoints}</span> point{previewPoints === 1 ? "" : "s"} {winType === "renewal" && !prevTerm ? "once you select the previous term" : "based on the current rankings scoring"}.</p>
+
+      <div>
+        <label className="block text-sm text-slate-600 mb-1">Date of win</label>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={todayStr()} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+
+      <div className="pt-2 border-t border-slate-200">
+        <p className="text-sm font-medium text-slate-700 mb-1">A tradie or contractor who does great work on this building</p>
+        <div className="space-y-3">
+          <div>
+            <label className={labelClass("tradieBusiness")}>Business name</label>
+            <input value={tradieBusiness} onChange={(e) => setTradieBusiness(e.target.value)} placeholder="e.g. Ace Plumbing" className={inputClass("tradieBusiness")} />
+          </div>
+          <div>
+            <label className={labelClass("tradieName")}>Their name</label>
+            <input value={tradieName} onChange={(e) => setTradieName(e.target.value)} className={inputClass("tradieName")} />
+          </div>
+        </div>
+      </div>
+
+      <button onClick={submit} disabled={submitting} className="bg-amber-500 text-slate-900 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50">
+        {submitting ? "Saving…" : "Report win"}
+      </button>
+      {error && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
+      {confirmation && <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm text-teal-800">{confirmation.label}</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+</script>
+<script>
+  var sourceCode = document.getElementById("app-source").textContent;
+  var compiled = Babel.transform(sourceCode, { presets: [["react", { runtime: "classic" }]] }).code;
+  var scriptEl = document.createElement("script");
+  scriptEl.text = compiled;
+  document.body.appendChild(scriptEl);
+</script>
+</body>
+</html>
