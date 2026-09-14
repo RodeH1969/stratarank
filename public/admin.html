@@ -478,8 +478,8 @@ function RecordWin({ data, refresh }) {
   const [lotCount, setLotCount] = useState("");
   const [schemeName, setSchemeName] = useState("");
   const [cts, setCts] = useState("");
-  const [winType, setWinType] = useState("competitor");
-  const [newTerm, setNewTerm] = useState(3);
+  const [winType, setWinType] = useState("");
+  const [newTerm, setNewTerm] = useState("");
   const [prevTerm, setPrevTerm] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [confirmation, setConfirmation] = useState(null);
@@ -494,6 +494,8 @@ function RecordWin({ data, refresh }) {
     const isNewScheme = schemeChoice === "__new__";
     if (isNewManager && !managerName.trim()) return setError("Manager's name is required.");
     if (isNewScheme && (!suburb.trim() || !module.trim() || !lotCount)) return setError("Suburb, module, and lot count are required.");
+    if (!winType) return setError("Select how this scheme was secured.");
+    if (!newTerm) return setError("Select the new term.");
     if (winType === "renewal" && !prevTerm) return setError("Previous term is required for a renewal.");
 
     setError(null);
@@ -520,7 +522,7 @@ function RecordWin({ data, refresh }) {
       await refresh();
       setManagerChoice("__new__"); setManagerName(""); setAgency("");
       setSchemeChoice("__new__"); setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
-      setWinType("competitor"); setNewTerm(3); setPrevTerm("");
+      setWinType(""); setNewTerm(""); setPrevTerm("");
       setConfirmation({ points: result.event.points, label: `Logged for ${result.manager.name} — ${result.event.points} points` });
     } catch (e) {
       setError(e.message);
@@ -533,6 +535,7 @@ function RecordWin({ data, refresh }) {
       <div className="space-y-3">
         <Field label="How was this scheme secured?">
           <select value={winType} onChange={(e) => { setWinType(e.target.value); setPrevTerm(""); }} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+            <option value="">Select…</option>
             <option value="competitor">Signed from a competitor</option>
             <option value="renewal">Renewed with us</option>
           </select>
@@ -601,7 +604,8 @@ function RecordWin({ data, refresh }) {
         )}
 
         <Field label="New term (years)">
-          <select value={newTerm} onChange={(e) => setNewTerm(Number(e.target.value))} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+          <select value={newTerm} onChange={(e) => setNewTerm(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+            <option value="">Select…</option>
             <option value="1">1</option>
             <option value="2">2</option>
             <option value="3">3</option>
@@ -619,7 +623,13 @@ function RecordWin({ data, refresh }) {
           </Field>
         )}
 
-        <p className="text-sm text-slate-500">Worth <span className="font-semibold text-slate-700">{previewPoints}</span> point{previewPoints === 1 ? "" : "s"} {winType === "renewal" && !prevTerm ? "once you select the previous term" : "based on the current scoring rules"}.</p>
+        {winType && newTerm && (winType !== "renewal" || prevTerm) && (
+          <div className="bg-amber-400 border-2 border-amber-500 rounded-lg px-4 py-3 text-center shadow-sm">
+            <span className="text-black font-extrabold text-lg">
+              Worth {previewPoints} point{previewPoints === 1 ? "" : "s"}
+            </span>
+          </div>
+        )}
 
         <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
 

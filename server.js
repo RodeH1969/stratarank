@@ -315,7 +315,10 @@ app.post('/api/events', async (req, res) => {
       scheme = data;
     }
 
-    const evType = type === 'renewal' ? 'renewal' : 'competitor';
+    if (!['competitor', 'renewal'].includes(type)) {
+      return res.status(400).json({ error: 'type must be "competitor" or "renewal"' });
+    }
+    const evType = type;
     const term = Number(newTerm);
     if (![1, 2, 3].includes(term)) return res.status(400).json({ error: 'newTerm must be 1, 2, or 3' });
 
