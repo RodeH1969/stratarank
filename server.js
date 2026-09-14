@@ -125,6 +125,7 @@ function toSponsorOut(s, staticSponsorLogos) {
     name: s.name,
     logoUrl: s.logo_url || staticLogo || '',
     logoName: s.logo_name || '',
+    websiteUrl: s.website_url || '',
     position: s.position || 1,
     active: s.active !== false,
     nominatedBy: s.nominated_by || '',
@@ -461,12 +462,13 @@ app.delete('/api/agency-logos/:key', async (req, res) => {
 // --- sponsors ------------------------------------------------------------
 
 app.post('/api/sponsors', async (req, res) => {
-  const { id, name, logoUrl, logoName, position, active, nominatedBy, nominatedByAgency } = req.body;
+  const { id, name, logoUrl, logoName, websiteUrl, position, active, nominatedBy, nominatedByAgency } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'name is required' });
   const row = {
     name: name.trim(),
     logo_url: logoUrl || '',
     logo_name: logoName || '',
+    website_url: (websiteUrl || '').trim() || null,
     position: Number(position) || 1,
     active: active !== false,
     nominated_by: nominatedBy || null,

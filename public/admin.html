@@ -397,23 +397,23 @@ function SponsorInvites({ data, refresh }) {
 
 function SponsorManager({ data, refresh }) {
   const [editingId, setEditingId] = useState(null);
-  const [draft, setDraft] = useState({ name: "", logoData: "", logoName: "", position: 1, active: true });
+  const [draft, setDraft] = useState({ name: "", logoData: "", logoName: "", websiteUrl: "", position: 1, active: true });
   const [error, setError] = useState(null);
 
   const reset = () => {
     setEditingId(null);
-    setDraft({ name: "", logoData: "", logoName: "", position: 1, active: true });
+    setDraft({ name: "", logoData: "", logoName: "", websiteUrl: "", position: 1, active: true });
   };
 
   const startAdd = () => {
     const nextPosition = Math.max(0, ...(data.sponsors || []).map((s) => Number(s.position) || 0)) + 1;
     setEditingId("new");
-    setDraft({ name: "", logoData: "", logoName: "", position: nextPosition, active: true });
+    setDraft({ name: "", logoData: "", logoName: "", websiteUrl: "", position: nextPosition, active: true });
   };
 
   const startEdit = (s) => {
     setEditingId(s.id);
-    setDraft({ name: s.name || "", logoData: s.logoUrl || "", logoName: s.logoName || "", position: s.position || 1, active: s.active !== false });
+    setDraft({ name: s.name || "", logoData: s.logoUrl || "", logoName: s.logoName || "", websiteUrl: s.websiteUrl || "", position: s.position || 1, active: s.active !== false });
   };
 
   const save = async () => {
@@ -426,6 +426,7 @@ function SponsorManager({ data, refresh }) {
           name: draft.name.trim(),
           logoUrl: draft.logoData || "",
           logoName: draft.logoName || "",
+          websiteUrl: draft.websiteUrl || "",
           position: Number(draft.position) || 1,
           active: !!draft.active,
         }),
@@ -489,6 +490,14 @@ function SponsorManager({ data, refresh }) {
               reader.onload = () => setDraft((d) => ({ ...d, logoData: reader.result, logoName: file.name }));
               reader.readAsDataURL(file);
             }} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
+          </Field>
+          <Field label="Website (optional — clicking their logo opens this)">
+            <input
+              value={draft.websiteUrl}
+              onChange={(e) => setDraft((d) => ({ ...d, websiteUrl: e.target.value }))}
+              placeholder="https://example.com"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+            />
           </Field>
           <div className="flex gap-2 pt-1">
             <button onClick={save} className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg">Save sponsor</button>

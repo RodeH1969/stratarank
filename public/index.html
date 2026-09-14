@@ -294,11 +294,20 @@ function SponsorStrip({ sponsors }) {
     <div className="mb-10 border-y border-slate-200 py-8">
       <div className="text-sm text-slate-500 text-center mb-5">Rankings brought to you by:</div>
       <div className="flex flex-wrap items-center justify-center gap-10">
-        {active.map((s) => (
-          <div key={s.id} className="h-20 w-40 flex items-center justify-center">
-            {s.logoUrl ? <img src={s.logoUrl} alt={s.name} className="max-h-20 max-w-40 object-contain" /> : <span className="font-medium text-slate-600">{s.name}</span>}
-          </div>
-        ))}
+        {active.map((s) => {
+          const content = s.logoUrl
+            ? <img src={s.logoUrl} alt={s.name} className="max-h-20 max-w-40 object-contain" />
+            : <span className="font-medium text-slate-600">{s.name}</span>;
+          return (
+            <div key={s.id} className="h-20 w-40 flex items-center justify-center">
+              {s.websiteUrl ? (
+                <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="h-full w-full flex items-center justify-center hover:opacity-80 transition-opacity">
+                  {content}
+                </a>
+              ) : content}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
