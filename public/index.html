@@ -383,29 +383,32 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
                 </div>
 
                 {sponsors.length > 0 && (
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-4">
-                    {sponsors.map((s) => {
-                      const pair = (
-                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-                          {s.category && (
-                            <img src={`/icons/${s.category}.png`} alt={s.category} className="h-7 w-7 object-contain shrink-0" />
-                          )}
-                          <img
-                            src={s.logoUrl}
-                            alt={s.businessName}
-                            title={s.tagline ? `${s.businessName} — ${s.tagline}` : s.businessName}
-                            className="h-9 max-w-[110px] object-contain"
-                          />
-                        </div>
-                      );
-                      return s.websiteUrl ? (
-                        <a key={s.id} href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-                          {pair}
-                        </a>
-                      ) : (
-                        <div key={s.id}>{pair}</div>
-                      );
-                    })}
+                  <div className="mt-4 pt-3 border-t border-slate-100">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400 text-center mb-2.5">Scheme contractors</p>
+                    <div className="flex flex-wrap items-center justify-center gap-4">
+                      {sponsors.map((s) => {
+                        const pair = (
+                          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+                            {s.category && (
+                              <img src={`/icons/${s.category}.png`} alt={s.category} className="h-7 w-7 object-contain shrink-0" />
+                            )}
+                            <img
+                              src={s.logoUrl}
+                              alt={s.businessName}
+                              title={s.tagline ? `${s.businessName} — ${s.tagline}` : s.businessName}
+                              className="h-9 max-w-[110px] object-contain"
+                            />
+                          </div>
+                        );
+                        return s.websiteUrl ? (
+                          <a key={s.id} href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+                            {pair}
+                          </a>
+                        ) : (
+                          <div key={s.id}>{pair}</div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
