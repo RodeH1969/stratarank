@@ -377,15 +377,23 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
                   <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                     <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Active Contractor</span>
                     <div className="flex items-center gap-4 flex-wrap">
-                      {sponsors.map((s) => (
-                        <img
-                          key={s.id}
-                          src={s.logoUrl}
-                          alt={s.businessName}
-                          title={s.tagline ? `${s.businessName} — ${s.tagline}` : s.businessName}
-                          className="h-11 max-w-[120px] object-contain"
-                        />
-                      ))}
+                      {sponsors.map((s) => {
+                        const logo = (
+                          <img
+                            src={s.logoUrl}
+                            alt={s.businessName}
+                            title={s.tagline ? `${s.businessName} — ${s.tagline}` : s.businessName}
+                            className="h-11 max-w-[120px] object-contain"
+                          />
+                        );
+                        return s.websiteUrl ? (
+                          <a key={s.id} href={s.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+                            {logo}
+                          </a>
+                        ) : (
+                          <span key={s.id}>{logo}</span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

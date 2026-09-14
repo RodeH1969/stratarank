@@ -149,6 +149,7 @@ function toInviteOut(i) {
     status: i.status || 'pending',
     logoUrl: i.logo_url || '',
     tagline: i.tagline || '',
+    websiteUrl: i.website_url || '',
   };
 }
 
@@ -491,7 +492,7 @@ app.delete('/api/sponsors/:id', async (req, res) => {
 // --- sponsor invites -------------------------------------------------
 
 app.post('/api/sponsor-invites', async (req, res) => {
-  const { eventId, businessName, contactName, eventType, schemeName, newTerm, nominatedBy, nominatedByAgency, status, logoUrl, tagline } = req.body;
+  const { eventId, businessName, contactName, eventType, schemeName, newTerm, nominatedBy, nominatedByAgency, status, logoUrl, tagline, websiteUrl } = req.body;
   if (!businessName || !businessName.trim()) return res.status(400).json({ error: 'businessName is required' });
   const { data, error } = await supabase
     .from('strata_sponsor_invites')
@@ -507,6 +508,7 @@ app.post('/api/sponsor-invites', async (req, res) => {
       status: status || 'pending',
       logo_url: logoUrl || null,
       tagline: (tagline || '').trim() || null,
+      website_url: (websiteUrl || '').trim() || null,
     })
     .select()
     .single();
@@ -515,11 +517,12 @@ app.post('/api/sponsor-invites', async (req, res) => {
 });
 
 app.patch('/api/sponsor-invites/:id', async (req, res) => {
-  const { status, logoUrl, tagline } = req.body;
+  const { status, logoUrl, tagline, websiteUrl } = req.body;
   const update = {};
   if (status !== undefined) update.status = status;
   if (logoUrl !== undefined) update.logo_url = logoUrl;
   if (tagline !== undefined) update.tagline = tagline;
+  if (websiteUrl !== undefined) update.website_url = websiteUrl;
   const { data, error } = await supabase
     .from('strata_sponsor_invites')
     .update(update)
