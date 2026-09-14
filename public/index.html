@@ -321,7 +321,10 @@ function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
                 {row.manager.agency && <p className="text-sm text-slate-500 truncate">{row.manager.agency}</p>}
               </div>
             </div>
-            <div className="font-serif text-2xl w-20 text-right shrink-0">{row.points}</div>
+            <div className="text-right shrink-0">
+              <div className="font-serif text-2xl">{row.points}</div>
+              <div className="text-xs text-slate-500">({row.events} win{row.events === 1 ? "" : "s"})</div>
+            </div>
           </div>
         ))
       )}
