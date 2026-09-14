@@ -32,6 +32,18 @@ const BCCM_MODULES = [
   "Specified Two-lot Schemes Module",
 ];
 
+// value must match the icon filename in public/icons/ exactly (case-sensitive)
+const CONTRACTOR_CATEGORIES = [
+  { value: "Cleaner", label: "Cleaning" },
+  { value: "Fire", label: "Fire Safety" },
+  { value: "Gardener", label: "Gardening" },
+  { value: "Painter", label: "Painting" },
+  { value: "Pest", label: "Pest Control" },
+  { value: "Plumber", label: "Plumbing" },
+  { value: "Pool", label: "Pool Maintenance" },
+  { value: "Roofer", label: "Roofing" },
+];
+
 const emptyData = { managers: [], schemes: [], events: [], sponsors: [], sponsorInvites: [], agencyLogos: {}, seasonYear: new Date().getFullYear() };
 const schemeLabel = (scheme) => {
   if (!scheme) return "Building";
@@ -233,7 +245,7 @@ function SponsorInvites({ data, refresh }) {
   const SPONSORSHIP_PRICE = 50;
   const [copiedId, setCopiedId] = useState(null);
   const [acceptingId, setAcceptingId] = useState(null);
-  const [acceptForm, setAcceptForm] = useState({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "" });
+  const [acceptForm, setAcceptForm] = useState({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "", category: "" });
   const [error, setError] = useState(null);
 
   const buildMessage = (invite) => {
@@ -259,7 +271,7 @@ function SponsorInvites({ data, refresh }) {
 
   const startAccept = (invite) => {
     setAcceptingId(invite.id);
-    setAcceptForm({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "" });
+    setAcceptForm({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "", category: "" });
     setError(null);
   };
 
@@ -268,7 +280,7 @@ function SponsorInvites({ data, refresh }) {
     try {
       await api(`/api/sponsor-invites/${invite.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status: "accepted", logoUrl: acceptForm.logoData, tagline: acceptForm.tagline.trim(), websiteUrl: acceptForm.websiteUrl.trim() }),
+        body: JSON.stringify({ status: "accepted", logoUrl: acceptForm.logoData, tagline: acceptForm.tagline.trim(), websiteUrl: acceptForm.websiteUrl.trim(), category: acceptForm.category }),
       });
       await refresh();
       setAcceptingId(null);
@@ -342,6 +354,14 @@ function SponsorInvites({ data, refresh }) {
 
               {acceptingId === invite.id && (
                 <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
+                  <Field label="Trade category">
+                    <select value={acceptForm.category} onChange={(e) => setAcceptForm((f) => ({ ...f, category: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+                      <option value="">Select…</option>
+                      {CONTRACTOR_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
+                  </Field>
                   <Field label="Logo">
                     <input
                       type="file"
@@ -692,13 +712,13 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
   const [form, setForm] = useState(null);
   const [error, setError] = useState(null);
   const [addingContractor, setAddingContractor] = useState(false);
-  const [contractorForm, setContractorForm] = useState({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "" });
+  const [contractorForm, setContractorForm] = useState({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", category: "" });
   const [contractorError, setContractorError] = useState(null);
 
   const contractors = (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl);
 
   const startAddContractor = () => {
-    setContractorForm({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "" });
+    setContractorForm({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", category: "" });
     setContractorError(null);
     setAddingContractor(true);
   };
@@ -722,6 +742,7 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
           logoUrl: contractorForm.logoData,
           tagline: contractorForm.tagline.trim(),
           websiteUrl: contractorForm.websiteUrl.trim(),
+          category: contractorForm.category,
         }),
       });
       await refresh();
@@ -820,8 +841,9 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
 
         <div className="mt-2 pl-0 flex items-center gap-3 flex-wrap">
           {contractors.map((c) => (
-            <div key={c.id} className="relative group">
-              <img src={c.logoUrl} alt={c.businessName} title={c.tagline ? `${c.businessName} — ${c.tagline}` : c.businessName} className="h-8 max-w-[90px] object-contain border border-slate-100 rounded bg-white p-0.5" />
+            <div key={c.id} className="relative group flex items-center gap-1 border border-slate-100 rounded bg-white p-0.5">
+              {c.category && <img src={`/icons/${c.category}.png`} alt={c.category} className="h-6 w-6 object-contain" />}
+              <img src={c.logoUrl} alt={c.businessName} title={c.tagline ? `${c.businessName} — ${c.tagline}` : c.businessName} className="h-8 max-w-[90px] object-contain" />
               <button
                 onClick={() => removeContractor(c)}
                 title={`Remove ${c.businessName}`}
@@ -847,6 +869,14 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
             </Field>
             <Field label="Contact name (optional)">
               <input value={contractorForm.contactName} onChange={(e) => setContractorForm((f) => ({ ...f, contactName: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
+            </Field>
+            <Field label="Trade category">
+              <select value={contractorForm.category} onChange={(e) => setContractorForm((f) => ({ ...f, category: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+                <option value="">Select…</option>
+                {CONTRACTOR_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
             </Field>
             <Field label="Logo">
               <input
