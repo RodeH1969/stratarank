@@ -65,13 +65,38 @@ function computePoints(type, newTerm, prevTerm) {
 }
 
 async function api(path, options) {
-  const res = await fetch(path, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options && options.headers) },
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
-  return body;
+  // Render's containers occasionally take a minute or two to fully settle
+  // right after a fresh deploy, which can cause a brief run of server-side
+  // failures. Retry those silently with backoff before ever surfacing an
+  // error — but never retry a genuine validation error (4xx), since that's
+  // real input feedback the person needs to see immediately.
+  const maxAttempts = 6;
+  let delay = 2000;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let res;
+    try {
+      res = await fetch(path, {
+        ...options,
+        headers: { "Content-Type": "application/json", ...(options && options.headers) },
+      });
+    } catch (networkErr) {
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, delay));
+        delay = Math.min(delay * 2, 20000);
+        continue;
+      }
+      throw networkErr;
+    }
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) return body;
+    const message = body.error || `Request failed (${res.status})`;
+    if (res.status >= 500 && attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 20000);
+      continue;
+    }
+    throw new Error(message);
+  }
 }
 
 function PointsInfoButton() {
@@ -283,7 +308,6 @@ function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
   return (
     <div>
       <PointsInfoButton />
-      <SponsorStrip sponsors={sponsors} />
       {standings.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No wins reported yet for {seasonYear}.</p>
       ) : (
@@ -301,6 +325,7 @@ function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
           </div>
         ))
       )}
+      <SponsorStrip sponsors={sponsors} />
     </div>
   );
 }
