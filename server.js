@@ -491,11 +491,12 @@ app.delete('/api/sponsors/:id', async (req, res) => {
 // --- sponsor invites -------------------------------------------------
 
 app.post('/api/sponsor-invites', async (req, res) => {
-  const { businessName, contactName, eventType, schemeName, newTerm, nominatedBy, nominatedByAgency } = req.body;
+  const { eventId, businessName, contactName, eventType, schemeName, newTerm, nominatedBy, nominatedByAgency, status, logoUrl, tagline } = req.body;
   if (!businessName || !businessName.trim()) return res.status(400).json({ error: 'businessName is required' });
   const { data, error } = await supabase
     .from('strata_sponsor_invites')
     .insert({
+      event_id: eventId || null,
       business_name: businessName.trim(),
       contact_name: (contactName || '').trim() || null,
       event_type: eventType || null,
@@ -503,6 +504,9 @@ app.post('/api/sponsor-invites', async (req, res) => {
       new_term: newTerm || null,
       nominated_by: nominatedBy || null,
       nominated_by_agency: nominatedByAgency || null,
+      status: status || 'pending',
+      logo_url: logoUrl || null,
+      tagline: (tagline || '').trim() || null,
     })
     .select()
     .single();

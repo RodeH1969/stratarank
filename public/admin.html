@@ -645,10 +645,48 @@ function Field({ label, children }) {
   return <div><label className="block text-sm text-slate-600 mb-1">{label}</label>{children}</div>;
 }
 
-function NominationRow({ ev, manager, scheme, refresh }) {
+function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(null);
   const [error, setError] = useState(null);
+  const [addingContractor, setAddingContractor] = useState(false);
+  const [contractorForm, setContractorForm] = useState({ businessName: "", contactName: "", logoData: "", tagline: "" });
+  const [contractorError, setContractorError] = useState(null);
+
+  const contractors = (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl);
+
+  const startAddContractor = () => {
+    setContractorForm({ businessName: "", contactName: "", logoData: "", tagline: "" });
+    setContractorError(null);
+    setAddingContractor(true);
+  };
+
+  const saveContractor = async () => {
+    if (!contractorForm.businessName.trim()) return setContractorError("Business name is required.");
+    if (!contractorForm.logoData) return setContractorError("A logo is required.");
+    try {
+      await api("/api/sponsor-invites", {
+        method: "POST",
+        body: JSON.stringify({
+          eventId: ev.id,
+          businessName: contractorForm.businessName.trim(),
+          contactName: contractorForm.contactName.trim() || undefined,
+          eventType: ev.type,
+          schemeName: schemeLabel(scheme),
+          newTerm: ev.newTerm,
+          nominatedBy: manager?.name || "",
+          nominatedByAgency: manager?.agency || "",
+          status: "accepted",
+          logoUrl: contractorForm.logoData,
+          tagline: contractorForm.tagline.trim(),
+        }),
+      });
+      await refresh();
+      setAddingContractor(false);
+    } catch (e) {
+      setContractorError(e.message);
+    }
+  };
 
   const startEdit = () => {
     setForm({
@@ -709,20 +747,74 @@ function NominationRow({ ev, manager, scheme, refresh }) {
 
   if (!editing) {
     return (
-      <div className="flex items-start gap-4 py-3 border-b border-slate-200 last:border-b-0">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">
-            {manager?.name || "Unknown"}
-            {manager?.agency && <span className="text-slate-500 font-normal"> · {manager.agency}</span>}
-          </p>
-          <p className="text-xs text-slate-500 truncate">{schemeLabel(scheme)} · {ev.type}{ev.prevTerm ? ` (was ${ev.prevTerm}yr)` : ""} · {ev.newTerm}yr · {ev.date}</p>
-          {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+      <div className="py-3 border-b border-slate-200 last:border-b-0">
+        <div className="flex items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {manager?.name || "Unknown"}
+              {manager?.agency && <span className="text-slate-500 font-normal"> · {manager.agency}</span>}
+            </p>
+            <p className="text-xs text-slate-500 truncate">{schemeLabel(scheme)} · {ev.type}{ev.prevTerm ? ` (was ${ev.prevTerm}yr)` : ""} · {ev.newTerm}yr · {ev.date}</p>
+            {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+          </div>
+          <div className="text-sm font-serif w-12 text-right shrink-0">{ev.points}</div>
+          <div className="flex gap-3 shrink-0">
+            <button onClick={startEdit} className="text-xs text-amber-700 hover:underline">Edit</button>
+            <button onClick={remove} className="text-xs text-rose-600 hover:underline">Delete</button>
+          </div>
         </div>
-        <div className="text-sm font-serif w-12 text-right shrink-0">{ev.points}</div>
-        <div className="flex gap-3 shrink-0">
-          <button onClick={startEdit} className="text-xs text-amber-700 hover:underline">Edit</button>
-          <button onClick={remove} className="text-xs text-rose-600 hover:underline">Delete</button>
+
+        <div className="mt-2 pl-0 flex items-center gap-3 flex-wrap">
+          {contractors.map((c) => (
+            <img key={c.id} src={c.logoUrl} alt={c.businessName} title={c.tagline ? `${c.businessName} — ${c.tagline}` : c.businessName} className="h-8 max-w-[90px] object-contain border border-slate-100 rounded bg-white p-0.5" />
+          ))}
+          {!addingContractor && (
+            <button onClick={startAddContractor} className="text-xs text-teal-700 hover:underline">+ Add contractor</button>
+          )}
         </div>
+
+        {addingContractor && (
+          <div className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
+            <Field label="Business name">
+              <input value={contractorForm.businessName} onChange={(e) => setContractorForm((f) => ({ ...f, businessName: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
+            </Field>
+            <Field label="Contact name (optional)">
+              <input value={contractorForm.contactName} onChange={(e) => setContractorForm((f) => ({ ...f, contactName: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
+            </Field>
+            <Field label="Logo">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => setContractorForm((f) => ({ ...f, logoData: reader.result }));
+                  reader.readAsDataURL(file);
+                }}
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+              />
+            </Field>
+            {contractorForm.logoData && (
+              <div className="bg-white border border-slate-200 rounded p-2 w-fit">
+                <img src={contractorForm.logoData} alt="preview" className="max-h-10 max-w-32 object-contain" />
+              </div>
+            )}
+            <Field label="Tagline">
+              <input
+                value={contractorForm.tagline}
+                onChange={(e) => setContractorForm((f) => ({ ...f, tagline: e.target.value }))}
+                placeholder="e.g. Reliable maintenance for body corporates across Brisbane"
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+              />
+            </Field>
+            {contractorError && <div className="bg-rose-50 border border-rose-200 rounded-lg p-2 text-xs text-rose-700">{contractorError}</div>}
+            <div className="flex gap-2">
+              <button onClick={saveContractor} className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg">Save contractor</button>
+              <button onClick={() => setAddingContractor(false)} className="text-sm text-slate-500 px-2">Cancel</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -853,7 +945,7 @@ function NominationsManager({ data, refresh }) {
       <div className="max-w-2xl border border-slate-200 rounded-lg overflow-hidden px-3">
         {events.length === 0 && <p className="text-sm text-slate-400 py-4">No nominations found.</p>}
         {events.map((ev) => (
-          <NominationRow key={ev.id} ev={ev} manager={managerById(ev.managerId)} scheme={schemeById(ev.schemeId)} refresh={refresh} />
+          <NominationRow key={ev.id} ev={ev} manager={managerById(ev.managerId)} scheme={schemeById(ev.schemeId)} sponsorInvites={data.sponsorInvites} refresh={refresh} />
         ))}
       </div>
     </section>
