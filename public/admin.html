@@ -118,19 +118,35 @@ function InfoTooltip({ text }) {
 }
 
 function AgencyLogoManager({ data, refresh }) {
+  const [editingKey, setEditingKey] = useState(null); // null = adding a new one
   const [agencyName, setAgencyName] = useState("");
   const [logoData, setLogoData] = useState("");
   const [logoFileName, setLogoFileName] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [error, setError] = useState(null);
 
   const agencyLogos = data.agencyLogos || {};
 
+  const resetForm = () => {
+    setEditingKey(null);
+    setAgencyName(""); setLogoData(""); setLogoFileName(""); setWebsiteUrl("");
+  };
+
+  const startEdit = (key, val) => {
+    setEditingKey(key);
+    setAgencyName(val.name);
+    setLogoData(val.logoUrl);
+    setLogoFileName("");
+    setWebsiteUrl(val.websiteUrl || "");
+    setError(null);
+  };
+
   const saveAgencyLogo = async () => {
     if (!agencyName.trim() || !logoData) return;
     try {
-      await api("/api/agency-logos", { method: "POST", body: JSON.stringify({ name: agencyName.trim(), logoUrl: logoData }) });
+      await api("/api/agency-logos", { method: "POST", body: JSON.stringify({ name: agencyName.trim(), logoUrl: logoData, websiteUrl: websiteUrl.trim() }) });
       await refresh();
-      setAgencyName(""); setLogoData(""); setLogoFileName("");
+      resetForm();
     } catch (e) {
       setError(e.message);
     }
@@ -141,6 +157,7 @@ function AgencyLogoManager({ data, refresh }) {
     try {
       await api(`/api/agency-logos/${encodeURIComponent(key)}`, { method: "DELETE" });
       await refresh();
+      if (editingKey === key) resetForm();
     } catch (e) {
       setError(e.message);
     }
@@ -150,7 +167,7 @@ function AgencyLogoManager({ data, refresh }) {
     <section className="mb-10">
       <h2 className="font-serif text-2xl">Agency Logos</h2>
       <p className="text-sm text-slate-500 mt-1 mb-4">
-        Upload corporate logos for manager companies so they appear automatically next to their name on the leaderboard.
+        Upload corporate logos for manager companies so they appear automatically next to their name on the leaderboard. Add a website and their logo becomes a clickable link.
       </p>
 
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3 max-w-lg mb-6">
@@ -159,8 +176,10 @@ function AgencyLogoManager({ data, refresh }) {
             value={agencyName}
             onChange={(e) => setAgencyName(e.target.value)}
             placeholder="e.g. SSKB"
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+            disabled={!!editingKey}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500"
           />
+          {editingKey && <p className="text-xs text-slate-400 mt-1">To rename an agency, delete it and add it again under the new name.</p>}
         </Field>
 
         <Field label="Logo Image File">
@@ -184,24 +203,38 @@ function AgencyLogoManager({ data, refresh }) {
             }}
             className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
           />
-          <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP or SVG · max 2 MB</p>
+          <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP or SVG · max 2 MB{editingKey ? " · leave unchanged to keep the current logo" : ""}</p>
           {logoFileName && <p className="text-xs text-slate-500 mt-1">Selected: {logoFileName}</p>}
         </Field>
 
+        <Field label="Website (optional — clicking their logo opens this)">
+          <input
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://example.com"
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+          />
+        </Field>
+
         {logoData && (
-          <div className="bg-white border border-slate-200 rounded p-3">
+          <div className="bg-white border border-slate-200 rounded p-3 w-fit">
             <p className="text-xs text-slate-400 mb-2">Preview</p>
             <img src={logoData} alt="Logo preview" className="max-h-12 max-w-48 object-contain" />
           </div>
         )}
 
-        <button
-          onClick={saveAgencyLogo}
-          disabled={!agencyName.trim() || !logoData}
-          className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-40"
-        >
-          Save Agency Logo
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={saveAgencyLogo}
+            disabled={!agencyName.trim() || !logoData}
+            className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-40"
+          >
+            {editingKey ? "Update Agency Logo" : "Save Agency Logo"}
+          </button>
+          {editingKey && (
+            <button onClick={resetForm} className="text-sm text-slate-500 px-2">Cancel</button>
+          )}
+        </div>
         {error && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
       </div>
 
@@ -217,7 +250,11 @@ function AgencyLogoManager({ data, refresh }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{val.name}</p>
+              {val.websiteUrl && <p className="text-xs text-teal-700 truncate">{val.websiteUrl}</p>}
             </div>
+            <button onClick={() => startEdit(key, val)} className="text-xs text-teal-700 hover:underline shrink-0">
+              Edit
+            </button>
             <button onClick={() => removeAgencyLogo(key)} className="text-xs text-rose-600 hover:underline shrink-0">
               Delete
             </button>

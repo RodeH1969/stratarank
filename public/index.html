@@ -220,7 +220,7 @@ function App() {
     }
     return Object.values(totals)
       .filter((row) => row.events > 0)
-      .sort((a, b) => b.points - a.points);
+      .sort((a, b) => b.points - a.points || b.lots - a.lots);
   }, [data]);
 
   const sortedEvents = useMemo(
@@ -279,7 +279,12 @@ function AgencyBadge({ agency, agencyLogos }) {
   const match = (agencyLogos || {})[key];
 
   if (match && match.logoUrl) {
-    return <img src={match.logoUrl} alt={agency} className="h-6 w-auto object-contain shrink-0" />;
+    const logo = <img src={match.logoUrl} alt={agency} className="h-6 w-auto object-contain shrink-0" />;
+    return match.websiteUrl ? (
+      <a href={match.websiteUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="shrink-0 hover:opacity-80 transition-opacity">
+        {logo}
+      </a>
+    ) : logo;
   }
   const initials = agency.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
