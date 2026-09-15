@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QLD Strata Rankings — Admin</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .font-serif { font-family: Georgia, "Times New Roman", serif; }
+  @keyframes slideInNew {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .new-item { animation: slideInNew 420ms ease-out; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/plain" id="app-source">
+
+const { useState, useEffect, useMemo } = React;
+
+const BCCM_MODULES = [
+  "Standard Module",
+  "Accommodation Module",
+  "Commercial Module",
+  "Small Schemes Module",
+  "Specified Two-lot Schemes Module",
+];
+
+const emptyData = { managers: [], schemes: [], events: [], sponsors: [], sponsorInvites: [], agencyLogos: {}, seasonYear: new Date().getFullYear() };
+const schemeLabel = (scheme) => {
+  if (!scheme) return "Building";
+  const parts = [scheme.suburb, scheme.planType, scheme.module, scheme.lotCount ? `${scheme.lotCount} lots` : null].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Building";
+};
+function computePoints(type, newTerm, prevTerm) {
+  const t = Number(newTerm);
+  const p = prevTerm != null && prevTerm !== "" ? Number(prevTerm) : null;
+  if (type === "competitor") {
+    if (t === 3) return 10;
+    if (t === 2) return 9;
+    if (t === 1) return 8;
+    return 0;
+  }
+  if (type === "renewal") {
+    if (t === 3) {
+      if (p === 1 || p === 2) return 7;
+      if (p === 3) return 3;
+      return 0;
+    }
+    if (t === 2) return 2;
+    if (t === 1) return 1;
+    return 0;
+  }
+  return 0;
+}
+
+async function api(path, options) {
+  // Render's containers occasionally take a minute or two to fully settle
+  // right after a fresh deploy, which can cause a brief run of server-side
+  // failures. Retry those silently with backoff before ever surfacing an
+  // error — but never retry a genuine validation error (4xx), since that's
+  // real input feedback the person needs to see immediately.
+  const maxAttempts = 6;
+  let delay = 2000;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let res;
+    try {
+      res = await fetch(path, {
+        ...options,
+        headers: { "Content-Type": "application/json", ...(options && options.headers) },
+      });
+    } catch (networkErr) {
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, delay));
+        delay = Math.min(delay * 2, 20000);
+        continue;
+      }
+      throw networkErr;
+    }
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) return body;
+    const message = body.error || `Request failed (${res.status})`;
+    if (res.status >= 500 && attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 20000);
+      continue;
+    }
+    throw new Error(message);
+  }
+}
+
+function InfoTooltip({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex align-middle ml-1">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => setOpen(false)}
+        aria-label="More info"
+        className="w-4 h-4 rounded-full bg-slate-300 text-white text-[10px] font-bold leading-none flex items-center justify-center hover:bg-slate-400"
+      >
+        i
+      </button>
+      {open && (
+        <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 w-60 bg-slate-900 text-white text-xs rounded-lg p-3 shadow-lg">
+          {text}
+        </div>
+      )}
+    </span>
+  );
+}
+
+function AgencyLogoManager({ data, refresh }) {
+  const [editingKey, setEditingKey] = useState(null); // null = adding a new one
+  const [agencyName, setAgencyName] = useState("");
+  const [logoData, setLogoData] = useState("");
+  const [logoFileName, setLogoFileName] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [error, setError] = useState(null);
+
+  const agencyLogos = data.agencyLogos || {};
+
+  const resetForm = () => {
+    setEditingKey(null);
+    setAgencyName(""); setLogoData(""); setLogoFileName(""); setWebsiteUrl("");
+  };
+
+  const startEdit = (key, val) => {
+    setEditingKey(key);
+    setAgencyName(val.name);
+    setLogoData(val.logoUrl);
+    setLogoFileName("");
+    setWebsiteUrl(val.websiteUrl || "");
+    setError(null);
+  };
+
+  const saveAgencyLogo = async () => {
+    if (!agencyName.trim() || !logoData) return;
+    try {
+      await api("/api/agency-logos", { method: "POST", body: JSON.stringify({ name: agencyName.trim(), logoUrl: logoData, websiteUrl: websiteUrl.trim() }) });
+      await refresh();
+      resetForm();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const removeAgencyLogo = async (key) => {
+    if (!window.confirm(`Remove logo for ${key}?`)) return;
+    try {
+      await api(`/api/agency-logos/${encodeURIComponent(key)}`, { method: "DELETE" });
+      await refresh();
+      if (editingKey === key) resetForm();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  return (
+    <section className="mb-10">
+      <h2 className="font-serif text-2xl">Agency Logos</h2>
+      <p className="text-sm text-slate-500 mt-1 mb-4">
+        Upload corporate logos for manager companies so they appear automatically next to their name on the leaderboard. Add a website and their logo becomes a clickable link.
+      </p>
+
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3 max-w-lg mb-6">
+        <Field label="Agency / Company Name">
+          <input
+            value={agencyName}
+            onChange={(e) => setAgencyName(e.target.value)}
+            placeholder="e.g. SSKB"
+            disabled={!!editingKey}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500"
+          />
+          {editingKey && <p className="text-xs text-slate-400 mt-1">To rename an agency, delete it and add it again under the new name.</p>}
+        </Field>
+
+        <Field label="Logo Image File">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.size > 2 * 1024 * 1024) {
+                window.alert("Please choose a logo smaller than 2 MB.");
+                e.target.value = "";
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                setLogoData(reader.result);
+                setLogoFileName(file.name);
+              };
+              reader.readAsDataURL(file);
+            }}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+          />
+          <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP or SVG · max 2 MB{editingKey ? " · leave unchanged to keep the current logo" : ""}</p>
+          {logoFileName && <p className="text-xs text-slate-500 mt-1">Selected: {logoFileName}</p>}
+        </Field>
+
+        <Field label="Website (optional — clicking their logo opens this)">
+          <input
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://example.com"
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+          />
+        </Field>
+
+        {logoData && (
+          <div className="bg-white border border-slate-200 rounded p-3 w-fit">
+            <p className="text-xs text-slate-400 mb-2">Preview</p>
+            <img src={logoData} alt="Logo preview" className="max-h-12 max-w-48 object-contain" />
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={saveAgencyLogo}
+            disabled={!agencyName.trim() || !logoData}
+            className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-40"
+          >
+            {editingKey ? "Update Agency Logo" : "Save Agency Logo"}
+          </button>
+          {editingKey && (
+            <button onClick={resetForm} className="text-sm text-slate-500 px-2">Cancel</button>
+          )}
+        </div>
+        {error && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
+      </div>
+
+      <h3 className="font-serif text-xl mb-3">Configured Agency Logos</h3>
+      <div className="border border-slate-200 rounded-lg overflow-hidden max-w-lg">
+        {Object.keys(agencyLogos).length === 0 && (
+          <div className="p-4 text-sm text-slate-400">No agency logos added yet.</div>
+        )}
+        {Object.entries(agencyLogos).map(([key, val]) => (
+          <div key={key} className="p-3 border-b last:border-b-0 border-slate-200 flex items-center justify-between gap-3">
+            <div className="w-24 h-8 flex items-center justify-center bg-white border border-slate-100 rounded shrink-0">
+              <img src={val.logoUrl} alt={val.name} className="max-h-7 max-w-20 object-contain" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{val.name}</p>
+              {val.websiteUrl && <p className="text-xs text-teal-700 truncate">{val.websiteUrl}</p>}
+            </div>
+            <button onClick={() => startEdit(key, val)} className="text-xs text-teal-700 hover:underline shrink-0">
+              Edit
+            </button>
+            <button onClick={() => removeAgencyLogo(key)} className="text-xs text-rose-600 hover:underline shrink-0">
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SponsorInvites({ data, refresh }) {
+  const allInvites = data.sponsorInvites || [];
+  const SPONSORSHIP_PRICE = 50;
+  const [copiedId, setCopiedId] = useState(null);
+  const [acceptingId, setAcceptingId] = useState(null);
+  const [acceptForm, setAcceptForm] = useState({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
+  const [error, setError] = useState(null);
+
+  const buildMessage = (invite) => {
+    const winPhrase = invite.eventType === "renewal"
+      ? `renewed ${invite.schemeName} to a ${invite.newTerm}-year term`
+      : `just won ${invite.schemeName} on a ${invite.newTerm}-year term`;
+    const subject = `${invite.nominatedBy} just moved up the QLD Strata Rankings — want in?`;
+    const body = `Hi,\n\n${invite.nominatedBy}${invite.nominatedByAgency ? ` at ${invite.nominatedByAgency}` : ""} ${winPhrase} on the QLD Strata Rankings — a live leaderboard tracking strata manager performance across Queensland.\n\n${invite.nominatedBy} thought ${invite.businessName} would be a great fit to sponsor this win. For $${SPONSORSHIP_PRICE}, your logo and a short tagline about your business get featured right next to this win on the rankings page, seen by strata managers and body corporates across QLD.\n\nInterested? Just reply here and we'll get you set up.\n\n— QLD Strata Rankings`;
+    return { subject, body };
+  };
+
+  const copyMessage = async (invite) => {
+    const { subject, body } = buildMessage(invite);
+    const text = `Subject: ${subject}\n\n${body}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(invite.id);
+      setTimeout(() => setCopiedId((id) => (id === invite.id ? null : id)), 2000);
+    } catch (e) {
+      window.prompt("Copy failed automatically — select and copy this manually:", text);
+    }
+  };
+
+  const startAccept = (invite) => {
+    setAcceptingId(invite.id);
+    setAcceptForm({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
+    setError(null);
+  };
+
+  const confirmAccept = async (invite) => {
+    if (!acceptForm.logoData) return setError("A logo is required to accept.");
+    try {
+      await api(`/api/sponsor-invites/${invite.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "accepted", logoUrl: acceptForm.logoData, tagline: acceptForm.tagline.trim(), websiteUrl: acceptForm.websiteUrl.trim(), iconUrl: acceptForm.iconData }),
+      });
+      await refresh();
+      setAcceptingId(null);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const decline = async (invite) => {
+    try {
+      await api(`/api/sponsor-invites/${invite.id}`, { method: "PATCH", body: JSON.stringify({ status: "declined" }) });
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const deleteInvite = async (invite) => {
+    if (!window.confirm(`Remove this invite for ${invite.businessName}?`)) return;
+    try {
+      await api(`/api/sponsor-invites/${invite.id}`, { method: "DELETE" });
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  if (allInvites.length === 0) return null;
+  const invites = [...allInvites].sort((a, b) => (a.status === "pending" ? -1 : 1) - (b.status === "pending" ? -1 : 1));
+
+  return (
+    <section className="mb-10">
+      <h2 className="font-serif text-2xl">Sponsor invites</h2>
+      <p className="text-sm text-slate-500 mt-1 mb-3">
+        Tradies/contractors nominated by managers on a specific win. Accepting attaches their logo and tagline to that win on Recent wins — this is separate from the site-wide Sponsors strip.
+      </p>
+      {error && <div className="mb-3 bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
+      <div className="border border-slate-200 rounded-lg overflow-hidden">
+        {invites.map((invite) => {
+          const { body } = buildMessage(invite);
+          return (
+            <div key={invite.id} className="p-3 border-b last:border-b-0 border-slate-200">
+              <div className="flex items-center gap-3">
+                {invite.logoUrl && (
+                  <div className="w-16 h-8 flex items-center justify-center border border-slate-100 rounded bg-white shrink-0">
+                    <img src={invite.logoUrl} alt={invite.businessName} className="max-h-6 max-w-14 object-contain" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {invite.businessName}
+                    {invite.status !== "pending" && (
+                      <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${invite.status === "accepted" ? "bg-teal-100 text-teal-800" : "bg-slate-100 text-slate-500"}`}>
+                        {invite.status}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-500">nominated by {invite.nominatedBy} for {invite.schemeName}</p>
+                </div>
+                <button onClick={() => copyMessage(invite)} className="text-xs text-slate-700 hover:underline shrink-0">
+                  {copiedId === invite.id ? "Copied!" : "Copy"}
+                </button>
+                {invite.status === "pending" && acceptingId !== invite.id && (
+                  <>
+                    <button onClick={() => startAccept(invite)} className="text-xs text-teal-700 hover:underline shrink-0">Accept</button>
+                    <button onClick={() => decline(invite)} className="text-xs text-rose-600 hover:underline shrink-0">Decline</button>
+                  </>
+                )}
+                <button onClick={() => deleteInvite(invite)} className="text-xs text-slate-400 hover:underline shrink-0">Delete</button>
+              </div>
+
+              {acceptingId === invite.id && (
+                <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
+                  <Field label="Trade icon (optional)">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => setAcceptForm((f) => ({ ...f, iconData: reader.result, iconFileName: file.name }));
+                        reader.readAsDataURL(file);
+                      }}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                    />
+                    {acceptForm.iconData && (
+                      <img src={acceptForm.iconData} alt="icon preview" className="mt-2 h-8 w-8 object-contain" />
+                    )}
+                  </Field>
+                  <Field label="Logo">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => setAcceptForm((f) => ({ ...f, logoData: reader.result, logoFileName: file.name }));
+                        reader.readAsDataURL(file);
+                      }}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                    />
+                  </Field>
+                  {acceptForm.logoData && (
+                    <div className="bg-white border border-slate-200 rounded p-2 w-fit">
+                      <img src={acceptForm.logoData} alt="preview" className="max-h-10 max-w-32 object-contain" />
+                    </div>
+                  )}
+                  <Field label="Tagline (shown next to the logo on this win)">
+                    <input
+                      value={acceptForm.tagline}
+                      onChange={(e) => setAcceptForm((f) => ({ ...f, tagline: e.target.value }))}
+                      placeholder="e.g. Reliable maintenance for body corporates across Brisbane"
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                    />
+                  </Field>
+                  <Field label="Website (optional — clicking their logo opens this)">
+                    <input
+                      value={acceptForm.websiteUrl}
+                      onChange={(e) => setAcceptForm((f) => ({ ...f, websiteUrl: e.target.value }))}
+                      placeholder="https://example.com"
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                    />
+                  </Field>
+                  <div className="flex gap-2">
+                    <button onClick={() => confirmAccept(invite)} className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg">Confirm sponsor</button>
+                    <button onClick={() => setAcceptingId(null)} className="text-sm text-slate-500 px-2">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-2 bg-slate-50 border border-slate-200 rounded p-3">
+                <textarea readOnly value={body} className="w-full text-xs text-slate-700 bg-white border border-slate-200 rounded p-2 font-mono" rows={5} onClick={(e) => e.target.select()} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SponsorManager({ data, refresh }) {
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState({ name: "", logoData: "", logoName: "", websiteUrl: "", position: 1, active: true });
+  const [error, setError] = useState(null);
+
+  const reset = () => {
+    setEditingId(null);
+    setDraft({ name: "", logoData: "", logoName: "", websiteUrl: "", position: 1, active: true });
+  };
+
+  const startAdd = () => {
+    const nextPosition = Math.max(0, ...(data.sponsors || []).map((s) => Number(s.position) || 0)) + 1;
+    setEditingId("new");
+    setDraft({ name: "", logoData: "", logoName: "", websiteUrl: "", position: nextPosition, active: true });
+  };
+
+  const startEdit = (s) => {
+    setEditingId(s.id);
+    setDraft({ name: s.name || "", logoData: s.logoUrl || "", logoName: s.logoName || "", websiteUrl: s.websiteUrl || "", position: s.position || 1, active: s.active !== false });
+  };
+
+  const save = async () => {
+    if (!draft.name.trim()) return;
+    try {
+      await api("/api/sponsors", {
+        method: "POST",
+        body: JSON.stringify({
+          id: editingId === "new" ? undefined : editingId,
+          name: draft.name.trim(),
+          logoUrl: draft.logoData || "",
+          logoName: draft.logoName || "",
+          websiteUrl: draft.websiteUrl || "",
+          position: Number(draft.position) || 1,
+          active: !!draft.active,
+        }),
+      });
+      await refresh();
+      reset();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm("Delete this sponsor?")) return;
+    try {
+      await api(`/api/sponsors/${id}`, { method: "DELETE" });
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const sorted = [...(data.sponsors || [])].sort((a, b) => (a.position || 99) - (b.position || 99));
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="font-serif text-2xl">Sponsors</h2>
+          <p className="text-sm text-slate-500 mt-1">Control logos shown on the public Rankings page.</p>
+        </div>
+        <button onClick={startAdd} className="bg-slate-900 text-white text-sm font-medium px-3 py-2 rounded-lg">+ Add sponsor</button>
+      </div>
+      {error && <div className="mb-3 bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
+      <div className="border border-slate-200 rounded-lg overflow-hidden">
+        {sorted.length === 0 && <div className="p-5 text-sm text-slate-400">No sponsors added.</div>}
+        {sorted.map((s) => (
+          <div key={s.id} className="p-3 border-b last:border-b-0 border-slate-200 flex items-center gap-3">
+            <div className="w-28 h-10 flex items-center justify-center border border-slate-100 rounded bg-white shrink-0">
+              {s.logoUrl ? <img src={s.logoUrl} alt={s.name} className="max-h-8 max-w-24 object-contain" /> : <span className="text-xs text-slate-400">No logo</span>}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{s.name}</p>
+              <p className="text-xs text-slate-500">Position {s.position || 1}</p>
+            </div>
+            <button onClick={() => startEdit(s)} className="text-xs text-teal-700 hover:underline">Edit</button>
+            <button onClick={() => remove(s.id)} className="text-xs text-rose-600 hover:underline">Delete</button>
+          </div>
+        ))}
+      </div>
+
+      {editingId && (
+        <div className="mt-4 bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+          <Field label="Sponsor name">
+            <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
+          </Field>
+          <Field label="Sponsor logo">
+            <input type="file" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => setDraft((d) => ({ ...d, logoData: reader.result, logoName: file.name }));
+              reader.readAsDataURL(file);
+            }} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
+          </Field>
+          <Field label="Website (optional — clicking their logo opens this)">
+            <input
+              value={draft.websiteUrl}
+              onChange={(e) => setDraft((d) => ({ ...d, websiteUrl: e.target.value }))}
+              placeholder="https://example.com"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+            />
+          </Field>
+          <div className="flex gap-2 pt-1">
+            <button onClick={save} className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg">Save sponsor</button>
+            <button onClick={reset} className="text-sm text-slate-500 px-4 py-2">Cancel</button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RecordWin({ data, refresh }) {
+  const [managerChoice, setManagerChoice] = useState("__new__");
+  const [managerName, setManagerName] = useState("");
+  const [agency, setAgency] = useState("");
+  const [schemeChoice, setSchemeChoice] = useState("__new__");
+  const [suburb, setSuburb] = useState("");
+  const [planType, setPlanType] = useState("BFP");
+  const [module, setModule] = useState("");
+  const [lotCount, setLotCount] = useState("");
+  const [schemeName, setSchemeName] = useState("");
+  const [cts, setCts] = useState("");
+  const [winType, setWinType] = useState("");
+  const [newTerm, setNewTerm] = useState("");
+  const [prevTerm, setPrevTerm] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [confirmation, setConfirmation] = useState(null);
+  const [error, setError] = useState(null);
+
+  const sortedManagers = [...data.managers].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedSchemes = [...data.schemes].sort((a, b) => schemeLabel(a).localeCompare(schemeLabel(b)));
+  const previewPoints = computePoints(winType, newTerm, prevTerm);
+
+  const submit = async () => {
+    const isNewManager = managerChoice === "__new__";
+    const isNewScheme = schemeChoice === "__new__";
+    if (isNewManager && !managerName.trim()) return setError("Manager's name is required.");
+    if (isNewScheme && (!suburb.trim() || !module.trim() || !lotCount)) return setError("Suburb, module, and lot count are required.");
+    if (!winType) return setError("Select how this scheme was secured.");
+    if (!newTerm) return setError("Select the new term.");
+    if (winType === "renewal" && !prevTerm) return setError("Previous term is required for a renewal.");
+
+    setError(null);
+    try {
+      const result = await api("/api/events", {
+        method: "POST",
+        body: JSON.stringify({
+          managerId: isNewManager ? null : managerChoice,
+          managerName: isNewManager ? managerName : undefined,
+          agency: isNewManager ? agency : undefined,
+          schemeId: isNewScheme ? null : schemeChoice,
+          suburb: isNewScheme ? suburb : undefined,
+          planType: isNewScheme ? planType : undefined,
+          module: isNewScheme ? module : undefined,
+          lotCount: isNewScheme ? lotCount : undefined,
+          schemeName: isNewScheme ? schemeName : undefined,
+          cts: isNewScheme ? cts : undefined,
+          type: winType,
+          newTerm,
+          prevTerm: winType === "renewal" ? prevTerm : undefined,
+          date,
+        }),
+      });
+      await refresh();
+      setManagerChoice("__new__"); setManagerName(""); setAgency("");
+      setSchemeChoice("__new__"); setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
+      setWinType(""); setNewTerm(""); setPrevTerm("");
+      setConfirmation({ points: result.event.points, label: `Logged for ${result.manager.name} — ${result.event.points} points` });
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  return (
+    <section className="mb-10 max-w-lg">
+      <h2 className="font-serif text-2xl mb-4">Record a win</h2>
+      <div className="space-y-3">
+        <Field label="How was this scheme secured?">
+          <select value={winType} onChange={(e) => { setWinType(e.target.value); setPrevTerm(""); }} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+            <option value="">Select…</option>
+            <option value="competitor">Signed from a competitor</option>
+            <option value="renewal">Renewed with us</option>
+          </select>
+        </Field>
+
+        {sortedManagers.length > 0 && (
+          <Field label="Manager">
+            <select value={managerChoice} onChange={(e) => setManagerChoice(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+              <option value="__new__">+ Add new manager…</option>
+              {sortedManagers.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}{m.agency ? ` · ${m.agency}` : ""}</option>
+              ))}
+            </select>
+          </Field>
+        )}
+        {managerChoice === "__new__" && (
+          <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-3" : "space-y-3"}>
+            <Field label="Manager's name"><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
+            <Field label="Manager's agency"><input value={agency} onChange={(e) => setAgency(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
+          </div>
+        )}
+
+        {sortedSchemes.length > 0 && (
+          <Field label="Scheme">
+            <select value={schemeChoice} onChange={(e) => setSchemeChoice(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+              <option value="__new__">+ Add new scheme…</option>
+              {sortedSchemes.map((s) => (
+                <option key={s.id} value={s.id}>{schemeLabel(s)}</option>
+              ))}
+            </select>
+          </Field>
+        )}
+        {schemeChoice === "__new__" && (
+          <div className={sortedSchemes.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-3" : "space-y-3"}>
+            <Field label="Suburb (where the scheme is located)"><input value={suburb} onChange={(e) => setSuburb(e.target.value)} placeholder="e.g. New Farm" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
+            <Field label="Scheme type">
+              <select value={planType} onChange={(e) => setPlanType(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+                <option value="BFP">BFP</option>
+                <option value="SFP">SFP</option>
+              </select>
+            </Field>
+            <Field label="Module">
+              <select value={module} onChange={(e) => setModule(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+                <option value="">Select…</option>
+                {BCCM_MODULES.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Number of lots"><input type="number" min="1" value={lotCount} onChange={(e) => setLotCount(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
+            <div>
+              <label className="block text-sm text-slate-600 mb-1 flex items-center">
+                Scheme name
+                <InfoTooltip text="Never published — kept privately to verify the win is genuine." />
+              </label>
+              <input value={schemeName} onChange={(e) => setSchemeName(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-600 mb-1 flex items-center">
+                CTS number
+                <InfoTooltip text="Never published — kept privately to verify the win is genuine." />
+              </label>
+              <input value={cts} onChange={(e) => setCts(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" />
+            </div>
+          </div>
+        )}
+
+        <Field label="New term (years)">
+          <select value={newTerm} onChange={(e) => setNewTerm(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+            <option value="">Select…</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </Field>
+
+        {winType === "renewal" && (
+          <Field label="Previous term (years)">
+            <select value={prevTerm} onChange={(e) => setPrevTerm(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+              <option value="">Select…</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </Field>
+        )}
+
+        {winType && newTerm && (winType !== "renewal" || prevTerm) && (
+          <div className="bg-amber-400 border-2 border-amber-500 rounded-lg px-4 py-3 text-center shadow-sm">
+            <span className="text-black font-extrabold text-lg">
+              Worth {previewPoints} point{previewPoints === 1 ? "" : "s"}
+            </span>
+          </div>
+        )}
+
+        <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
+
+        <button onClick={submit} className="bg-amber-500 text-slate-900 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-amber-400">Save</button>
+        {error && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
+        {confirmation && <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm text-teal-800">{confirmation.label}</div>}
+      </div>
+    </section>
+  );
+}
+
+function Field({ label, children }) {
+  return <div><label className="block text-sm text-slate-600 mb-1">{label}</label>{children}</div>;
+}
+
+function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(null);
+  const [error, setError] = useState(null);
+  const [addingContractor, setAddingContractor] = useState(false);
+  const [contractorForm, setContractorForm] = useState({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
+  const [contractorError, setContractorError] = useState(null);
+
+  const contractors = (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl);
+
+  const startAddContractor = () => {
+    setContractorForm({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
+    setContractorError(null);
+    setAddingContractor(true);
+  };
+
+  const saveContractor = async () => {
+    if (!contractorForm.businessName.trim()) return setContractorError("Business name is required.");
+    if (!contractorForm.logoData) return setContractorError("A logo is required.");
+    try {
+      await api("/api/sponsor-invites", {
+        method: "POST",
+        body: JSON.stringify({
+          eventId: ev.id,
+          businessName: contractorForm.businessName.trim(),
+          contactName: contractorForm.contactName.trim() || undefined,
+          eventType: ev.type,
+          schemeName: schemeLabel(scheme),
+          newTerm: ev.newTerm,
+          nominatedBy: manager?.name || "",
+          nominatedByAgency: manager?.agency || "",
+          status: "accepted",
+          logoUrl: contractorForm.logoData,
+          tagline: contractorForm.tagline.trim(),
+          websiteUrl: contractorForm.websiteUrl.trim(),
+          iconUrl: contractorForm.iconData,
+        }),
+      });
+      await refresh();
+      setAddingContractor(false);
+    } catch (e) {
+      setContractorError(e.message);
+    }
+  };
+
+  const removeContractor = async (contractor) => {
+    if (!window.confirm(`Remove ${contractor.businessName} from this win?`)) return;
+    setContractorError(null);
+    try {
+      await api(`/api/sponsor-invites/${contractor.id}`, { method: "DELETE" });
+      await refresh();
+    } catch (e) {
+      setContractorError(`Couldn't remove ${contractor.businessName}: ${e.message}`);
+    }
+  };
+
+  const startEdit = () => {
+    setForm({
+      managerName: manager?.name || "",
+      agency: manager?.agency || "",
+      suburb: scheme?.suburb || "",
+      planType: scheme?.planType || "BFP",
+      module: scheme?.module || "",
+      lotCount: scheme?.lotCount || "",
+      schemeName: scheme?.schemeName || "",
+      cts: scheme?.cts || "",
+      mode: ev.type === "renewal" ? "renewal" : "competitor",
+      newTerm: String(ev.newTerm),
+      prevTerm: ev.prevTerm != null ? String(ev.prevTerm) : "",
+      points: ev.points,
+      date: ev.date,
+    });
+    setEditing(true);
+  };
+
+  const save = async () => {
+    if (!form.managerName.trim() || !form.suburb.trim() || !form.module.trim() || !form.lotCount) return;
+    try {
+      await api(`/api/events/${ev.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          managerName: form.managerName,
+          agency: form.agency,
+          suburb: form.suburb,
+          planType: form.planType,
+          module: form.module,
+          lotCount: form.lotCount,
+          schemeName: form.schemeName,
+          cts: form.cts,
+          type: form.mode,
+          newTerm: form.newTerm,
+          prevTerm: form.mode === "renewal" ? form.prevTerm : "",
+          points: form.points,
+          date: form.date,
+        }),
+      });
+      await refresh();
+      setEditing(false);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const remove = async () => {
+    if (!window.confirm("Delete this nomination? This cannot be undone.")) return;
+    try {
+      await api(`/api/events/${ev.id}`, { method: "DELETE" });
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="py-3 border-b border-slate-200 last:border-b-0">
+        <div className="flex items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {manager?.name || "Unknown"}
+              {manager?.agency && <span className="text-slate-500 font-normal"> · {manager.agency}</span>}
+            </p>
+            <p className="text-xs text-slate-500 truncate">{schemeLabel(scheme)} · {ev.type}{ev.prevTerm ? ` (was ${ev.prevTerm}yr)` : ""} · {ev.newTerm}yr · {ev.date}</p>
+            {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+          </div>
+          <div className="text-sm font-serif w-12 text-right shrink-0">{ev.points}</div>
+          <div className="flex gap-3 shrink-0">
+            <button onClick={startEdit} className="text-xs text-amber-700 hover:underline">Edit</button>
+            <button onClick={remove} className="text-xs text-rose-600 hover:underline">Delete</button>
+          </div>
+        </div>
+
+        <div className="mt-2 pl-0 flex items-center gap-3 flex-wrap">
+          {contractors.map((c) => (
+            <div key={c.id} className="relative group flex items-center gap-1 border border-slate-100 rounded bg-white p-0.5">
+              {c.iconUrl && (
+                <img src={c.iconUrl} alt="" className="h-6 w-6 object-contain" />
+              )}
+              <img src={c.logoUrl} alt={c.businessName} title={c.tagline ? `${c.businessName} — ${c.tagline}` : c.businessName} className="h-8 max-w-[90px] object-contain" />
+              <button
+                onClick={() => removeContractor(c)}
+                title={`Remove ${c.businessName}`}
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] leading-none flex items-center justify-center hover:bg-rose-600 shadow"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {!addingContractor && (
+            <button onClick={startAddContractor} className="text-xs text-teal-700 hover:underline">+ Add contractor</button>
+          )}
+        </div>
+
+        {contractorError && !addingContractor && (
+          <p className="text-xs text-rose-600 mt-1">{contractorError}</p>
+        )}
+
+        {addingContractor && (
+          <div className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
+            <Field label="Business name">
+              <input value={contractorForm.businessName} onChange={(e) => setContractorForm((f) => ({ ...f, businessName: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
+            </Field>
+            <Field label="Contact name (optional)">
+              <input value={contractorForm.contactName} onChange={(e) => setContractorForm((f) => ({ ...f, contactName: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
+            </Field>
+            <Field label="Trade icon (optional)">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => setContractorForm((f) => ({ ...f, iconData: reader.result, iconFileName: file.name }));
+                  reader.readAsDataURL(file);
+                }}
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+              />
+              {contractorForm.iconData && (
+                <img src={contractorForm.iconData} alt="icon preview" className="mt-2 h-8 w-8 object-contain" />
+              )}
+            </Field>
+            <Field label="Logo">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => setContractorForm((f) => ({ ...f, logoData: reader.result }));
+                  reader.readAsDataURL(file);
+                }}
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+              />
+            </Field>
+            {contractorForm.logoData && (
+              <div className="bg-white border border-slate-200 rounded p-2 w-fit">
+                <img src={contractorForm.logoData} alt="preview" className="max-h-10 max-w-32 object-contain" />
+              </div>
+            )}
+            <Field label="Tagline">
+              <input
+                value={contractorForm.tagline}
+                onChange={(e) => setContractorForm((f) => ({ ...f, tagline: e.target.value }))}
+                placeholder="e.g. Reliable maintenance for body corporates across Brisbane"
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+              />
+            </Field>
+            <Field label="Website (optional — clicking their logo opens this)">
+              <input
+                value={contractorForm.websiteUrl}
+                onChange={(e) => setContractorForm((f) => ({ ...f, websiteUrl: e.target.value }))}
+                placeholder="https://example.com"
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+              />
+            </Field>
+            {contractorError && <div className="bg-rose-50 border border-rose-200 rounded-lg p-2 text-xs text-rose-700">{contractorError}</div>}
+            <div className="flex gap-2">
+              <button onClick={saveContractor} className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg">Save contractor</button>
+              <button onClick={() => setAddingContractor(false)} className="text-sm text-slate-500 px-2">Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-4 border-b border-slate-200 last:border-b-0 bg-slate-50 -mx-3 px-3 space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Manager's name"><input value={form.managerName} onChange={(e) => setForm({ ...form, managerName: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
+        <Field label="Manager's agency"><input value={form.agency} onChange={(e) => setForm({ ...form, agency: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
+        <Field label="Suburb (where the scheme is located)"><input value={form.suburb} onChange={(e) => setForm({ ...form, suburb: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
+        <Field label="Scheme type">
+          <select value={form.planType} onChange={(e) => setForm({ ...form, planType: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+            <option value="BFP">BFP</option>
+            <option value="SFP">SFP</option>
+          </select>
+        </Field>
+        <Field label="Module">
+          <select value={form.module} onChange={(e) => setForm({ ...form, module: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+            <option value="">Select…</option>
+            {BCCM_MODULES.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Number of lots"><input type="number" min="1" value={form.lotCount} onChange={(e) => setForm({ ...form, lotCount: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
+        <div>
+          <label className="block text-sm text-slate-600 mb-1 flex items-center">
+            Scheme name
+            <InfoTooltip text="Never published — kept privately to verify the win is genuine." />
+          </label>
+          <input value={form.schemeName} onChange={(e) => setForm({ ...form, schemeName: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="block text-sm text-slate-600 mb-1 flex items-center">
+            CTS number
+            <InfoTooltip text="Never published — kept privately to verify the win is genuine." />
+          </label>
+          <input value={form.cts} onChange={(e) => setForm({ ...form, cts: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+        </div>
+        <Field label="How was this scheme secured?">
+          <select
+            value={form.mode}
+            onChange={(e) => {
+              const mode = e.target.value;
+              const prevTerm = mode === "renewal" ? form.prevTerm : "";
+              setForm({ ...form, mode, prevTerm, points: computePoints(mode, form.newTerm, prevTerm) });
+            }}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="competitor">Signed from a competitor</option>
+            <option value="renewal">Renewed with us</option>
+          </select>
+        </Field>
+        <Field label="New term (years)">
+          <select
+            value={form.newTerm}
+            onChange={(e) => {
+              const newTerm = e.target.value;
+              setForm({ ...form, newTerm, points: computePoints(form.mode, newTerm, form.prevTerm) });
+            }}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </Field>
+        {form.mode === "renewal" && (
+          <Field label="Previous term (years)">
+            <select
+              value={form.prevTerm}
+              onChange={(e) => {
+                const prevTerm = e.target.value;
+                setForm({ ...form, prevTerm, points: computePoints(form.mode, form.newTerm, prevTerm) });
+              }}
+              className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+            >
+              <option value="">Select…</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </Field>
+        )}
+        <div>
+          <Field label="Points"><input type="number" value={form.points} onChange={(e) => setForm({ ...form, points: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
+          <p className="text-xs text-slate-500 mt-1">Auto-filled from the scoring rules when you change type/term above — edit directly here to override.</p>
+        </div>
+        <Field label="Date"><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
+      </div>
+      {error && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
+      <div className="flex gap-2">
+        <button onClick={save} className="bg-amber-500 text-slate-900 font-medium px-4 py-2 rounded-lg text-sm hover:bg-amber-400">Save</button>
+        <button onClick={() => setEditing(false)} className="text-sm text-slate-500 hover:underline px-2">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function NominationsManager({ data, refresh }) {
+  const [query, setQuery] = useState("");
+  const managerById = (id) => data.managers.find((m) => m.id === id);
+  const schemeById = (id) => data.schemes.find((s) => s.id === id);
+
+  const events = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return [...data.events]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .filter((ev) => {
+        if (!q) return true;
+        const manager = managerById(ev.managerId);
+        const scheme = schemeById(ev.schemeId);
+        const haystack = `${manager?.name || ""} ${manager?.agency || ""} ${schemeLabel(scheme)}`.toLowerCase();
+        return haystack.includes(q);
+      });
+  }, [data, query]);
+
+  return (
+    <section className="mb-10">
+      <h2 className="font-serif text-2xl mb-1">All nominations</h2>
+      <p className="text-sm text-slate-500 mb-4">Edit or delete any nomination, past or present.</p>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search by manager, agency, or suburb…"
+        className="w-full max-w-lg border border-slate-300 rounded px-3 py-2 text-sm mb-4"
+      />
+      <div className="max-w-2xl border border-slate-200 rounded-lg overflow-hidden px-3">
+        {events.length === 0 && <p className="text-sm text-slate-400 py-4">No nominations found.</p>}
+        {events.map((ev) => (
+          <NominationRow key={ev.id} ev={ev} manager={managerById(ev.managerId)} scheme={schemeById(ev.schemeId)} sponsorInvites={data.sponsorInvites} refresh={refresh} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AdminPanel({ data, refresh }) {
+  const [section, setSection] = useState("agencies");
+
+  return (
+    <div>
+      <nav className="flex flex-wrap gap-1 bg-slate-900 rounded-full p-1 mb-8 w-fit">
+        {[
+          { id: "agencies", label: "Agency Logos" },
+          { id: "invites", label: "Sponsor invites" },
+          { id: "sponsors", label: "Sponsors" },
+          { id: "record", label: "Record a win" },
+          { id: "nominations", label: "All nominations" },
+        ].map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => setSection(id)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${section === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {section === "agencies" && <AgencyLogoManager data={data} refresh={refresh} />}
+      {section === "invites" && <SponsorInvites data={data} refresh={refresh} />}
+      {section === "sponsors" && <SponsorManager data={data} refresh={refresh} />}
+      {section === "record" && <RecordWin data={data} refresh={refresh} />}
+      {section === "nominations" && <NominationsManager data={data} refresh={refresh} />}
+    </div>
+  );
+}
+
+function AdminApp() {
+  const [data, setData] = useState(emptyData);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [unlocked, setUnlocked] = useState(false);
+
+  useEffect(() => {
+    const supplied = window.prompt("Admin password");
+    if (supplied === "admin") setUnlocked(true);
+  }, []);
+
+  const refresh = async () => {
+    try {
+      const fresh = await api("/api/admin/data");
+      setData(fresh);
+      setLoadError(null);
+    } catch (e) {
+      setLoadError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!unlocked) return;
+    refresh();
+  }, [unlocked]);
+
+  if (!unlocked) return <div className="p-10 text-center"><h1 className="font-serif text-3xl">Access Denied</h1><a href="index.html" className="text-teal-700 underline">Back</a></div>;
+
+  return (
+    <div className="min-h-screen bg-stone-50 text-slate-900">
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        <header className="border-b-2 border-slate-900 pb-5 mb-8 flex justify-between items-end">
+          <h1 className="font-serif text-4xl">Admin Dashboard</h1>
+          <a href="index.html" className="text-sm text-teal-700 hover:underline">View public rankings →</a>
+        </header>
+        {loadError && (
+          <div className="mb-6 bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">
+            Couldn't reach the rankings server: {loadError}
+          </div>
+        )}
+        {loading ? <p>Loading…</p> : <AdminPanel data={data} refresh={refresh} />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<AdminApp />);
+</script>
+<script>
+  var sourceCode = document.getElementById("app-source").textContent;
+  var compiled = Babel.transform(sourceCode, { presets: [["react", { runtime: "classic" }]] }).code;
+  var scriptEl = document.createElement("script");
+  scriptEl.text = compiled;
+  document.body.appendChild(scriptEl);
+</script>
+</body>
+</html>
