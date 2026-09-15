@@ -32,7 +32,7 @@ const BCCM_MODULES = [
   "Specified Two-lot Schemes Module",
 ];
 
-const emptyData = { managers: [], schemes: [], events: [], sponsors: [], sponsorInvites: [], agencyLogos: {}, contractorIcons: {}, seasonYear: new Date().getFullYear() };
+const emptyData = { managers: [], schemes: [], events: [], sponsors: [], sponsorInvites: [], agencyLogos: {}, seasonYear: new Date().getFullYear() };
 const schemeLabel = (scheme) => {
   if (!scheme) return "Building";
   const parts = [scheme.suburb, scheme.planType, scheme.module, scheme.lotCount ? `${scheme.lotCount} lots` : null].filter(Boolean);
@@ -228,123 +228,12 @@ function AgencyLogoManager({ data, refresh }) {
   );
 }
 
-function ContractorIconManager({ data, refresh }) {
-  const [label, setLabel] = useState("");
-  const [iconData, setIconData] = useState("");
-  const [iconFileName, setIconFileName] = useState("");
-  const [error, setError] = useState(null);
-
-  const icons = data.contractorIcons || {};
-
-  const saveIcon = async () => {
-    if (!label.trim() || !iconData) return;
-    try {
-      await api("/api/contractor-icons", { method: "POST", body: JSON.stringify({ label: label.trim(), iconUrl: iconData }) });
-      await refresh();
-      setLabel(""); setIconData(""); setIconFileName("");
-    } catch (e) {
-      setError(e.message);
-    }
-  };
-
-  const removeIcon = async (key) => {
-    if (!window.confirm(`Remove the "${key}" icon?`)) return;
-    try {
-      await api(`/api/contractor-icons/${encodeURIComponent(key)}`, { method: "DELETE" });
-      await refresh();
-    } catch (e) {
-      setError(e.message);
-    }
-  };
-
-  return (
-    <section className="mb-10">
-      <h2 className="font-serif text-2xl">Contractor Icons</h2>
-      <p className="text-sm text-slate-500 mt-1 mb-4">
-        Add trade categories here — they show up immediately in the "Trade category" dropdown when adding a contractor. No file uploads or deploys needed.
-      </p>
-
-      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3 max-w-lg mb-6">
-        <Field label="Category name">
-          <input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Locker"
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
-          />
-        </Field>
-
-        <Field label="Icon Image File">
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              if (file.size > 2 * 1024 * 1024) {
-                window.alert("Please choose an icon smaller than 2 MB.");
-                e.target.value = "";
-                return;
-              }
-              const reader = new FileReader();
-              reader.onload = () => {
-                setIconData(reader.result);
-                setIconFileName(file.name);
-              };
-              reader.readAsDataURL(file);
-            }}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
-          />
-          <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP or SVG · max 2 MB</p>
-          {iconFileName && <p className="text-xs text-slate-500 mt-1">Selected: {iconFileName}</p>}
-        </Field>
-
-        {iconData && (
-          <div className="bg-white border border-slate-200 rounded p-3 w-fit">
-            <p className="text-xs text-slate-400 mb-2">Preview</p>
-            <img src={iconData} alt="Icon preview" className="h-10 w-10 object-contain" />
-          </div>
-        )}
-
-        <button
-          onClick={saveIcon}
-          disabled={!label.trim() || !iconData}
-          className="bg-amber-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-40"
-        >
-          Save Icon
-        </button>
-        {error && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
-      </div>
-
-      <h3 className="font-serif text-xl mb-3">Configured Categories</h3>
-      <div className="border border-slate-200 rounded-lg overflow-hidden max-w-lg">
-        {Object.keys(icons).length === 0 && (
-          <div className="p-4 text-sm text-slate-400">No contractor icons added yet.</div>
-        )}
-        {Object.entries(icons).map(([key, val]) => (
-          <div key={key} className="p-3 border-b last:border-b-0 border-slate-200 flex items-center justify-between gap-3">
-            <div className="w-10 h-10 flex items-center justify-center bg-white border border-slate-100 rounded shrink-0">
-              <img src={val.iconUrl} alt={val.label} className="h-8 w-8 object-contain" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{val.label}</p>
-            </div>
-            <button onClick={() => removeIcon(key)} className="text-xs text-rose-600 hover:underline shrink-0">
-              Delete
-            </button>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function SponsorInvites({ data, refresh }) {
   const allInvites = data.sponsorInvites || [];
   const SPONSORSHIP_PRICE = 50;
   const [copiedId, setCopiedId] = useState(null);
   const [acceptingId, setAcceptingId] = useState(null);
-  const [acceptForm, setAcceptForm] = useState({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "", category: "" });
+  const [acceptForm, setAcceptForm] = useState({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
   const [error, setError] = useState(null);
 
   const buildMessage = (invite) => {
@@ -370,7 +259,7 @@ function SponsorInvites({ data, refresh }) {
 
   const startAccept = (invite) => {
     setAcceptingId(invite.id);
-    setAcceptForm({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "", category: "" });
+    setAcceptForm({ logoData: "", logoFileName: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
     setError(null);
   };
 
@@ -379,7 +268,7 @@ function SponsorInvites({ data, refresh }) {
     try {
       await api(`/api/sponsor-invites/${invite.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status: "accepted", logoUrl: acceptForm.logoData, tagline: acceptForm.tagline.trim(), websiteUrl: acceptForm.websiteUrl.trim(), category: acceptForm.category }),
+        body: JSON.stringify({ status: "accepted", logoUrl: acceptForm.logoData, tagline: acceptForm.tagline.trim(), websiteUrl: acceptForm.websiteUrl.trim(), iconUrl: acceptForm.iconData }),
       });
       await refresh();
       setAcceptingId(null);
@@ -453,13 +342,22 @@ function SponsorInvites({ data, refresh }) {
 
               {acceptingId === invite.id && (
                 <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
-                  <Field label="Trade category">
-                    <select value={acceptForm.category} onChange={(e) => setAcceptForm((f) => ({ ...f, category: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
-                      <option value="">Select…</option>
-                      {Object.entries(data.contractorIcons || {}).sort((a, b) => a[1].label.localeCompare(b[1].label)).map(([key, val]) => (
-                        <option key={key} value={key}>{val.label}</option>
-                      ))}
-                    </select>
+                  <Field label="Trade icon (optional)">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => setAcceptForm((f) => ({ ...f, iconData: reader.result, iconFileName: file.name }));
+                        reader.readAsDataURL(file);
+                      }}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                    />
+                    {acceptForm.iconData && (
+                      <img src={acceptForm.iconData} alt="icon preview" className="mt-2 h-8 w-8 object-contain" />
+                    )}
                   </Field>
                   <Field label="Logo">
                     <input
@@ -806,18 +704,18 @@ function Field({ label, children }) {
   return <div><label className="block text-sm text-slate-600 mb-1">{label}</label>{children}</div>;
 }
 
-function NominationRow({ ev, manager, scheme, sponsorInvites, contractorIcons, refresh }) {
+function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(null);
   const [error, setError] = useState(null);
   const [addingContractor, setAddingContractor] = useState(false);
-  const [contractorForm, setContractorForm] = useState({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", category: "" });
+  const [contractorForm, setContractorForm] = useState({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
   const [contractorError, setContractorError] = useState(null);
 
   const contractors = (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl);
 
   const startAddContractor = () => {
-    setContractorForm({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", category: "" });
+    setContractorForm({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
     setContractorError(null);
     setAddingContractor(true);
   };
@@ -841,7 +739,7 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, contractorIcons, r
           logoUrl: contractorForm.logoData,
           tagline: contractorForm.tagline.trim(),
           websiteUrl: contractorForm.websiteUrl.trim(),
-          category: contractorForm.category,
+          iconUrl: contractorForm.iconData,
         }),
       });
       await refresh();
@@ -941,8 +839,8 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, contractorIcons, r
         <div className="mt-2 pl-0 flex items-center gap-3 flex-wrap">
           {contractors.map((c) => (
             <div key={c.id} className="relative group flex items-center gap-1 border border-slate-100 rounded bg-white p-0.5">
-              {c.category && contractorIcons?.[c.category.toLowerCase()] && (
-                <img src={contractorIcons[c.category.toLowerCase()].iconUrl} alt={c.category} className="h-6 w-6 object-contain" />
+              {c.iconUrl && (
+                <img src={c.iconUrl} alt="" className="h-6 w-6 object-contain" />
               )}
               <img src={c.logoUrl} alt={c.businessName} title={c.tagline ? `${c.businessName} — ${c.tagline}` : c.businessName} className="h-8 max-w-[90px] object-contain" />
               <button
@@ -971,13 +869,22 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, contractorIcons, r
             <Field label="Contact name (optional)">
               <input value={contractorForm.contactName} onChange={(e) => setContractorForm((f) => ({ ...f, contactName: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white" />
             </Field>
-            <Field label="Trade category">
-              <select value={contractorForm.category} onChange={(e) => setContractorForm((f) => ({ ...f, category: e.target.value }))} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
-                <option value="">Select…</option>
-                {Object.entries(contractorIcons || {}).sort((a, b) => a[1].label.localeCompare(b[1].label)).map(([key, val]) => (
-                  <option key={key} value={key}>{val.label}</option>
-                ))}
-              </select>
+            <Field label="Trade icon (optional)">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => setContractorForm((f) => ({ ...f, iconData: reader.result, iconFileName: file.name }));
+                  reader.readAsDataURL(file);
+                }}
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+              />
+              {contractorForm.iconData && (
+                <img src={contractorForm.iconData} alt="icon preview" className="mt-2 h-8 w-8 object-contain" />
+              )}
             </Field>
             <Field label="Logo">
               <input
@@ -1151,7 +1058,7 @@ function NominationsManager({ data, refresh }) {
       <div className="max-w-2xl border border-slate-200 rounded-lg overflow-hidden px-3">
         {events.length === 0 && <p className="text-sm text-slate-400 py-4">No nominations found.</p>}
         {events.map((ev) => (
-          <NominationRow key={ev.id} ev={ev} manager={managerById(ev.managerId)} scheme={schemeById(ev.schemeId)} sponsorInvites={data.sponsorInvites} contractorIcons={data.contractorIcons} refresh={refresh} />
+          <NominationRow key={ev.id} ev={ev} manager={managerById(ev.managerId)} scheme={schemeById(ev.schemeId)} sponsorInvites={data.sponsorInvites} refresh={refresh} />
         ))}
       </div>
     </section>
@@ -1166,7 +1073,6 @@ function AdminPanel({ data, refresh }) {
       <nav className="flex flex-wrap gap-1 bg-slate-900 rounded-full p-1 mb-8 w-fit">
         {[
           { id: "agencies", label: "Agency Logos" },
-          { id: "contractor-icons", label: "Contractor Icons" },
           { id: "invites", label: "Sponsor invites" },
           { id: "sponsors", label: "Sponsors" },
           { id: "record", label: "Record a win" },
@@ -1183,7 +1089,6 @@ function AdminPanel({ data, refresh }) {
       </nav>
 
       {section === "agencies" && <AgencyLogoManager data={data} refresh={refresh} />}
-      {section === "contractor-icons" && <ContractorIconManager data={data} refresh={refresh} />}
       {section === "invites" && <SponsorInvites data={data} refresh={refresh} />}
       {section === "sponsors" && <SponsorManager data={data} refresh={refresh} />}
       {section === "record" && <RecordWin data={data} refresh={refresh} />}

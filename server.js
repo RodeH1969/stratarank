@@ -79,26 +79,6 @@ function loadStaticSponsorLogos() {
   return logos;
 }
 
-const CONTRACTOR_ICONS_DIR = path.join(__dirname, 'public', 'icons');
-
-// Same idea again, for the trade-category icons shown next to a
-// contractor's logo (e.g. "Plumber.png", "Locker.png"). Existing files
-// here still work as before — new categories can also just be added
-// through Admin → Contractor Icons instead of touching files at all.
-function loadStaticContractorIcons() {
-  const icons = {};
-  if (!fs.existsSync(CONTRACTOR_ICONS_DIR)) return icons;
-  for (const filename of fs.readdirSync(CONTRACTOR_ICONS_DIR)) {
-    const ext = path.extname(filename).toLowerCase();
-    if (!LOGO_EXTENSIONS.includes(ext)) continue;
-    const base = path.basename(filename, ext);
-    const key = base.trim().toLowerCase();
-    if (!key) continue;
-    icons[key] = { label: base, iconUrl: `/icons/${encodeURIComponent(filename)}` };
-  }
-  return icons;
-}
-
 // --- helpers -----------------------------------------------------------
 
 function toManagerOut(m) {
@@ -171,23 +151,22 @@ function toInviteOut(i) {
     logoUrl: i.logo_url || '',
     tagline: i.tagline || '',
     websiteUrl: i.website_url || '',
-    category: i.category || '',
+    iconUrl: i.icon_url || '',
   };
 }
 
 // --- bulk read: everything the front end needs to render ---------------
 
 async function fetchAllData({ includePrivate }) {
-  const [managers, schemes, events, sponsors, invites, logos, icons] = await Promise.all([
+  const [managers, schemes, events, sponsors, invites, logos] = await Promise.all([
     supabase.from('strata_managers').select('*'),
     supabase.from('strata_schemes').select('*'),
     supabase.from('strata_events').select('*').order('date', { ascending: false }),
     supabase.from('strata_sponsors').select('*'),
     supabase.from('strata_sponsor_invites').select('*'),
     supabase.from('strata_agency_logos').select('*'),
-    supabase.from('strata_contractor_icons').select('*'),
   ]);
-  for (const r of [managers, schemes, events, sponsors, invites, logos, icons]) {
+  for (const r of [managers, schemes, events, sponsors, invites, logos]) {
     if (r.error) throw r.error;
   }
 
@@ -197,11 +176,6 @@ async function fetchAllData({ includePrivate }) {
   }
   const staticSponsorLogos = loadStaticSponsorLogos();
 
-  const contractorIcons = loadStaticContractorIcons();
-  for (const row of icons.data) {
-    contractorIcons[row.key] = { label: row.label, iconUrl: row.icon_url };
-  }
-
   return {
     managers: managers.data.map(toManagerOut),
     schemes: schemes.data.map((s) => toSchemeOut(s, { includePrivate })),
@@ -209,7 +183,6 @@ async function fetchAllData({ includePrivate }) {
     sponsors: sponsors.data.map((s) => toSponsorOut(s, staticSponsorLogos)),
     sponsorInvites: invites.data.map(toInviteOut),
     agencyLogos,
-    contractorIcons,
     seasonYear: SEASON_YEAR,
   };
 }
@@ -487,28 +460,6 @@ app.delete('/api/agency-logos/:key', async (req, res) => {
   res.json({ deleted: true });
 });
 
-// --- contractor icons ------------------------------------------------
-
-app.post('/api/contractor-icons', async (req, res) => {
-  const { label, iconUrl } = req.body;
-  if (!label || !label.trim()) return res.status(400).json({ error: 'label is required' });
-  if (!iconUrl) return res.status(400).json({ error: 'iconUrl is required' });
-  const key = label.trim().toLowerCase();
-  const { data, error } = await supabase
-    .from('strata_contractor_icons')
-    .upsert({ key, label: label.trim(), icon_url: iconUrl }, { onConflict: 'key' })
-    .select()
-    .single();
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ key: data.key, label: data.label, iconUrl: data.icon_url });
-});
-
-app.delete('/api/contractor-icons/:key', async (req, res) => {
-  const { error } = await supabase.from('strata_contractor_icons').delete().eq('key', req.params.key);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ deleted: true });
-});
-
 // --- sponsors ------------------------------------------------------------
 
 app.post('/api/sponsors', async (req, res) => {
@@ -544,7 +495,7 @@ app.delete('/api/sponsors/:id', async (req, res) => {
 // --- sponsor invites -------------------------------------------------
 
 app.post('/api/sponsor-invites', async (req, res) => {
-  const { eventId, businessName, contactName, eventType, schemeName, newTerm, nominatedBy, nominatedByAgency, status, logoUrl, tagline, websiteUrl, category } = req.body;
+  const { eventId, businessName, contactName, eventType, schemeName, newTerm, nominatedBy, nominatedByAgency, status, logoUrl, tagline, websiteUrl, iconUrl } = req.body;
   if (!businessName || !businessName.trim()) return res.status(400).json({ error: 'businessName is required' });
   const { data, error } = await supabase
     .from('strata_sponsor_invites')
@@ -561,7 +512,7 @@ app.post('/api/sponsor-invites', async (req, res) => {
       logo_url: logoUrl || null,
       tagline: (tagline || '').trim() || null,
       website_url: (websiteUrl || '').trim() || null,
-      category: category || null,
+      icon_url: iconUrl || null,
     })
     .select()
     .single();
@@ -570,13 +521,13 @@ app.post('/api/sponsor-invites', async (req, res) => {
 });
 
 app.patch('/api/sponsor-invites/:id', async (req, res) => {
-  const { status, logoUrl, tagline, websiteUrl, category } = req.body;
+  const { status, logoUrl, tagline, websiteUrl, iconUrl } = req.body;
   const update = {};
   if (status !== undefined) update.status = status;
   if (logoUrl !== undefined) update.logo_url = logoUrl;
   if (tagline !== undefined) update.tagline = tagline;
   if (websiteUrl !== undefined) update.website_url = websiteUrl;
-  if (category !== undefined) update.category = category;
+  if (iconUrl !== undefined) update.icon_url = iconUrl;
   const { data, error } = await supabase
     .from('strata_sponsor_invites')
     .update(update)
