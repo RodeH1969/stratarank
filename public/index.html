@@ -20,7 +20,7 @@
 
 const { useState, useEffect, useMemo } = React;
 
-const emptyData = { managers: [], schemes: [], events: [], sponsors: [], sponsorInvites: [], agencyLogos: {}, seasonYear: new Date().getFullYear() };
+const emptyData = { managers: [], schemes: [], events: [], sponsors: [], sponsorInvites: [], agencyLogos: {}, contractorIcons: {}, seasonYear: new Date().getFullYear() };
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -262,7 +262,7 @@ function App() {
         ) : tab === "rankings" ? (
           <Rankings standings={standings} sponsors={data.sponsors} agencyLogos={data.agencyLogos} seasonYear={data.seasonYear} />
         ) : tab === "log" ? (
-          <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
+          <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} contractorIcons={data.contractorIcons} />
         ) : (
           <ReportWin data={data} refresh={refresh} />
         )}
@@ -342,7 +342,7 @@ function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
   );
 }
 
-function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites }) {
+function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites, contractorIcons }) {
   const findWinSponsors = (eventId) =>
     (sponsorInvites || []).filter((inv) => inv.eventId === eventId && inv.status === "accepted" && inv.logoUrl).slice(0, 5);
   return (
@@ -389,8 +389,8 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
                       {sponsors.map((s) => {
                         const pair = (
                           <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-                            {s.category && (
-                              <img src={`/icons/${s.category}.png`} alt={s.category} className="h-7 w-7 object-contain shrink-0" />
+                            {s.category && contractorIcons && contractorIcons[s.category.toLowerCase()] && (
+                              <img src={contractorIcons[s.category.toLowerCase()].iconUrl} alt={s.category} className="h-7 w-7 object-contain shrink-0" />
                             )}
                             <img
                               src={s.logoUrl}
