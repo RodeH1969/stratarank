@@ -257,7 +257,7 @@ function buildSchemeLabel(scheme) {
 app.post('/api/events', async (req, res) => {
   try {
     const {
-      managerId, managerName, agency,
+      managerId, managerName, agency, managerPhotoUrl,
       schemeId, suburb, planType, module, lotCount, schemeName, cts,
       type, newTerm, prevTerm, date,
       source, businessName, contactName,
@@ -288,7 +288,7 @@ app.post('/api/events', async (req, res) => {
       if (!managerName || !managerName.trim()) return res.status(400).json({ error: 'managerName is required' });
       const { data, error } = await supabase
         .from('strata_managers')
-        .insert({ name: managerName.trim(), agency: (agency || '').trim() })
+        .insert({ name: managerName.trim(), agency: (agency || '').trim(), photo_url: managerPhotoUrl || null })
         .select()
         .single();
       if (error) return res.status(500).json({ error: error.message });

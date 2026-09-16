@@ -469,6 +469,8 @@ function ReportWin({ data, refresh }) {
   const [managerChoice, setManagerChoice] = useState("__new__");
   const [managerName, setManagerName] = useState("");
   const [agency, setAgency] = useState("");
+  const [managerPhotoData, setManagerPhotoData] = useState("");
+  const [managerPhotoFileName, setManagerPhotoFileName] = useState("");
   const [schemeChoice, setSchemeChoice] = useState("__new__");
   const [suburb, setSuburb] = useState("");
   const [planType, setPlanType] = useState("BFP");
@@ -528,6 +530,7 @@ function ReportWin({ data, refresh }) {
           managerId: isNewManager ? null : managerChoice,
           managerName: isNewManager ? managerName : undefined,
           agency: isNewManager ? agency : undefined,
+          managerPhotoUrl: isNewManager ? managerPhotoData || undefined : undefined,
           schemeId: isNewScheme ? null : schemeChoice,
           suburb: isNewScheme ? suburb : undefined,
           planType: isNewScheme ? planType : undefined,
@@ -546,7 +549,7 @@ function ReportWin({ data, refresh }) {
       });
 
       await refresh();
-      setManagerChoice("__new__"); setManagerName(""); setAgency("");
+      setManagerChoice("__new__"); setManagerName(""); setAgency(""); setManagerPhotoData(""); setManagerPhotoFileName("");
       setSchemeChoice("__new__"); setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
       setTradieBusiness(""); setTradieName("");
@@ -581,6 +584,33 @@ function ReportWin({ data, refresh }) {
         <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
           <div><label className={labelClass("managerName")}>Manager's name</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
           <div><label className={labelClass("agency")}>Manager's agency</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Manager's photo (optional)</label>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) {
+                  window.alert("Please choose a photo smaller than 2 MB.");
+                  e.target.value = "";
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setManagerPhotoData(reader.result);
+                  setManagerPhotoFileName(file.name);
+                };
+                reader.readAsDataURL(file);
+              }}
+              className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+            />
+            {managerPhotoFileName && <p className="text-xs text-slate-500 mt-1">Selected: {managerPhotoFileName}</p>}
+            {managerPhotoData && (
+              <img src={managerPhotoData} alt="Preview" className="mt-2 w-16 h-16 rounded-full object-cover border border-slate-200" />
+            )}
+          </div>
         </div>
       )}
 
