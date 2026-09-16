@@ -83,7 +83,7 @@ function loadStaticSponsorLogos() {
 
 function toManagerOut(m) {
   if (!m) return null;
-  return { id: m.id, name: m.name, agency: m.agency || '' };
+  return { id: m.id, name: m.name, agency: m.agency || '', photoUrl: m.photo_url || '' };
 }
 
 function toSchemeOut(s, opts) {
@@ -213,10 +213,12 @@ app.get('/api/admin/data', async (req, res) => {
 // --- managers ------------------------------------------------------------
 
 app.patch('/api/managers/:id', async (req, res) => {
-  const { name, agency } = req.body;
+  const { name, agency, photoUrl } = req.body;
+  const update = { name, agency };
+  if (photoUrl !== undefined) update.photo_url = photoUrl || null;
   const { data, error } = await supabase
     .from('strata_managers')
-    .update({ name, agency })
+    .update(update)
     .eq('id', req.params.id)
     .select()
     .single();

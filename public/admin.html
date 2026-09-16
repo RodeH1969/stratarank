@@ -265,6 +265,98 @@ function AgencyLogoManager({ data, refresh }) {
   );
 }
 
+function ManagerPhotoManager({ data, refresh }) {
+  const [error, setError] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+
+  const uploadPhoto = (manager, file) => {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      window.alert("Please choose a photo smaller than 2 MB.");
+      return;
+    }
+    setBusyId(manager.id);
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        await api(`/api/managers/${manager.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ name: manager.name, agency: manager.agency, photoUrl: reader.result }),
+        });
+        await refresh();
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setBusyId(null);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = async (manager) => {
+    if (!window.confirm(`Remove photo for ${manager.name}?`)) return;
+    setBusyId(manager.id);
+    setError(null);
+    try {
+      await api(`/api/managers/${manager.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: manager.name, agency: manager.agency, photoUrl: "" }),
+      });
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const sorted = [...(data.managers || [])].sort((a, b) => a.name.localeCompare(b.name));
+
+  return (
+    <section className="mb-10">
+      <h2 className="font-serif text-2xl">Manager Photos</h2>
+      <p className="text-sm text-slate-500 mt-1 mb-4">
+        Upload a photo for each manager — shown in a popup when their name is clicked on Rankings and Recent wins.
+      </p>
+      {error && <div className="mb-3 bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
+      <div className="border border-slate-200 rounded-lg overflow-hidden max-w-lg">
+        {sorted.length === 0 && <div className="p-4 text-sm text-slate-400">No managers yet.</div>}
+        {sorted.map((m) => (
+          <div key={m.id} className="p-3 border-b last:border-b-0 border-slate-200 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+              {m.photoUrl ? (
+                <img src={m.photoUrl} alt={m.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[10px] text-slate-400 text-center px-1">No photo</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{m.name}</p>
+              {m.agency && <p className="text-xs text-slate-500 truncate">{m.agency}</p>}
+            </div>
+            <label className="text-xs text-teal-700 hover:underline cursor-pointer shrink-0">
+              {busyId === m.id ? "Uploading…" : "Upload"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                disabled={busyId === m.id}
+                onChange={(e) => uploadPhoto(m, e.target.files?.[0])}
+              />
+            </label>
+            {m.photoUrl && (
+              <button onClick={() => removePhoto(m)} className="text-xs text-rose-600 hover:underline shrink-0">
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SponsorInvites({ data, refresh }) {
   const allInvites = data.sponsorInvites || [];
   const SPONSORSHIP_PRICE = 50;
@@ -1110,6 +1202,7 @@ function AdminPanel({ data, refresh }) {
       <nav className="flex flex-wrap gap-1 bg-slate-900 rounded-full p-1 mb-8 w-fit">
         {[
           { id: "agencies", label: "Agency Logos" },
+          { id: "manager-photos", label: "Manager Photos" },
           { id: "invites", label: "Sponsor invites" },
           { id: "sponsors", label: "Sponsors" },
           { id: "record", label: "Record a win" },
@@ -1126,6 +1219,7 @@ function AdminPanel({ data, refresh }) {
       </nav>
 
       {section === "agencies" && <AgencyLogoManager data={data} refresh={refresh} />}
+      {section === "manager-photos" && <ManagerPhotoManager data={data} refresh={refresh} />}
       {section === "invites" && <SponsorInvites data={data} refresh={refresh} />}
       {section === "sponsors" && <SponsorManager data={data} refresh={refresh} />}
       {section === "record" && <RecordWin data={data} refresh={refresh} />}
