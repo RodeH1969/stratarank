@@ -566,12 +566,12 @@ function ReportWin({ data, refresh }) {
 
   return (
     <div className="max-w-lg space-y-4">
-      <h2 className="font-serif text-2xl mb-2">Nominate a win</h2>
+      <h2 className="font-serif text-2xl mb-2">Nominate a win by a Strata Manager</h2>
       <PointsInfoButton />
 
       {sortedManagers.length > 0 && (
         <div>
-          <label className="block text-sm text-slate-600 mb-1">Manager</label>
+          <label className="block text-sm text-slate-600 mb-1">Strata Manager</label>
           <select value={managerChoice} onChange={(e) => setManagerChoice(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
             <option value="__new__">+ Add new manager…</option>
             {sortedManagers.map((m) => (
