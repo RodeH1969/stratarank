@@ -231,12 +231,12 @@ function App() {
   return (
     <div className="min-h-screen bg-stone-50 text-slate-900">
       <div className="max-w-3xl mx-auto px-6 py-10">
-        <header className="border-b-2 border-slate-900 pb-5 mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-4xl sm:text-5xl leading-tight">QLD Strata Rankings <span className="text-amber-500">{data.seasonYear}</span></h1>
-            <p className="text-slate-700 mt-2 font-medium">Queensland's strata managers, ranked.</p>
+        <header className="border-b-2 border-slate-900 pb-5 mb-8">
+          <div className="mb-4">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl leading-tight">QLD Strata Rankings <span className="text-amber-500">{data.seasonYear}</span></h1>
+            <p className="text-slate-700 mt-2 font-medium text-sm sm:text-base">Queensland's strata managers, ranked.</p>
           </div>
-          <nav className="flex gap-1 bg-slate-900 rounded-full p-1">
+          <nav className="flex gap-1 bg-slate-900 rounded-full p-1 overflow-x-auto">
             {[
               { id: "rankings", label: "Rankings" },
               { id: "log", label: "Recent wins" },
@@ -245,7 +245,7 @@ function App() {
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`}
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`}
               >
                 {label}
               </button>
@@ -357,8 +357,8 @@ function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
         <p className="text-slate-500 text-center py-16">No wins reported yet for {seasonYear}.</p>
       ) : (
         standings.map((row, i) => (
-          <div key={row.manager.id} className={`flex items-center gap-4 py-4 border-b border-slate-200 ${i === 0 ? "bg-amber-50 -mx-4 px-4 rounded-lg border-b-0" : ""}`}>
-            <div className="w-10 text-center font-serif text-2xl text-slate-400 shrink-0">{i === 0 ? <span className="text-lg font-semibold text-amber-600">1st</span> : i + 1}</div>
+          <div key={row.manager.id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 py-4 border-b border-slate-200 ${i === 0 ? "bg-amber-50 -mx-4 px-4 rounded-lg border-b-0" : ""}`}>
+            <div className="w-8 sm:w-10 text-center font-serif text-xl sm:text-2xl text-slate-400 shrink-0">{i === 0 ? <span className="text-base sm:text-lg font-semibold text-amber-600">1st</span> : i + 1}</div>
             <div className="flex-1 min-w-0 flex items-center gap-2.5">
               <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} />
               <ManagerPhotoPopup manager={row.manager}>
@@ -368,10 +368,10 @@ function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
                 </div>
               </ManagerPhotoPopup>
             </div>
-            <div className="text-right shrink-0">
-              <div className="flex items-baseline justify-end gap-2">
-                <span className="font-serif text-3xl">{row.points}</span>
-                <span className="text-sm font-bold text-slate-700">
+            <div className="basis-full sm:basis-auto text-right sm:shrink-0 pl-12 sm:pl-0">
+              <div className="flex items-baseline justify-end gap-2 flex-wrap">
+                <span className="font-serif text-2xl sm:text-3xl">{row.points}</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">
                   ({row.events} win{row.events === 1 ? "" : "s"} · {row.lots} lot{row.lots === 1 ? "" : "s"})
                 </span>
               </div>
