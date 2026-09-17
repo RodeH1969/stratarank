@@ -295,6 +295,16 @@ function ManagerPhotoPopup({ manager, children }) {
             )}
             <h3 className="font-serif text-xl">{manager.name}</h3>
             {manager.agency && <p className="text-sm text-slate-500 mt-1">{manager.agency}</p>}
+            {manager.linkedinUrl && (
+              <a
+                href={manager.linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-[#0A66C2] hover:underline"
+              >
+                View on LinkedIn ↗
+              </a>
+            )}
           </div>
         </div>
       )}
