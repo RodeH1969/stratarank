@@ -658,6 +658,7 @@ function SponsorManager({ data, refresh }) {
 function RecordWin({ data, refresh }) {
   const [managerChoice, setManagerChoice] = useState("__new__");
   const [managerName, setManagerName] = useState("");
+  const [agencyChoice, setAgencyChoice] = useState("__new__");
   const [agency, setAgency] = useState("");
   const [schemeChoice, setSchemeChoice] = useState("__new__");
   const [suburb, setSuburb] = useState("");
@@ -675,6 +676,7 @@ function RecordWin({ data, refresh }) {
 
   const sortedManagers = [...data.managers].sort((a, b) => a.name.localeCompare(b.name));
   const sortedSchemes = [...data.schemes].sort((a, b) => schemeLabel(a).localeCompare(schemeLabel(b)));
+  const agencyNames = [...new Set(Object.values(data.agencyLogos || {}).map((v) => v.name))].sort((a, b) => a.localeCompare(b));
   const previewPoints = computePoints(winType, newTerm, prevTerm);
 
   const submit = async () => {
@@ -708,7 +710,7 @@ function RecordWin({ data, refresh }) {
         }),
       });
       await refresh();
-      setManagerChoice("__new__"); setManagerName(""); setAgency("");
+      setManagerChoice("__new__"); setManagerName(""); setAgencyChoice("__new__"); setAgency("");
       setSchemeChoice("__new__"); setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
       setWinType(""); setNewTerm(""); setPrevTerm("");
       setConfirmation({ points: result.event.points, label: `Logged for ${result.manager.name} — ${result.event.points} points` });
@@ -742,7 +744,30 @@ function RecordWin({ data, refresh }) {
         {managerChoice === "__new__" && (
           <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-3" : "space-y-3"}>
             <Field label="Manager's name"><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
-            <Field label="Manager's agency"><input value={agency} onChange={(e) => setAgency(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
+            <Field label="Manager's agency">
+              <select
+                value={agencyChoice}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAgencyChoice(v);
+                  setAgency(v === "__new__" ? "" : v);
+                }}
+                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white"
+              >
+                <option value="__new__">+ Type new agency…</option>
+                {agencyNames.map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              {agencyChoice === "__new__" && (
+                <input
+                  value={agency}
+                  onChange={(e) => setAgency(e.target.value)}
+                  placeholder="Agency name"
+                  className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-2"
+                />
+              )}
+            </Field>
           </div>
         )}
 
@@ -833,7 +858,7 @@ function Field({ label, children }) {
   return <div><label className="block text-sm text-slate-600 mb-1">{label}</label>{children}</div>;
 }
 
-function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
+function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refresh }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(null);
   const [error, setError] = useState(null);
@@ -842,6 +867,7 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
   const [contractorError, setContractorError] = useState(null);
 
   const contractors = (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl);
+  const agencyNames = [...new Set(Object.values(agencyLogos || {}).map((v) => v.name))].sort((a, b) => a.localeCompare(b));
 
   const startAddContractor = () => {
     setContractorForm({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
@@ -1065,7 +1091,29 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, refresh }) {
     <div className="py-4 border-b border-slate-200 last:border-b-0 bg-slate-50 -mx-3 px-3 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <Field label="Manager's name"><input value={form.managerName} onChange={(e) => setForm({ ...form, managerName: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
-        <Field label="Manager's agency"><input value={form.agency} onChange={(e) => setForm({ ...form, agency: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
+        <Field label="Manager's agency">
+          <select
+            value={agencyNames.includes(form.agency) ? form.agency : "__new__"}
+            onChange={(e) => {
+              const v = e.target.value;
+              setForm({ ...form, agency: v === "__new__" ? "" : v });
+            }}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="__new__">+ Type new agency…</option>
+            {agencyNames.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          {!agencyNames.includes(form.agency) && (
+            <input
+              value={form.agency}
+              onChange={(e) => setForm({ ...form, agency: e.target.value })}
+              placeholder="Agency name"
+              className="w-full border border-slate-300 rounded px-3 py-2 text-sm mt-2"
+            />
+          )}
+        </Field>
         <Field label="Suburb (where the scheme is located)"><input value={form.suburb} onChange={(e) => setForm({ ...form, suburb: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" /></Field>
         <Field label="Scheme type">
           <select value={form.planType} onChange={(e) => setForm({ ...form, planType: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
@@ -1187,7 +1235,7 @@ function NominationsManager({ data, refresh }) {
       <div className="max-w-2xl border border-slate-200 rounded-lg overflow-hidden px-3">
         {events.length === 0 && <p className="text-sm text-slate-400 py-4">No nominations found.</p>}
         {events.map((ev) => (
-          <NominationRow key={ev.id} ev={ev} manager={managerById(ev.managerId)} scheme={schemeById(ev.schemeId)} sponsorInvites={data.sponsorInvites} refresh={refresh} />
+          <NominationRow key={ev.id} ev={ev} manager={managerById(ev.managerId)} scheme={schemeById(ev.schemeId)} sponsorInvites={data.sponsorInvites} agencyLogos={data.agencyLogos} refresh={refresh} />
         ))}
       </div>
     </section>
