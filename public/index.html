@@ -532,14 +532,31 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos }) {
 function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites }) {
   const findWinSponsors = (eventId) =>
     (sponsorInvites || []).filter((inv) => inv.eventId === eventId && inv.status === "accepted" && inv.logoUrl).slice(0, 5);
+
+  const weekGroups = useMemo(() => {
+    const byWeek = {};
+    for (const ev of events) {
+      const wk = mondayOf(ev.date);
+      if (!byWeek[wk]) byWeek[wk] = [];
+      byWeek[wk].push(ev);
+    }
+    return Object.keys(byWeek)
+      .sort((a, b) => (a < b ? 1 : -1))
+      .map((wk) => ({ weekKey: wk, events: byWeek[wk] }));
+  }, [events]);
+
   return (
     <div>
       <PointsInfoButton />
       {events.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No wins reported yet.</p>
       ) : (
-        <div className="space-y-4">
-          {events.map((ev) => {
+        <div className="space-y-8">
+          {weekGroups.map((group) => (
+            <div key={group.weekKey}>
+              <p className="text-sm font-bold text-slate-700 mb-3">Week of {weekRangeLabel(group.weekKey)}</p>
+              <div className="space-y-4">
+                {group.events.map((ev) => {
             const manager = managerById(ev.managerId);
             const scheme = schemeById(ev.schemeId);
             const sponsors = findWinSponsors(ev.id);
@@ -603,7 +620,10 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
                 )}
               </div>
             );
-          })}
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
