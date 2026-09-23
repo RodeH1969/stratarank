@@ -445,7 +445,10 @@ function DealOfTheWeek({ weekKey, entries, sponsors, agencyLogos }) {
       <p className="text-center text-sm text-slate-500 mb-6">Week of {weekRangeLabel(weekKey)}</p>
 
       {!leader ? (
-        <p className="text-slate-500 text-center py-16">No deal of the week yet — be the first to get your committee's motion approved.</p>
+        <div className="text-center py-16">
+          <p className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">No deal of the week yet!</p>
+          <p className="text-lg sm:text-xl font-bold text-amber-600">If you nailed a deal this week, let the strata world know!</p>
+        </div>
       ) : (
         <>
           <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-6 sm:p-8 text-center shadow-sm">
