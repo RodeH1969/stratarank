@@ -913,9 +913,46 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
   const [addingContractor, setAddingContractor] = useState(false);
   const [contractorForm, setContractorForm] = useState({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
   const [contractorError, setContractorError] = useState(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
 
   const contractors = (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl);
   const agencyNames = [...new Set(Object.values(agencyLogos || {}).map((v) => v.name))].sort((a, b) => a.localeCompare(b));
+
+  const setApproved = async (approved) => {
+    setReviewBusy(true);
+    setReviewError(null);
+    try {
+      await api(`/api/events/${ev.id}/review`, { method: "PATCH", body: JSON.stringify({ status: approved ? "approved" : "pending" }) });
+      await refresh();
+    } catch (e) {
+      setReviewError(e.message);
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
+  const uploadProof = (file) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      window.alert("Please choose an image smaller than 5 MB.");
+      return;
+    }
+    setReviewBusy(true);
+    setReviewError(null);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        await api(`/api/events/${ev.id}/review`, { method: "PATCH", body: JSON.stringify({ proofUrl: reader.result }) });
+        await refresh();
+      } catch (e) {
+        setReviewError(e.message);
+      } finally {
+        setReviewBusy(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const startAddContractor = () => {
     setContractorForm({ businessName: "", contactName: "", logoData: "", tagline: "", websiteUrl: "", iconData: "", iconFileName: "" });
@@ -1037,6 +1074,31 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
             <button onClick={startEdit} className="text-xs text-amber-700 hover:underline">Edit</button>
             <button onClick={remove} className="text-xs text-rose-600 hover:underline">Delete</button>
           </div>
+        </div>
+
+        <div className="mt-2 flex items-center gap-3 flex-wrap">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ev.status === "approved" ? "bg-teal-100 text-teal-800" : "bg-amber-100 text-amber-800"}`}>
+            {ev.status === "approved" ? "Approved" : "Pending"}
+          </span>
+          {ev.status === "approved" ? (
+            <button onClick={() => setApproved(false)} disabled={reviewBusy} className="text-xs text-slate-500 hover:underline">
+              {reviewBusy ? "Working…" : "Unapprove"}
+            </button>
+          ) : (
+            <button onClick={() => setApproved(true)} disabled={reviewBusy} className="text-xs text-teal-700 font-medium hover:underline">
+              {reviewBusy ? "Working…" : "Approve"}
+            </button>
+          )}
+          <label className="text-xs text-slate-500 hover:underline cursor-pointer">
+            {ev.proofUrl ? "Replace proof" : "Attach proof"}
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={reviewBusy} onChange={(e) => uploadProof(e.target.files?.[0])} />
+          </label>
+          {ev.proofUrl && (
+            <a href={ev.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-700 hover:underline">
+              View proof
+            </a>
+          )}
+          {reviewError && <span className="text-xs text-rose-600">{reviewError}</span>}
         </div>
 
         <div className="mt-2 pl-0 flex items-center gap-3 flex-wrap">

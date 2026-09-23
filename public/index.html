@@ -62,6 +62,26 @@ const formatDate = (dateStr) => {
   if (isNaN(d)) return dateStr;
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 };
+
+// Weekly cycle runs Mon–Sun on Brisbane local time (QLD has no daylight
+// saving, so this is a fixed UTC+10 offset year-round — no DST edge cases).
+const brisbaneToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Brisbane" });
+const mondayOf = (dateStr) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = dt.getUTCDay(); // 0=Sun..6=Sat
+  const diffToMonday = dow === 0 ? -6 : 1 - dow;
+  dt.setUTCDate(dt.getUTCDate() + diffToMonday);
+  return dt.toISOString().slice(0, 10);
+};
+const weekRangeLabel = (mondayStr) => {
+  const [y, m, d] = mondayStr.split("-").map(Number);
+  const monday = new Date(Date.UTC(y, m - 1, d));
+  const sunday = new Date(Date.UTC(y, m - 1, d + 6));
+  const fmt = (dt) => dt.toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
+  return `${fmt(monday)} – ${fmt(sunday)}`;
+};
+
 function computePoints(type, newTerm, prevTerm) {
   const t = Number(newTerm);
   const p = prevTerm != null && prevTerm !== "" ? Number(prevTerm) : null;
@@ -223,25 +243,48 @@ function App() {
   const managerById = (id) => data.managers.find((m) => m.id === id);
   const schemeById = (id) => data.schemes.find((s) => s.id === id);
 
-  const standings = useMemo(() => {
-    const totals = {};
-    for (const m of data.managers) {
-      totals[m.id] = { manager: m, points: 0, events: 0, competitorWins: 0, renewals: 0, lots: 0 };
-    }
-    for (const ev of data.events) {
-      if (yearOf(ev.date) !== data.seasonYear) continue;
-      if (!totals[ev.managerId]) continue;
-      totals[ev.managerId].points += ev.points;
-      totals[ev.managerId].events += 1;
-      if (ev.type === "competitor") totals[ev.managerId].competitorWins += 1;
-      if (ev.type === "renewal") totals[ev.managerId].renewals += 1;
+  // Every approved win grouped into its Mon–Sun week, with that week's
+  // leader worked out the same way as before (points, lots break ties).
+  const weeklyWinners = useMemo(() => {
+    const approved = data.events.filter((e) => e.status === "approved");
+    const byWeek = {};
+    for (const ev of approved) {
+      const wk = mondayOf(ev.date);
+      if (!byWeek[wk]) byWeek[wk] = {};
+      if (!byWeek[wk][ev.managerId]) byWeek[wk][ev.managerId] = { points: 0, lots: 0, events: [] };
+      byWeek[wk][ev.managerId].points += ev.points;
       const scheme = schemeById(ev.schemeId);
-      if (scheme?.lotCount) totals[ev.managerId].lots += Number(scheme.lotCount) || 0;
+      byWeek[wk][ev.managerId].lots += scheme?.lotCount ? Number(scheme.lotCount) : 0;
+      byWeek[wk][ev.managerId].events.push(ev);
     }
-    return Object.values(totals)
-      .filter((row) => row.events > 0)
-      .sort((a, b) => b.points - a.points || b.lots - a.lots);
+    const result = {};
+    for (const wk of Object.keys(byWeek)) {
+      const totals = Object.entries(byWeek[wk])
+        .map(([managerId, t]) => ({ managerId, ...t }))
+        .sort((a, b) => b.points - a.points || b.lots - a.lots);
+      result[wk] = { winnerManagerId: totals[0].managerId, totals };
+    }
+    return result;
   }, [data]);
+
+  // Season leaderboard: 1 point per weekly win, tallied across every week to date.
+  const seasonStandings = useMemo(() => {
+    const wins = {};
+    for (const wk of Object.keys(weeklyWinners)) {
+      const id = weeklyWinners[wk].winnerManagerId;
+      wins[id] = (wins[id] || 0) + 1;
+    }
+    return Object.entries(wins)
+      .map(([managerId, weeklyWins]) => ({ manager: managerById(managerId), weeklyWins }))
+      .filter((row) => row.manager)
+      .sort((a, b) => b.weeklyWins - a.weeklyWins);
+  }, [weeklyWinners, data]);
+
+  const currentWeekKey = mondayOf(brisbaneToday());
+  const currentWeek = weeklyWinners[currentWeekKey];
+  const currentWeekEntries = currentWeek
+    ? currentWeek.totals.map((t) => ({ manager: managerById(t.managerId), ...t })).filter((r) => r.manager)
+    : [];
 
   const sortedEvents = useMemo(
     () => [...data.events].filter((e) => yearOf(e.date) === data.seasonYear).sort((a, b) => new Date(b.date) - new Date(a.date)),
@@ -263,8 +306,9 @@ function App() {
           </div>
           <nav className="flex gap-1 bg-slate-900 rounded-full p-1 overflow-x-auto">
             {[
-              { id: "rankings", label: "Rankings" },
+              { id: "dotw", label: "Deal of the Week" },
               { id: "log", label: "Recent wins" },
+              { id: "season", label: "Season Leaderboard" },
               { id: "report", label: "🏆 Claim a win" },
             ].map(({ id, label }) => (
               <button
@@ -290,10 +334,12 @@ function App() {
 
         {loading ? (
           <p className="text-slate-500">Loading rankings…</p>
-        ) : tab === "rankings" ? (
-          <Rankings standings={standings} sponsors={data.sponsors} agencyLogos={data.agencyLogos} seasonYear={data.seasonYear} />
+        ) : tab === "dotw" ? (
+          <DealOfTheWeek weekKey={currentWeekKey} entries={currentWeekEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} />
         ) : tab === "log" ? (
           <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
+        ) : tab === "season" ? (
+          <SeasonLeaderboard standings={seasonStandings} agencyLogos={data.agencyLogos} sponsors={data.sponsors} />
         ) : (
           <ReportWin data={data} refresh={refresh} />
         )}
@@ -388,12 +434,73 @@ function SponsorStrip({ sponsors }) {
   );
 }
 
-function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
+function DealOfTheWeek({ weekKey, entries, sponsors, agencyLogos }) {
+  const sorted = [...entries].sort((a, b) => b.points - a.points || b.lots - a.lots);
+  const leader = sorted[0];
+  const others = sorted.slice(1);
+
   return (
     <div>
       <PointsInfoButton />
+      <p className="text-center text-sm text-slate-500 mb-6">Week of {weekRangeLabel(weekKey)}</p>
+
+      {!leader ? (
+        <p className="text-slate-500 text-center py-16">No deal of the week yet — be the first to get your committee's motion approved.</p>
+      ) : (
+        <>
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-6 sm:p-8 text-center shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-3">This week's leader</p>
+            <div className="flex justify-center mb-3">
+              <AgencyBadge agency={leader.manager.agency} agencyLogos={agencyLogos} />
+            </div>
+            <ManagerPhotoPopup manager={leader.manager}>
+              <h2 className="font-serif text-2xl sm:text-3xl hover:underline decoration-dotted">{leader.manager.name}</h2>
+            </ManagerPhotoPopup>
+            {leader.manager.agency && <p className="text-slate-600 mt-1">{leader.manager.agency}</p>}
+            <div className="mt-4 font-serif text-4xl sm:text-5xl text-amber-700">{leader.points}</div>
+            <p className="text-sm font-bold text-slate-700 mt-1">
+              ({leader.events.length} deal{leader.events.length === 1 ? "" : "s"} · {leader.lots} lot{leader.lots === 1 ? "" : "s"})
+            </p>
+            <p className="text-sm text-slate-600 mt-4">Leading the pack for a $30 Dan Murphy's voucher.</p>
+          </div>
+
+          {others.length > 0 && (
+            <div className="mt-6">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Also in the running this week</p>
+              <div className="space-y-2">
+                {others.map((row) => (
+                  <div key={row.managerId} className="flex items-center gap-3 py-2 px-3 border border-slate-200 rounded-lg">
+                    <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} />
+                    <ManagerPhotoPopup manager={row.manager}>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate hover:underline decoration-dotted">{row.manager.name}</p>
+                        {row.manager.agency && <p className="text-xs text-slate-500 truncate">{row.manager.agency}</p>}
+                      </div>
+                    </ManagerPhotoPopup>
+                    <div className="ml-auto text-right shrink-0">
+                      <span className="font-serif text-lg">{row.points}</span>
+                      <span className="text-xs text-slate-500 ml-1">({row.events.length} · {row.lots} lots)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      <SponsorStrip sponsors={sponsors} />
+    </div>
+  );
+}
+
+function SeasonLeaderboard({ standings, sponsors, agencyLogos }) {
+  return (
+    <div>
+      <p className="text-center text-sm text-slate-500 mb-6">
+        1 point per weekly win · highest by Dec 22 wins a $100 Dan Murphy's voucher (split on a tie).
+      </p>
       {standings.length === 0 ? (
-        <p className="text-slate-500 text-center py-16">No wins reported yet for {seasonYear}.</p>
+        <p className="text-slate-500 text-center py-16">No weekly wins recorded yet this season.</p>
       ) : (
         standings.map((row, i) => (
           <div key={row.manager.id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 py-4 border-b border-slate-200 ${i === 0 ? "bg-amber-50 -mx-4 px-4 rounded-lg border-b-0" : ""}`}>
@@ -408,12 +515,8 @@ function Rankings({ standings, sponsors, agencyLogos, seasonYear }) {
               </ManagerPhotoPopup>
             </div>
             <div className="basis-full sm:basis-auto text-right sm:shrink-0 pl-12 sm:pl-0">
-              <div className="flex items-baseline justify-end gap-2 flex-wrap">
-                <span className="font-serif text-2xl sm:text-3xl">{row.points}</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">
-                  ({row.events} win{row.events === 1 ? "" : "s"} · {row.lots} lot{row.lots === 1 ? "" : "s"})
-                </span>
-              </div>
+              <span className="font-serif text-2xl sm:text-3xl">{row.weeklyWins}</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">weekly win{row.weeklyWins === 1 ? "" : "s"}</span>
             </div>
           </div>
         ))
@@ -595,7 +698,7 @@ function ReportWin({ data, refresh }) {
       if (result.inviteError) {
         setError(`Win saved, but the tradie suggestion didn't go through: ${result.inviteError}`);
       }
-      setConfirmation({ points: result.event.points, label: `Win reported for ${result.manager.name} — ${result.event.points} points` });
+      setConfirmation({ points: result.event.points, label: `Claimed for ${result.manager.name} — worth ${result.event.points} points once your committee's approval is verified. We'll be in touch for a snip of the motion from the minutes.` });
     } catch (e) {
       setError(e.message);
     } finally {

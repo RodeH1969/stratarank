@@ -104,9 +104,9 @@ function toSchemeOut(s, opts) {
   return out;
 }
 
-function toEventOut(e) {
+function toEventOut(e, opts) {
   if (!e) return null;
-  return {
+  const out = {
     id: e.id,
     type: e.type,
     schemeId: e.scheme_id,
@@ -115,7 +115,12 @@ function toEventOut(e) {
     prevTerm: e.prev_term,
     points: e.points,
     date: e.date,
+    status: e.status || 'pending',
   };
+  if (opts && opts.includePrivate) {
+    out.proofUrl = e.proof_url || '';
+  }
+  return out;
 }
 
 function toSponsorOut(s, staticSponsorLogos) {
@@ -176,10 +181,15 @@ async function fetchAllData({ includePrivate }) {
   }
   const staticSponsorLogos = loadStaticSponsorLogos();
 
+  // Public route only ever sees approved wins — pending submissions stay
+  // invisible until an admin has verified them against the committee
+  // minutes and approved them.
+  const visibleEvents = includePrivate ? events.data : events.data.filter((e) => e.status === 'approved');
+
   return {
     managers: managers.data.map(toManagerOut),
     schemes: schemes.data.map((s) => toSchemeOut(s, { includePrivate })),
-    events: events.data.map(toEventOut),
+    events: visibleEvents.map((e) => toEventOut(e, { includePrivate })),
     sponsors: sponsors.data.map((s) => toSponsorOut(s, staticSponsorLogos)),
     sponsorInvites: invites.data.map(toInviteOut),
     agencyLogos,
@@ -370,7 +380,7 @@ app.post('/api/events', async (req, res) => {
     }
 
     res.json({
-      event: toEventOut(event),
+      event: toEventOut(event, { includePrivate: true }),
       manager: toManagerOut(manager),
       scheme: toSchemeOut(scheme, { includePrivate: true }),
       inviteError,
@@ -430,10 +440,33 @@ app.patch('/api/events/:id', async (req, res) => {
       .single();
     if (eventError) return res.status(500).json({ error: eventError.message });
 
-    res.json({ event: toEventOut(event), manager: toManagerOut(manager), scheme: toSchemeOut(scheme, { includePrivate: true }) });
+    res.json({ event: toEventOut(event, { includePrivate: true }), manager: toManagerOut(manager), scheme: toSchemeOut(scheme, { includePrivate: true }) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Approve/unapprove a nomination and/or attach proof of the committee's
+// motion (a screenshot of the minutes). Separate from the full-edit route
+// above so admin can review a submission without touching its content.
+app.patch('/api/events/:id/review', async (req, res) => {
+  const { status, proofUrl } = req.body;
+  const update = {};
+  if (status !== undefined) {
+    if (!['pending', 'approved'].includes(status)) {
+      return res.status(400).json({ error: 'status must be "pending" or "approved"' });
+    }
+    update.status = status;
+  }
+  if (proofUrl !== undefined) update.proof_url = proofUrl || null;
+  const { data, error } = await supabase
+    .from('strata_events')
+    .update(update)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(toEventOut(data, { includePrivate: true }));
 });
 
 app.delete('/api/events/:id', async (req, res) => {
