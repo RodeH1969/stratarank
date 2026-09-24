@@ -82,6 +82,15 @@ const weekRangeLabel = (mondayStr) => {
   return `${fmt(monday)} – ${fmt(sunday)}`;
 };
 
+const dealTermLabel = (ev) => {
+  const yrs = (n) => `${n} year${n === 1 ? "" : "s"}`;
+  if (ev.type === "renewal") {
+    if (ev.prevTerm && ev.prevTerm !== ev.newTerm) return `${yrs(ev.prevTerm)} converted to ${yrs(ev.newTerm)}`;
+    return `Renewed for ${yrs(ev.newTerm)}`;
+  }
+  return `Signed a new ${yrs(ev.newTerm)} term`;
+};
+
 function computePoints(type, newTerm, prevTerm) {
   const t = Number(newTerm);
   const p = prevTerm != null && prevTerm !== "" ? Number(prevTerm) : null;
@@ -448,7 +457,9 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) {
   const sorted = [...entries].sort((a, b) => b.points - a.points || b.lots - a.lots);
   const leader = sorted[0];
   const others = sorted.slice(1);
-  const leaderSchemes = leader ? leader.events.map((ev) => schemeById(ev.schemeId)).filter(Boolean) : [];
+  const leaderDeals = leader
+    ? leader.events.map((ev) => ({ event: ev, scheme: schemeById(ev.schemeId) })).filter((d) => d.scheme)
+    : [];
 
   return (
     <div>
@@ -501,11 +512,12 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) {
             </div>
 
             <div className="mt-6 bg-white/80 rounded-xl p-4 sm:p-6 space-y-4">
-              {leaderSchemes.map((scheme, i) => (
+              {leaderDeals.map(({ event, scheme }, i) => (
                 <div key={i} className={i > 0 ? "pt-4 border-t border-amber-100" : ""}>
-                  <p className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">{scheme.suburb}</p>
+                  <p className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">Scheme located in {scheme.suburb}</p>
                   <p className="text-base sm:text-lg text-slate-600 mt-1">{[scheme.planType, scheme.module].filter(Boolean).join(" · ")}</p>
                   {scheme.lotCount ? <p className="text-base sm:text-lg font-semibold text-slate-700 mt-1">{scheme.lotCount} lots</p> : null}
+                  <p className="text-sm sm:text-base font-bold text-amber-700 mt-2">{dealTermLabel(event)}</p>
                 </div>
               ))}
             </div>
