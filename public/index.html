@@ -306,7 +306,7 @@ function App() {
           </div>
           <nav className="flex gap-1 bg-slate-900 rounded-full p-1 overflow-x-auto">
             {[
-              { id: "dotw", label: "Deal of the Week" },
+              { id: "dotw", label: "Win of the Week" },
               { id: "log", label: "Recent wins" },
               { id: "season", label: "Season Leaderboard" },
               { id: "report", label: "🏆 Claim a win" },
@@ -335,7 +335,7 @@ function App() {
         {loading ? (
           <p className="text-slate-500">Loading rankings…</p>
         ) : tab === "dotw" ? (
-          <DealOfTheWeek weekKey={currentWeekKey} entries={currentWeekEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} schemeById={schemeById} />
+          <WinOfTheWeek weekKey={currentWeekKey} entries={currentWeekEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} schemeById={schemeById} />
         ) : tab === "log" ? (
           <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
         ) : tab === "season" ? (
@@ -444,7 +444,7 @@ function SponsorStrip({ sponsors }) {
   );
 }
 
-function DealOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) {
+function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) {
   const sorted = [...entries].sort((a, b) => b.points - a.points || b.lots - a.lots);
   const leader = sorted[0];
   const others = sorted.slice(1);
@@ -457,7 +457,7 @@ function DealOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) 
 
       {!leader ? (
         <div className="text-center py-16">
-          <p className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">No deal of the week yet!</p>
+          <p className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">No win of the week yet!</p>
           <p className="text-lg sm:text-xl font-bold text-amber-600">If you nailed a deal this week, let the strata world know!</p>
         </div>
       ) : (
