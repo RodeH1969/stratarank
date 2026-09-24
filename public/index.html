@@ -313,23 +313,24 @@ function App() {
               The metric: contracts awarded by committees
             </p>
           </div>
-          <nav className="flex gap-1 bg-slate-900 rounded-full p-1 overflow-x-auto">
+          <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1">
             {[
-              { id: "dotw", label: "Win of the Week" },
-              { id: "log", label: "Recent wins" },
-              { id: "season", label: "Season Leaderboard" },
-              { id: "report", label: "🏆 Claim a win" },
-            ].map(({ id, label }) => (
+              { id: "dotw", label: "Win of the Week", shortLabel: "Win of the Week" },
+              { id: "log", label: "Recent wins", shortLabel: "Recent wins" },
+              { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
+              { id: "report", label: "🏆 Claim a win", shortLabel: "🏆 Claim a win" },
+            ].map(({ id, label, shortLabel }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
                 className={
                   id === "report"
-                    ? `px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap text-slate-900 ${tab === id ? "claim-tab-active" : "claim-tab"}`
-                    : `px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`
+                    ? `px-3 py-2.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap text-center text-slate-900 ${tab === id ? "claim-tab-active" : "claim-tab"}`
+                    : `px-3 py-2.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-medium whitespace-nowrap text-center transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`
                 }
               >
-                {label}
+                <span className="sm:hidden">{shortLabel}</span>
+                <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </nav>
