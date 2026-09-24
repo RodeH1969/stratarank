@@ -509,6 +509,13 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) {
             <div className="mt-6">
               <div className="font-serif text-5xl sm:text-6xl text-amber-700 leading-none">{leader.points}</div>
               <p className="text-sm sm:text-base font-extrabold text-slate-800 mt-2 uppercase tracking-wide">Ranking Points</p>
+              <div className="mt-3 inline-flex flex-wrap justify-center gap-2">
+                {leaderDeals.map(({ event }, i) => (
+                  <span key={i} className="bg-amber-600 text-white font-bold text-sm sm:text-base px-4 py-2 rounded-full shadow-sm">
+                    {dealTermLabel(event)}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="mt-6 bg-white/80 rounded-xl p-4 sm:p-6 space-y-4">
@@ -517,7 +524,6 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) {
                   <p className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">Scheme located in {scheme.suburb}</p>
                   <p className="text-base sm:text-lg text-slate-600 mt-1">{[scheme.planType, scheme.module].filter(Boolean).join(" · ")}</p>
                   {scheme.lotCount ? <p className="text-base sm:text-lg font-semibold text-slate-700 mt-1">{scheme.lotCount} lots</p> : null}
-                  <p className="text-sm sm:text-base font-bold text-amber-700 mt-2">{dealTermLabel(event)}</p>
                 </div>
               ))}
             </div>
