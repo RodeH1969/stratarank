@@ -335,7 +335,7 @@ function App() {
         {loading ? (
           <p className="text-slate-500">Loading rankings…</p>
         ) : tab === "dotw" ? (
-          <DealOfTheWeek weekKey={currentWeekKey} entries={currentWeekEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} />
+          <DealOfTheWeek weekKey={currentWeekKey} entries={currentWeekEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} schemeById={schemeById} />
         ) : tab === "log" ? (
           <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
         ) : tab === "season" ? (
@@ -387,13 +387,15 @@ function ManagerPhotoPopup({ manager, children }) {
   );
 }
 
-function AgencyBadge({ agency, agencyLogos }) {
+function AgencyBadge({ agency, agencyLogos, size }) {
   if (!agency) return null;
   const key = agency.trim().toLowerCase();
   const match = (agencyLogos || {})[key];
+  const logoSize = size || "h-6";
+  const badgeSize = size ? "h-16 min-w-16 text-lg" : "h-6 min-w-6 text-[10px]";
 
   if (match && match.logoUrl) {
-    const logo = <img src={match.logoUrl} alt={agency} className="h-6 w-auto object-contain shrink-0" />;
+    const logo = <img src={match.logoUrl} alt={agency} className={`${logoSize} w-auto object-contain shrink-0`} />;
     return match.websiteUrl ? (
       <a href={match.websiteUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="shrink-0 hover:opacity-80 transition-opacity">
         {logo}
@@ -402,9 +404,17 @@ function AgencyBadge({ agency, agencyLogos }) {
   }
   const initials = agency.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <div className="h-6 min-w-6 px-1.5 rounded bg-slate-200 text-slate-600 text-[10px] font-medium flex items-center justify-center shrink-0">
+    <div className={`${badgeSize} px-1.5 rounded bg-slate-200 text-slate-600 font-medium flex items-center justify-center shrink-0`}>
       {initials}
     </div>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+      <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.61 0 4.28 2.38 4.28 5.47v6.27zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/>
+    </svg>
   );
 }
 
@@ -434,10 +444,11 @@ function SponsorStrip({ sponsors }) {
   );
 }
 
-function DealOfTheWeek({ weekKey, entries, sponsors, agencyLogos }) {
+function DealOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) {
   const sorted = [...entries].sort((a, b) => b.points - a.points || b.lots - a.lots);
   const leader = sorted[0];
   const others = sorted.slice(1);
+  const leaderSchemes = leader ? leader.events.map((ev) => schemeById(ev.schemeId)).filter(Boolean) : [];
 
   return (
     <div>
@@ -451,20 +462,59 @@ function DealOfTheWeek({ weekKey, entries, sponsors, agencyLogos }) {
         </div>
       ) : (
         <>
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-6 sm:p-8 text-center shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-3">This week's leader</p>
-            <div className="flex justify-center mb-3">
-              <AgencyBadge agency={leader.manager.agency} agencyLogos={agencyLogos} />
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-5 sm:p-8 text-center shadow-sm">
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-amber-700 mb-5">This week's leader</p>
+
+            {leader.manager.photoUrl ? (
+              <img
+                src={leader.manager.photoUrl}
+                alt={leader.manager.name}
+                className="w-32 h-32 sm:w-44 sm:h-44 rounded-full object-cover mx-auto border-4 border-white shadow-lg"
+              />
+            ) : (
+              <div className="w-32 h-32 sm:w-44 sm:h-44 rounded-full bg-slate-200 flex items-center justify-center mx-auto text-4xl sm:text-5xl font-bold text-slate-500 border-4 border-white shadow-lg">
+                {leader.manager.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+              </div>
+            )}
+
+            <div className="flex justify-center mt-5">
+              <AgencyBadge agency={leader.manager.agency} agencyLogos={agencyLogos} size="h-16 sm:h-20" />
             </div>
-            <ManagerPhotoPopup manager={leader.manager}>
-              <h2 className="font-serif text-2xl sm:text-3xl hover:underline decoration-dotted">{leader.manager.name}</h2>
-            </ManagerPhotoPopup>
+
+            <h2 className="font-serif text-3xl sm:text-4xl mt-4">{leader.manager.name}</h2>
             {leader.manager.agency && <p className="text-slate-600 mt-1">{leader.manager.agency}</p>}
-            <div className="mt-4 font-serif text-4xl sm:text-5xl text-amber-700">{leader.points}</div>
-            <p className="text-sm font-bold text-slate-700 mt-1">
-              ({leader.events.length} deal{leader.events.length === 1 ? "" : "s"} · {leader.lots} lot{leader.lots === 1 ? "" : "s"})
+
+            {leader.manager.linkedinUrl && (
+              <a
+                href={leader.manager.linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-[#0A66C2] bg-white px-3 py-1.5 rounded-full shadow-sm hover:shadow transition-shadow"
+              >
+                <LinkedInIcon /> View on LinkedIn
+              </a>
+            )}
+
+            <div className="mt-6">
+              <div className="font-serif text-5xl sm:text-6xl text-amber-700 leading-none">{leader.points}</div>
+              <p className="text-sm sm:text-base font-extrabold text-slate-800 mt-2 uppercase tracking-wide">Ranking Points</p>
+            </div>
+
+            <div className="mt-6 bg-white/80 rounded-xl p-4 sm:p-6 space-y-4">
+              {leaderSchemes.map((scheme, i) => (
+                <div key={i} className={i > 0 ? "pt-4 border-t border-amber-100" : ""}>
+                  <p className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">{scheme.suburb}</p>
+                  <p className="text-base sm:text-lg text-slate-600 mt-1">{[scheme.planType, scheme.module].filter(Boolean).join(" · ")}</p>
+                  {scheme.lotCount ? <p className="text-base sm:text-lg font-semibold text-slate-700 mt-1">{scheme.lotCount} lots</p> : null}
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-6 text-base sm:text-lg font-extrabold text-slate-900 flex items-center justify-center gap-2 flex-wrap">
+              Leading the pack for a
+              <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-6 sm:h-7 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
+              $30 voucher!
             </p>
-            <p className="text-sm text-slate-600 mt-4">Leading the pack for a $30 Dan Murphy's voucher.</p>
           </div>
 
           {others.length > 0 && (
