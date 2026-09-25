@@ -237,6 +237,21 @@ app.patch('/api/managers/:id', async (req, res) => {
   res.json(toManagerOut(data));
 });
 
+app.delete('/api/managers/:id', async (req, res) => {
+  const { data: existingEvents, error: checkError } = await supabase
+    .from('strata_events')
+    .select('id')
+    .eq('manager_id', req.params.id)
+    .limit(1);
+  if (checkError) return res.status(500).json({ error: checkError.message });
+  if (existingEvents && existingEvents.length > 0) {
+    return res.status(400).json({ error: 'This manager has nominations attached — delete those in All nominations first, then remove the manager.' });
+  }
+  const { error } = await supabase.from('strata_managers').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ deleted: true });
+});
+
 // --- schemes ---------------------------------------------------------------
 
 app.patch('/api/schemes/:id', async (req, res) => {
