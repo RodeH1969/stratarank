@@ -2,8 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>QLD Strata Rankings</title>
+
+<meta name="description" content="Queensland's Community Managers, ranked by contracts awarded by committees. Weekly Win of the Week, Season Leaderboard, and more." />
+<meta property="og:title" content="QLD Strata Rankings" />
+<meta property="og:description" content="Community Managers across Qld ranked. The metric: contracts awarded by committees." />
+<meta property="og:image" content="/og-image.png" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="QLD Strata Rankings" />
+<meta name="twitter:description" content="Community Managers across Qld ranked. The metric: contracts awarded by committees." />
+<meta name="twitter:image" content="/og-image.png" />
+
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0f172a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Strata Rankings" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<link rel="icon" href="/icon-192.png" />
+
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -96,6 +115,30 @@ const weekRangeLabel = (mondayStr) => {
   const sunday = new Date(Date.UTC(y, m - 1, d + 6));
   const fmt = (dt) => dt.toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
   return `${fmt(monday)} – ${fmt(sunday)}`;
+};
+
+// Milliseconds until the end of this week (Sun 23:59:59 Brisbane time).
+const msUntilWeekEnd = (mondayStr) => {
+  const [y, m, d] = mondayStr.split("-").map(Number);
+  // Brisbane is a fixed UTC+10 year-round — end of Sunday there is 13:59:59 UTC.
+  const sundayEndUTC = Date.UTC(y, m - 1, d + 6, 13, 59, 59);
+  return sundayEndUTC - Date.now();
+};
+const countdownLabel = (ms) => {
+  if (ms <= 0) return "Ends today";
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+  if (days > 0) return `${days} day${days === 1 ? "" : "s"} ${hours}h left`;
+  return `${hours}h left`;
+};
+const msUntilSeasonEnd = (seasonYear) => {
+  const endUTC = Date.UTC(seasonYear, 11, 22, 13, 59, 59); // Dec 22, Brisbane 23:59:59
+  return endUTC - Date.now();
+};
+const daysUntilLabel = (ms) => {
+  if (ms <= 0) return "Season closed";
+  const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+  return `${days} day${days === 1 ? "" : "s"} left this season`;
 };
 
 const dealTermLabel = (ev) => {
@@ -334,6 +377,21 @@ function App() {
   }, [weeklyWinners, data]);
 
   const currentWeekKey = mondayOf(brisbaneToday());
+
+  // Movement indicator: rank as of last week (excluding the still-open
+  // current week) compared to today's rank.
+  const previousRankMap = useMemo(() => {
+    const wins = {};
+    for (const wk of Object.keys(weeklyWinners)) {
+      if (wk === currentWeekKey) continue;
+      const id = weeklyWinners[wk].winnerManagerId;
+      wins[id] = (wins[id] || 0) + 1;
+    }
+    const ordered = Object.entries(wins).sort((a, b) => b[1] - a[1]);
+    const map = {};
+    ordered.forEach(([managerId], i) => { map[managerId] = i + 1; });
+    return map;
+  }, [weeklyWinners, currentWeekKey]);
   const currentWeek = weeklyWinners[currentWeekKey];
   const currentWeekEntries = currentWeek
     ? currentWeek.totals.map((t) => ({ manager: managerById(t.managerId), ...t })).filter((r) => r.manager)
@@ -393,17 +451,39 @@ function App() {
         )}
 
         {loading ? (
-          <p className="text-slate-500">Loading rankings…</p>
+          <SkeletonLoader />
         ) : tab === "dotw" ? (
           <WinOfTheWeek weekKey={currentWeekKey} entries={currentWeekEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} schemeById={schemeById} sponsorInvites={data.sponsorInvites} />
         ) : tab === "log" ? (
           <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
         ) : tab === "season" ? (
-          <SeasonLeaderboard standings={seasonStandings} agencyLogos={data.agencyLogos} sponsors={data.sponsors} />
+          <SeasonLeaderboard standings={seasonStandings} agencyLogos={data.agencyLogos} sponsors={data.sponsors} previousRankMap={previousRankMap} seasonYear={data.seasonYear} />
         ) : (
           <ReportWin data={data} refresh={refresh} />
         )}
       </div>
+    </div>
+  );
+}
+
+function SkeletonLoader() {
+  return (
+    <div className="animate-pulse space-y-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8">
+        <div className="h-4 bg-slate-200 rounded w-1/3 mx-auto mb-4"></div>
+        <div className="w-28 h-28 sm:w-40 sm:h-40 bg-slate-200 rounded-full mx-auto mb-4"></div>
+        <div className="h-6 bg-slate-200 rounded w-1/2 mx-auto mb-2"></div>
+        <div className="h-4 bg-slate-200 rounded w-1/4 mx-auto"></div>
+      </div>
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-slate-200 rounded-full shrink-0"></div>
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+            <div className="h-3 bg-slate-200 rounded w-1/4"></div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -478,6 +558,33 @@ function LinkedInIcon() {
   );
 }
 
+function ShareButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  const url = typeof window !== "undefined" ? window.location.href : "";
+
+  const shareNative = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "QLD Strata Rankings", text, url });
+        return;
+      } catch (e) {
+        // user cancelled or share failed — fall through to LinkedIn/copy below
+      }
+    }
+    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+    window.open(linkedInUrl, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <button
+      onClick={shareNative}
+      className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-2 rounded-full shadow-md transition-colors"
+    >
+      <LinkedInIcon /> Share this win
+    </button>
+  );
+}
+
 function SponsorStrip({ sponsors }) {
   const active = (sponsors || []).filter((s) => s.active !== false);
   if (!active.length) return null;
@@ -505,6 +612,12 @@ function SponsorStrip({ sponsors }) {
 }
 
 function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, sponsorInvites }) {
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => forceTick((n) => n + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   const sorted = [...entries].sort((a, b) => b.points - a.points || b.lots - a.lots);
   const leader = sorted[0];
   const others = sorted.slice(1);
@@ -516,6 +629,9 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
         .flatMap((ev) => (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl))
         .slice(0, 5)
     : [];
+  const shareText = leader
+    ? `${leader.manager.name} is leading the QLD Strata Rankings this week with ${leader.points} points!`
+    : "";
 
   return (
     <div>
@@ -528,7 +644,8 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
       ) : (
         <>
           <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-5 sm:p-8 shadow-sm">
-            <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-3">Week of {weekRangeLabel(weekKey)}</p>
+            <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-1">Week of {weekRangeLabel(weekKey)}</p>
+            <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {countdownLabel(msUntilWeekEnd(weekKey))}</p>
             <p className="text-center text-xs sm:text-sm font-bold uppercase tracking-wide text-amber-700 mb-5">This week's leader</p>
 
             <div className="text-center">
@@ -578,6 +695,9 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
                 <span className="font-extrabold text-sm sm:text-base text-slate-900">Leading the pack for a</span>
                 <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-5 sm:h-6 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
                 <span className="font-extrabold text-sm sm:text-base text-slate-900">$30 voucher!</span>
+              </div>
+              <div className="mt-4">
+                <ShareButton text={shareText} />
               </div>
             </div>
 
@@ -646,9 +766,13 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
   );
 }
 
-function SeasonLeaderboard({ standings, sponsors, agencyLogos }) {
+function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, seasonYear }) {
+  const medal = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null);
+  const rowBg = (i) => (i === 0 ? "bg-amber-50 -mx-4 px-4 rounded-lg border-b-0" : i === 1 ? "bg-slate-50 -mx-4 px-4 rounded-lg border-b-0" : i === 2 ? "bg-orange-50/60 -mx-4 px-4 rounded-lg border-b-0" : "");
+
   return (
     <div>
+      <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {daysUntilLabel(msUntilSeasonEnd(seasonYear))} (to Dec 22)</p>
       <p className="text-center text-sm text-slate-500 mb-6 flex items-center justify-center gap-1.5 flex-wrap">
         1 point per weekly win · highest by Dec 22 wins a $100
         <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-5 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
@@ -657,24 +781,39 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos }) {
       {standings.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No weekly wins recorded yet this season.</p>
       ) : (
-        standings.map((row, i) => (
-          <div key={row.manager.id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 py-4 border-b border-slate-200 ${i === 0 ? "bg-amber-50 -mx-4 px-4 rounded-lg border-b-0" : ""}`}>
-            <div className="w-8 sm:w-10 text-center font-serif text-xl sm:text-2xl text-slate-400 shrink-0">{i === 0 ? <span className="text-base sm:text-lg font-semibold text-amber-600">1st</span> : i + 1}</div>
-            <div className="flex-1 min-w-0 flex items-center gap-2.5">
-              <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} />
-              <ManagerPhotoPopup manager={row.manager}>
-                <div className="min-w-0">
-                  <p className="font-medium truncate hover:underline decoration-dotted">{row.manager.name}</p>
-                  {row.manager.agency && <p className="text-sm text-slate-500 truncate">{row.manager.agency}</p>}
-                </div>
-              </ManagerPhotoPopup>
+        standings.map((row, i) => {
+          const prevRank = previousRankMap ? previousRankMap[row.manager.id] : undefined;
+          const currentRank = i + 1;
+          const movement = prevRank ? prevRank - currentRank : null;
+          return (
+            <div key={row.manager.id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 py-4 border-b border-slate-200 ${rowBg(i)}`}>
+              <div className="w-8 sm:w-10 text-center font-serif text-xl sm:text-2xl text-slate-400 shrink-0">
+                {medal(i) ? <span className="text-xl sm:text-2xl">{medal(i)}</span> : currentRank}
+              </div>
+              <div className="flex-1 min-w-0 flex items-center gap-2.5">
+                <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} />
+                <ManagerPhotoPopup manager={row.manager}>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate hover:underline decoration-dotted">{row.manager.name}</p>
+                    {row.manager.agency && <p className="text-sm text-slate-500 truncate">{row.manager.agency}</p>}
+                  </div>
+                </ManagerPhotoPopup>
+                {movement !== null && movement !== 0 && (
+                  <span className={`text-xs font-bold shrink-0 ${movement > 0 ? "text-teal-600" : "text-rose-500"}`}>
+                    {movement > 0 ? `▲${movement}` : `▼${Math.abs(movement)}`}
+                  </span>
+                )}
+                {prevRank === undefined && (
+                  <span className="text-xs font-bold text-amber-600 shrink-0 bg-amber-100 px-1.5 py-0.5 rounded">NEW</span>
+                )}
+              </div>
+              <div className="basis-full sm:basis-auto text-right sm:shrink-0 pl-12 sm:pl-0">
+                <span className="font-serif text-2xl sm:text-3xl">{row.weeklyWins}</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">weekly win{row.weeklyWins === 1 ? "" : "s"}</span>
+              </div>
             </div>
-            <div className="basis-full sm:basis-auto text-right sm:shrink-0 pl-12 sm:pl-0">
-              <span className="font-serif text-2xl sm:text-3xl">{row.weeklyWins}</span>
-              <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">weekly win{row.weeklyWins === 1 ? "" : "s"}</span>
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
       <SponsorStrip sponsors={sponsors} />
     </div>
@@ -682,12 +821,29 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos }) {
 }
 
 function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites }) {
+  const [query, setQuery] = useState("");
   const findWinSponsors = (eventId) =>
     (sponsorInvites || []).filter((inv) => inv.eventId === eventId && inv.status === "accepted" && inv.logoUrl).slice(0, 5);
 
+  const isNew = (ev) => {
+    if (!ev.createdAt) return false;
+    return Date.now() - new Date(ev.createdAt).getTime() < 24 * 60 * 60 * 1000;
+  };
+
+  const filteredEvents = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return events;
+    return events.filter((ev) => {
+      const manager = managerById(ev.managerId);
+      const scheme = schemeById(ev.schemeId);
+      const haystack = `${manager?.name || ""} ${manager?.agency || ""} ${scheme?.suburb || ""}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [events, query]);
+
   const weekGroups = useMemo(() => {
     const byWeek = {};
-    for (const ev of events) {
+    for (const ev of filteredEvents) {
       const wk = mondayOf(ev.date);
       if (!byWeek[wk]) byWeek[wk] = [];
       byWeek[wk].push(ev);
@@ -703,12 +859,20 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
         });
         return { weekKey: wk, events: ranked };
       });
-  }, [events]);
+  }, [filteredEvents]);
 
   return (
     <div>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search by manager, agency, or suburb…"
+        className="w-full border border-slate-300 rounded-full px-4 py-2 text-sm mb-6 bg-white"
+      />
       {events.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No wins reported yet.</p>
+      ) : weekGroups.length === 0 ? (
+        <p className="text-slate-500 text-center py-16">No wins match "{query}".</p>
       ) : (
         <div className="space-y-8">
           {weekGroups.map((group) => (
@@ -722,7 +886,10 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
             return (
               <div key={ev.id} className="flex items-start gap-2 sm:gap-3">
                 <div className="font-serif text-lg sm:text-xl text-slate-400 w-6 shrink-0 pt-4 text-right">{idx + 1}.</div>
-                <div className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow relative">
+                {isNew(ev) && (
+                  <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">NEW</span>
+                )}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <AgencyBadge agency={manager?.agency} agencyLogos={agencyLogos} />
@@ -815,6 +982,7 @@ function ReportWin({ data, refresh }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  const [step, setStep] = useState(0);
   const sortedManagers = [...data.managers].sort((a, b) => a.name.localeCompare(b.name));
   const previewPoints = computePoints(winType, newTerm, prevTerm);
 
@@ -822,8 +990,56 @@ function ReportWin({ data, refresh }) {
   const inputClass = (key) => `w-full rounded px-3 py-2 text-sm border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
   const selectClass = (key) => `w-full rounded px-3 py-2 text-sm bg-white border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
 
+  const isNewManager = managerChoice === "__new__";
+  const stepValidators = [
+    () => {
+      const errs = {};
+      if (isNewManager && !managerName.trim()) errs.managerName = true;
+      if (isNewManager && !agency.trim()) errs.agency = true;
+      return errs;
+    },
+    () => {
+      const errs = {};
+      if (!suburb.trim()) errs.suburb = true;
+      if (!module.trim()) errs.module = true;
+      if (!lotCount) errs.lotCount = true;
+      if (!schemeName.trim()) errs.schemeName = true;
+      if (!cts.trim()) errs.cts = true;
+      return errs;
+    },
+    () => {
+      const errs = {};
+      if (!winType) errs.winType = true;
+      if (!newTerm) errs.newTerm = true;
+      if (winType === "renewal" && !prevTerm) errs.prevTerm = true;
+      return errs;
+    },
+    () => {
+      const errs = {};
+      if (!tradieBusiness.trim()) errs.tradieBusiness = true;
+      if (!tradieName.trim()) errs.tradieName = true;
+      return errs;
+    },
+  ];
+  const stepLabels = ["Manager", "Scheme", "Deal", "Tradie"];
+
+  const goNext = () => {
+    const errs = stepValidators[step]();
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      setError("Please fill in the fields marked in red.");
+      return;
+    }
+    setFieldErrors({});
+    setError(null);
+    setStep((s) => Math.min(3, s + 1));
+  };
+  const goBack = () => {
+    setError(null);
+    setStep((s) => Math.max(0, s - 1));
+  };
+
   const submit = async () => {
-    const isNewManager = managerChoice === "__new__";
     const errs = {};
     if (isNewManager && !managerName.trim()) errs.managerName = true;
     if (isNewManager && !agency.trim()) errs.agency = true;
@@ -877,6 +1093,7 @@ function ReportWin({ data, refresh }) {
       setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
       setTradieBusiness(""); setTradieName("");
+      setStep(0);
       if (result.inviteError) {
         setError(`Win saved, but the tradie suggestion didn't go through: ${result.inviteError}`);
       }
@@ -893,63 +1110,75 @@ function ReportWin({ data, refresh }) {
       <h2 className="font-serif text-2xl mb-2">Claim a win by a Strata Manager</h2>
       <PointsInfoButton />
 
-      {sortedManagers.length > 0 && (
-        <div>
-          <label className="block text-sm text-slate-600 mb-1">The legend Strata Manager who signed the deal</label>
-          <select value={managerChoice} onChange={(e) => setManagerChoice(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
-            <option value="__new__">+ Add new manager…</option>
-            {sortedManagers.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}{m.agency ? ` · ${m.agency}` : ""}</option>
-            ))}
-          </select>
-        </div>
-      )}
-      {managerChoice === "__new__" && (
-      <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
-        <div><label className={labelClass("managerName")}>Their name — give credit where it's due</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
-        <div><label className={labelClass("agency")}>Who do they fly the flag for?</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
-        <div>
-          <label className="block text-sm text-slate-600 mb-1">Manager's photo (optional)</label>
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              if (file.size > 2 * 1024 * 1024) {
-                window.alert("Please choose a photo smaller than 2 MB.");
-                e.target.value = "";
-                return;
-              }
-              const reader = new FileReader();
-              reader.onload = () => {
-                setManagerPhotoData(reader.result);
-                setManagerPhotoFileName(file.name);
-              };
-              reader.readAsDataURL(file);
-            }}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-          />
-          {managerPhotoFileName && <p className="text-xs text-slate-500 mt-1">Selected: {managerPhotoFileName}</p>}
-          {managerPhotoData && (
-            <img src={managerPhotoData} alt="Preview" className="mt-2 w-16 h-16 rounded-full object-cover border border-slate-200" />
-          )}
-        </div>
+      <div className="flex items-center justify-center gap-2">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={`h-2 rounded-full transition-all ${i === step ? "w-8 bg-amber-500" : i < step ? "w-2 bg-amber-300" : "w-2 bg-slate-200"}`}></div>
+        ))}
       </div>
+      <p className="text-center text-xs text-slate-400">Step {step + 1} of 4 — {stepLabels[step]}</p>
+
+      {step === 0 && (
+        <>
+          {sortedManagers.length > 0 && (
+            <div>
+              <label className="block text-sm text-slate-600 mb-1">The legend Strata Manager who signed the deal</label>
+              <select value={managerChoice} onChange={(e) => setManagerChoice(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+                <option value="__new__">+ Add new manager…</option>
+                {sortedManagers.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}{m.agency ? ` · ${m.agency}` : ""}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {managerChoice === "__new__" && (
+          <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
+            <div><label className={labelClass("managerName")}>Their name — give credit where it's due</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
+            <div><label className={labelClass("agency")}>Who do they fly the flag for?</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
+            <div>
+              <label className="block text-sm text-slate-600 mb-1">Manager's photo (optional)</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) {
+                    window.alert("Please choose a photo smaller than 2 MB.");
+                    e.target.value = "";
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    setManagerPhotoData(reader.result);
+                    setManagerPhotoFileName(file.name);
+                  };
+                  reader.readAsDataURL(file);
+                }}
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+              />
+              {managerPhotoFileName && <p className="text-xs text-slate-500 mt-1">Selected: {managerPhotoFileName}</p>}
+              {managerPhotoData && (
+                <img src={managerPhotoData} alt="Preview" className="mt-2 w-16 h-16 rounded-full object-cover border border-slate-200" />
+              )}
+            </div>
+          </div>
+          )}
+        </>
       )}
 
-      <div className="space-y-4">
-        <div><label className={labelClass("suburb")}>Suburb (where the scheme is located)</label><input value={suburb} onChange={(e) => setSuburb(e.target.value)} placeholder="e.g. New Farm" className={inputClass("suburb")} /></div>
-        <div>
-          <label className="block text-sm text-slate-600 mb-1">Scheme type</label>
-          <select value={planType} onChange={(e) => setPlanType(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
-            <option value="BFP">BFP</option>
-            <option value="SFP">SFP</option>
-          </select>
-        </div>
-        <div>
-          <label className={labelClass("module")}>Module</label>
-          <select value={module} onChange={(e) => setModule(e.target.value)} className={selectClass("module")}>
+      {step === 1 && (
+        <div className="space-y-4">
+          <div><label className={labelClass("suburb")}>Suburb (where the scheme is located)</label><input value={suburb} onChange={(e) => setSuburb(e.target.value)} placeholder="e.g. New Farm" className={inputClass("suburb")} /></div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Scheme type</label>
+            <select value={planType} onChange={(e) => setPlanType(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+              <option value="BFP">BFP</option>
+              <option value="SFP">SFP</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass("module")}>Module</label>
+            <select value={module} onChange={(e) => setModule(e.target.value)} className={selectClass("module")}>
               <option value="">Select…</option>
               {BCCM_MODULES.map((m) => (
                 <option key={m} value={m}>{m}</option>
@@ -972,70 +1201,96 @@ function ReportWin({ data, refresh }) {
             <input value={cts} onChange={(e) => setCts(e.target.value)} className={inputClass("cts")} />
           </div>
         </div>
+      )}
 
-      <div>
-        <label className={labelClass("winType")}>How was this scheme secured?</label>
-        <select value={winType} onChange={(e) => { setWinType(e.target.value); setPrevTerm(""); }} className={selectClass("winType")}>
-          <option value="">Select…</option>
-          <option value="competitor">Signed from a competitor</option>
-          <option value="renewal">Renewed with us</option>
-        </select>
-      </div>
+      {step === 2 && (
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass("winType")}>How was this scheme secured?</label>
+            <select value={winType} onChange={(e) => { setWinType(e.target.value); setPrevTerm(""); }} className={selectClass("winType")}>
+              <option value="">Select…</option>
+              <option value="competitor">Signed from a competitor</option>
+              <option value="renewal">Renewed with us</option>
+            </select>
+          </div>
 
-      <div>
-        <label className={labelClass("newTerm")}>New term (years)</label>
-        <select value={newTerm} onChange={(e) => setNewTerm(e.target.value)} className={selectClass("newTerm")}>
-          <option value="">Select…</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-        </select>
-      </div>
+          <div>
+            <label className={labelClass("newTerm")}>New term (years)</label>
+            <select value={newTerm} onChange={(e) => setNewTerm(e.target.value)} className={selectClass("newTerm")}>
+              <option value="">Select…</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
 
-      {winType === "renewal" && (
-        <div>
-          <label className={labelClass("prevTerm")}>Previous term (years)</label>
-          <select value={prevTerm} onChange={(e) => setPrevTerm(e.target.value)} className={selectClass("prevTerm")}>
-            <option value="">Select…</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-          </select>
+          {winType === "renewal" && (
+            <div>
+              <label className={labelClass("prevTerm")}>Previous term (years)</label>
+              <select value={prevTerm} onChange={(e) => setPrevTerm(e.target.value)} className={selectClass("prevTerm")}>
+                <option value="">Select…</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+          )}
+
+          {winType && newTerm && (winType !== "renewal" || prevTerm) && (
+            <div className="bg-amber-400 border-2 border-amber-500 rounded-lg px-4 py-3 text-center shadow-sm">
+              <span className="text-black font-extrabold text-lg">
+                Worth {previewPoints} point{previewPoints === 1 ? "" : "s"}
+              </span>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Date of win</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={todayStr()} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+          </div>
         </div>
       )}
 
-      {winType && newTerm && (winType !== "renewal" || prevTerm) && (
-        <div className="bg-amber-400 border-2 border-amber-500 rounded-lg px-4 py-3 text-center shadow-sm">
-          <span className="text-black font-extrabold text-lg">
-            Worth {previewPoints} point{previewPoints === 1 ? "" : "s"}
-          </span>
+      {step === 3 && (
+        <div className="pt-2">
+          <p className="text-sm font-medium text-slate-700 mb-1">Shout out the trade legend behind this building</p>
+          <div className="space-y-3">
+            <div>
+              <label className={labelClass("tradieBusiness")}>Their business — who do they work under?</label>
+              <input value={tradieBusiness} onChange={(e) => setTradieBusiness(e.target.value)} placeholder="e.g. Ace Plumbing" className={inputClass("tradieBusiness")} />
+            </div>
+            <div>
+              <label className={labelClass("tradieName")}>The name behind the tools</label>
+              <input value={tradieName} onChange={(e) => setTradieName(e.target.value)} className={inputClass("tradieName")} />
+            </div>
+          </div>
         </div>
       )}
 
-      <div>
-        <label className="block text-sm text-slate-600 mb-1">Date of win</label>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={todayStr()} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      <div className="flex gap-2 pt-2">
+        {step > 0 && (
+          <button onClick={goBack} className="border border-slate-300 text-slate-700 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-slate-50">
+            Back
+          </button>
+        )}
+        {step < 3 ? (
+          <button onClick={goNext} className="bg-amber-500 text-slate-900 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-amber-400">
+            Next
+          </button>
+        ) : (
+          <button onClick={submit} disabled={submitting} className="bg-amber-500 text-slate-900 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50">
+            {submitting ? "Saving…" : "Claim win"}
+          </button>
+        )}
       </div>
-
-      <div className="pt-2 border-t border-slate-200">
-        <p className="text-sm font-medium text-slate-700 mb-1">Shout out the trade legend behind this building</p>
-        <div className="space-y-3">
-          <div>
-            <label className={labelClass("tradieBusiness")}>Their business — who do they work under?</label>
-            <input value={tradieBusiness} onChange={(e) => setTradieBusiness(e.target.value)} placeholder="e.g. Ace Plumbing" className={inputClass("tradieBusiness")} />
-          </div>
-          <div>
-            <label className={labelClass("tradieName")}>The name behind the tools</label>
-            <input value={tradieName} onChange={(e) => setTradieName(e.target.value)} className={inputClass("tradieName")} />
-          </div>
-        </div>
-      </div>
-
-      <button onClick={submit} disabled={submitting} className="bg-amber-500 text-slate-900 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50">
-        {submitting ? "Saving…" : "Claim win"}
-      </button>
       {error && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
-      {confirmation && <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm text-teal-800">{confirmation.label}</div>}
+      {confirmation && (
+        <div className="bg-gradient-to-br from-teal-50 to-emerald-50 border-2 border-teal-300 rounded-xl p-5 text-center shadow-md">
+          <p className="text-3xl mb-2">🎉</p>
+          <p className="font-serif text-xl font-bold text-teal-900 mb-1">Nice work!</p>
+          <p className="text-sm text-teal-800">{confirmation.label}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1049,6 +1304,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   var scriptEl = document.createElement("script");
   scriptEl.text = compiled;
   document.body.appendChild(scriptEl);
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+    });
+  }
 </script>
 </body>
 </html>

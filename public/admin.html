@@ -38,6 +38,22 @@ const schemeLabel = (scheme) => {
   const parts = [scheme.suburb, scheme.planType, scheme.module, scheme.lotCount ? `${scheme.lotCount} lots` : null].filter(Boolean);
   return parts.length ? parts.join(" · ") : "Building";
 };
+const brisbaneToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Brisbane" });
+const mondayOf = (dateStr) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = dt.getUTCDay();
+  const diffToMonday = dow === 0 ? -6 : 1 - dow;
+  dt.setUTCDate(dt.getUTCDate() + diffToMonday);
+  return dt.toISOString().slice(0, 10);
+};
+const weekRangeLabel = (mondayStr) => {
+  const [y, m, d] = mondayStr.split("-").map(Number);
+  const monday = new Date(Date.UTC(y, m - 1, d));
+  const sunday = new Date(Date.UTC(y, m - 1, d + 6));
+  const fmt = (dt) => dt.toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
+  return `${fmt(monday)} – ${fmt(sunday)}`;
+};
 function computePoints(type, newTerm, prevTerm) {
   const t = Number(newTerm);
   const p = prevTerm != null && prevTerm !== "" ? Number(prevTerm) : null;
@@ -1334,26 +1350,46 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
 
 function NominationsManager({ data, refresh }) {
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const managerById = (id) => data.managers.find((m) => m.id === id);
   const schemeById = (id) => data.schemes.find((s) => s.id === id);
+
+  const pendingCount = data.events.filter((e) => e.status !== "approved").length;
 
   const events = useMemo(() => {
     const q = query.trim().toLowerCase();
     return [...data.events]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .filter((ev) => {
+        if (statusFilter === "pending" && ev.status === "approved") return false;
+        if (statusFilter === "approved" && ev.status !== "approved") return false;
         if (!q) return true;
         const manager = managerById(ev.managerId);
         const scheme = schemeById(ev.schemeId);
         const haystack = `${manager?.name || ""} ${manager?.agency || ""} ${schemeLabel(scheme)}`.toLowerCase();
         return haystack.includes(q);
       });
-  }, [data, query]);
+  }, [data, query, statusFilter]);
 
   return (
     <section className="mb-10">
       <h2 className="font-serif text-2xl mb-1">All nominations</h2>
       <p className="text-sm text-slate-500 mb-4">Edit or delete any nomination, past or present.</p>
+      <div className="flex gap-1 bg-slate-100 rounded-full p-1 w-fit mb-4">
+        {[
+          { id: "all", label: "All" },
+          { id: "pending", label: `Pending${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+          { id: "approved", label: "Approved" },
+        ].map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => setStatusFilter(id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${statusFilter === id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -1370,13 +1406,68 @@ function NominationsManager({ data, refresh }) {
   );
 }
 
+function Overview({ data, refresh }) {
+  const managerById = (id) => data.managers.find((m) => m.id === id);
+  const schemeById = (id) => data.schemes.find((s) => s.id === id);
+
+  const pending = data.events.filter((e) => e.status !== "approved");
+  const currentWeekKey = mondayOf(brisbaneToday());
+
+  const thisWeekLeader = useMemo(() => {
+    const approvedThisWeek = data.events.filter((e) => e.status === "approved" && mondayOf(e.date) === currentWeekKey);
+    if (approvedThisWeek.length === 0) return null;
+    const totals = {};
+    for (const ev of approvedThisWeek) {
+      if (!totals[ev.managerId]) totals[ev.managerId] = { points: 0, lots: 0 };
+      totals[ev.managerId].points += ev.points;
+      const scheme = schemeById(ev.schemeId);
+      totals[ev.managerId].lots += scheme?.lotCount ? Number(scheme.lotCount) : 0;
+    }
+    const ranked = Object.entries(totals)
+      .map(([managerId, t]) => ({ manager: managerById(managerId), ...t }))
+      .filter((r) => r.manager)
+      .sort((a, b) => b.points - a.points || b.lots - a.lots);
+    return ranked[0] || null;
+  }, [data, currentWeekKey]);
+
+  return (
+    <section className="mb-10">
+      <h2 className="font-serif text-2xl mb-4">Overview</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-1">Awaiting review</p>
+          <p className="font-serif text-4xl text-amber-800">{pending.length}</p>
+          <p className="text-sm text-slate-600 mt-1">nomination{pending.length === 1 ? "" : "s"} pending approval</p>
+        </div>
+        <div className="bg-teal-50 border border-teal-200 rounded-xl p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-teal-700 mb-1">This week's leader</p>
+          {thisWeekLeader ? (
+            <>
+              <p className="font-serif text-2xl text-teal-900">{thisWeekLeader.manager.name}</p>
+              <p className="text-sm text-slate-600 mt-1">{thisWeekLeader.points} points{thisWeekLeader.manager.agency ? ` · ${thisWeekLeader.manager.agency}` : ""}</p>
+            </>
+          ) : (
+            <p className="text-sm text-slate-600 mt-1">No approved wins yet this week ({weekRangeLabel(currentWeekKey)}).</p>
+          )}
+        </div>
+      </div>
+      {pending.length > 0 && (
+        <p className="text-sm text-slate-500 mt-4">
+          Head to <span className="font-semibold text-slate-700">All nominations</span> to review and approve.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function AdminPanel({ data, refresh }) {
-  const [section, setSection] = useState("agencies");
+  const [section, setSection] = useState("overview");
 
   return (
     <div>
       <nav className="flex flex-wrap gap-1 bg-slate-900 rounded-full p-1 mb-8 w-fit">
         {[
+          { id: "overview", label: "Overview" },
           { id: "agencies", label: "Agency Logos" },
           { id: "manager-photos", label: "Manager Photos" },
           { id: "invites", label: "Sponsor invites" },
@@ -1394,6 +1485,7 @@ function AdminPanel({ data, refresh }) {
         ))}
       </nav>
 
+      {section === "overview" && <Overview data={data} refresh={refresh} />}
       {section === "agencies" && <AgencyLogoManager data={data} refresh={refresh} />}
       {section === "manager-photos" && <ManagerPhotoManager data={data} refresh={refresh} />}
       {section === "invites" && <SponsorInvites data={data} refresh={refresh} />}

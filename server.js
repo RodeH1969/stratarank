@@ -116,6 +116,7 @@ function toEventOut(e, opts) {
     points: e.points,
     date: e.date,
     status: e.status || 'pending',
+    createdAt: e.created_at,
   };
   if (opts && opts.includePrivate) {
     out.proofUrl = e.proof_url || '';
