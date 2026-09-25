@@ -31,6 +31,17 @@
     background: linear-gradient(120deg, #f59e0b, #b45309);
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
   }
+  @keyframes bluePulseRing {
+    0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6), 0 0 0 0 rgba(30, 64, 175, 0.4); }
+    70%  { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0), 0 0 0 14px rgba(30, 64, 175, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0), 0 0 0 0 rgba(30, 64, 175, 0); }
+  }
+  .blue-pulse {
+    animation: bluePulseRing 2.2s ease-out infinite;
+  }
+  .gold-pulse-ring {
+    animation: claimPulseRing 2.2s ease-out infinite;
+  }
 </style>
 </head>
 <body>
@@ -148,6 +159,34 @@ async function api(path, options) {
   }
 }
 
+function MetricInfoButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="text-center mt-1">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="blue-pulse bg-blue-600 hover:bg-blue-700 text-white font-extrabold uppercase text-base sm:text-xl px-5 py-2.5 rounded-full inline-block"
+      >
+        The metric: contracts awarded by committees
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-3">
+              <h3 className="font-serif text-xl">Administration Contract with the Body Corporate</h3>
+              <button onClick={() => setOpen(false)} aria-label="Close" className="text-slate-400 hover:text-slate-600 text-xl leading-none shrink-0 ml-3">×</button>
+            </div>
+            <p className="text-sm text-slate-600">
+              A win is recorded when a Body Corporate committee formally awards or renews the Administration Agreement — the contract that appoints a company as the scheme's strata manager.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PointsInfoButton() {
   const [open, setOpen] = useState(false);
   return (
@@ -155,7 +194,7 @@ function PointsInfoButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-6 inline-flex items-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold text-sm px-4 py-2 rounded-full border border-amber-300 transition-colors"
+        className="gold-pulse-ring mb-6 inline-flex items-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold text-sm px-4 py-2 rounded-full border border-amber-300 transition-colors"
       >
         <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0">?</span>
         How are ranking points calculated?
@@ -305,13 +344,11 @@ function App() {
       <div className="max-w-3xl mx-auto px-6 py-10">
         <header className="border-b-2 border-slate-900 pb-5 mb-8">
           <div className="mb-4">
-            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl leading-tight">QLD Strata <span className="whitespace-nowrap">Rankings <span className="text-amber-500">{data.seasonYear}</span></span></h1>
+            <h1 className="font-serif text-xl sm:text-4xl md:text-5xl leading-tight whitespace-nowrap">QLD Strata Rankings <span className="text-amber-500">{data.seasonYear}</span></h1>
             <p className="text-slate-800 mt-3 font-semibold text-base sm:text-lg">
               Community Managers across Qld ranked
             </p>
-            <p className="text-amber-600 font-extrabold uppercase text-lg sm:text-xl mt-1">
-              The metric: contracts awarded by committees
-            </p>
+            <MetricInfoButton />
           </div>
           <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1">
             {[
@@ -464,7 +501,6 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById }) {
 
   return (
     <div>
-      <PointsInfoButton />
       <p className="text-center text-sm text-slate-500 mb-6">Week of {weekRangeLabel(weekKey)}</p>
 
       {!leader ? (
@@ -624,7 +660,6 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
 
   return (
     <div>
-      <PointsInfoButton />
       {events.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No wins reported yet.</p>
       ) : (
@@ -716,7 +751,6 @@ function ReportWin({ data, refresh }) {
   const [agency, setAgency] = useState("");
   const [managerPhotoData, setManagerPhotoData] = useState("");
   const [managerPhotoFileName, setManagerPhotoFileName] = useState("");
-  const [schemeChoice, setSchemeChoice] = useState("__new__");
   const [suburb, setSuburb] = useState("");
   const [planType, setPlanType] = useState("BFP");
   const [module, setModule] = useState("");
@@ -735,7 +769,6 @@ function ReportWin({ data, refresh }) {
   const [submitting, setSubmitting] = useState(false);
 
   const sortedManagers = [...data.managers].sort((a, b) => a.name.localeCompare(b.name));
-  const sortedSchemes = [...data.schemes].sort((a, b) => schemeLabel(a).localeCompare(schemeLabel(b)));
   const previewPoints = computePoints(winType, newTerm, prevTerm);
 
   const labelClass = (key) => `block text-sm mb-1 ${fieldErrors[key] ? "text-rose-600 font-medium" : "text-slate-600"}`;
@@ -744,15 +777,14 @@ function ReportWin({ data, refresh }) {
 
   const submit = async () => {
     const isNewManager = managerChoice === "__new__";
-    const isNewScheme = schemeChoice === "__new__";
     const errs = {};
     if (isNewManager && !managerName.trim()) errs.managerName = true;
     if (isNewManager && !agency.trim()) errs.agency = true;
-    if (isNewScheme && !suburb.trim()) errs.suburb = true;
-    if (isNewScheme && !module.trim()) errs.module = true;
-    if (isNewScheme && !lotCount) errs.lotCount = true;
-    if (isNewScheme && !schemeName.trim()) errs.schemeName = true;
-    if (isNewScheme && !cts.trim()) errs.cts = true;
+    if (!suburb.trim()) errs.suburb = true;
+    if (!module.trim()) errs.module = true;
+    if (!lotCount) errs.lotCount = true;
+    if (!schemeName.trim()) errs.schemeName = true;
+    if (!cts.trim()) errs.cts = true;
     if (!winType) errs.winType = true;
     if (!newTerm) errs.newTerm = true;
     if (winType === "renewal" && !prevTerm) errs.prevTerm = true;
@@ -776,13 +808,13 @@ function ReportWin({ data, refresh }) {
           managerName: isNewManager ? managerName : undefined,
           agency: isNewManager ? agency : undefined,
           managerPhotoUrl: isNewManager ? managerPhotoData || undefined : undefined,
-          schemeId: isNewScheme ? null : schemeChoice,
-          suburb: isNewScheme ? suburb : undefined,
-          planType: isNewScheme ? planType : undefined,
-          module: isNewScheme ? module : undefined,
-          lotCount: isNewScheme ? lotCount : undefined,
-          schemeName: isNewScheme ? schemeName : undefined,
-          cts: isNewScheme ? cts : undefined,
+          schemeId: null,
+          suburb,
+          planType,
+          module,
+          lotCount,
+          schemeName,
+          cts,
           type: winType,
           newTerm,
           prevTerm: winType === "renewal" ? prevTerm : undefined,
@@ -795,7 +827,7 @@ function ReportWin({ data, refresh }) {
 
       await refresh();
       setManagerChoice("__new__"); setManagerName(""); setAgency(""); setManagerPhotoData(""); setManagerPhotoFileName("");
-      setSchemeChoice("__new__"); setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
+      setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
       setTradieBusiness(""); setTradieName("");
       if (result.inviteError) {
@@ -826,63 +858,51 @@ function ReportWin({ data, refresh }) {
         </div>
       )}
       {managerChoice === "__new__" && (
-        <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
-          <div><label className={labelClass("managerName")}>Their name — give credit where it's due</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
-          <div><label className={labelClass("agency")}>Who do they fly the flag for?</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Manager's photo (optional)</label>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                if (file.size > 2 * 1024 * 1024) {
-                  window.alert("Please choose a photo smaller than 2 MB.");
-                  e.target.value = "";
-                  return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => {
-                  setManagerPhotoData(reader.result);
-                  setManagerPhotoFileName(file.name);
-                };
-                reader.readAsDataURL(file);
-              }}
-              className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-            />
-            {managerPhotoFileName && <p className="text-xs text-slate-500 mt-1">Selected: {managerPhotoFileName}</p>}
-            {managerPhotoData && (
-              <img src={managerPhotoData} alt="Preview" className="mt-2 w-16 h-16 rounded-full object-cover border border-slate-200" />
-            )}
-          </div>
+      <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
+        <div><label className={labelClass("managerName")}>Their name — give credit where it's due</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
+        <div><label className={labelClass("agency")}>Who do they fly the flag for?</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
+        <div>
+          <label className="block text-sm text-slate-600 mb-1">Manager's photo (optional)</label>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.size > 2 * 1024 * 1024) {
+                window.alert("Please choose a photo smaller than 2 MB.");
+                e.target.value = "";
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                setManagerPhotoData(reader.result);
+                setManagerPhotoFileName(file.name);
+              };
+              reader.readAsDataURL(file);
+            }}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+          />
+          {managerPhotoFileName && <p className="text-xs text-slate-500 mt-1">Selected: {managerPhotoFileName}</p>}
+          {managerPhotoData && (
+            <img src={managerPhotoData} alt="Preview" className="mt-2 w-16 h-16 rounded-full object-cover border border-slate-200" />
+          )}
         </div>
+      </div>
       )}
 
-      {sortedSchemes.length > 0 && (
+      <div className="space-y-4">
+        <div><label className={labelClass("suburb")}>Suburb (where the scheme is located)</label><input value={suburb} onChange={(e) => setSuburb(e.target.value)} placeholder="e.g. New Farm" className={inputClass("suburb")} /></div>
         <div>
-          <label className="block text-sm text-slate-600 mb-1">Scheme</label>
-          <select value={schemeChoice} onChange={(e) => setSchemeChoice(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
-            <option value="__new__">+ Add new scheme…</option>
-            {sortedSchemes.map((s) => (
-              <option key={s.id} value={s.id}>{schemeLabel(s)}</option>
-            ))}
+          <label className="block text-sm text-slate-600 mb-1">Scheme type</label>
+          <select value={planType} onChange={(e) => setPlanType(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
+            <option value="BFP">BFP</option>
+            <option value="SFP">SFP</option>
           </select>
         </div>
-      )}
-      {schemeChoice === "__new__" && (
-        <div className={sortedSchemes.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
-          <div><label className={labelClass("suburb")}>Suburb (where the scheme is located)</label><input value={suburb} onChange={(e) => setSuburb(e.target.value)} placeholder="e.g. New Farm" className={inputClass("suburb")} /></div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Scheme type</label>
-            <select value={planType} onChange={(e) => setPlanType(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
-              <option value="BFP">BFP</option>
-              <option value="SFP">SFP</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelClass("module")}>Module</label>
-            <select value={module} onChange={(e) => setModule(e.target.value)} className={selectClass("module")}>
+        <div>
+          <label className={labelClass("module")}>Module</label>
+          <select value={module} onChange={(e) => setModule(e.target.value)} className={selectClass("module")}>
               <option value="">Select…</option>
               {BCCM_MODULES.map((m) => (
                 <option key={m} value={m}>{m}</option>
@@ -905,7 +925,6 @@ function ReportWin({ data, refresh }) {
             <input value={cts} onChange={(e) => setCts(e.target.value)} className={inputClass("cts")} />
           </div>
         </div>
-      )}
 
       <div>
         <label className={labelClass("winType")}>How was this scheme secured?</label>
