@@ -683,18 +683,20 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
             <div className="mt-6 text-center">
               <div className="font-serif text-5xl sm:text-6xl text-amber-700 leading-none">{leader.points}</div>
               <p className="text-sm sm:text-base font-extrabold text-slate-800 mt-2 uppercase tracking-wide">Ranking Points</p>
-              <div className="mt-3 inline-flex flex-wrap justify-center gap-2">
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
                 {leaderDeals.map(({ event }, i) => (
                   <span key={i} className="bg-amber-600 text-white font-bold text-sm sm:text-base px-4 py-2 rounded-full shadow-sm">
                     {dealTermLabel(event)}
                   </span>
                 ))}
               </div>
-              <div className="mt-4 inline-flex items-center gap-2 bg-white border-2 border-amber-400 rounded-full px-4 sm:px-5 py-2 shadow-md">
-                <span className="text-base sm:text-lg">🏆</span>
-                <span className="font-extrabold text-sm sm:text-base text-slate-900">Leading the pack for a</span>
-                <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-5 sm:h-6 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
-                <span className="font-extrabold text-sm sm:text-base text-slate-900">$30 voucher!</span>
+              <div className="mt-4 flex justify-center">
+                <div className="inline-flex items-center gap-2 bg-white border-2 border-amber-400 rounded-full px-4 sm:px-5 py-2 shadow-md">
+                  <span className="text-base sm:text-lg">🏆</span>
+                  <span className="font-extrabold text-sm sm:text-base text-slate-900">Leading the pack for a</span>
+                  <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-5 sm:h-6 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
+                  <span className="font-extrabold text-sm sm:text-base text-slate-900">$30 voucher!</span>
+                </div>
               </div>
               <div className="mt-4">
                 <ShareButton text={shareText} />
