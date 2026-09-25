@@ -343,9 +343,17 @@ function App() {
     <div className="min-h-screen bg-stone-50 text-slate-900">
       <div className="max-w-3xl mx-auto px-6 py-10">
         <header className="border-b-2 border-slate-900 pb-5 mb-8">
-          <div className="mb-4">
-            <h1 className="font-serif text-xl sm:text-4xl md:text-5xl leading-tight whitespace-nowrap">QLD Strata Rankings <span className="text-amber-500">{data.seasonYear}</span></h1>
-            <p className="text-slate-800 mt-3 font-semibold text-base sm:text-lg">
+          <div className="mb-4 text-center sm:text-left">
+            <h1
+              className="font-serif leading-tight whitespace-nowrap"
+              style={{ fontSize: "clamp(1.375rem, 6vw, 3rem)" }}
+            >
+              QLD Strata Rankings <span className="text-amber-500">{data.seasonYear}</span>
+            </h1>
+            <p
+              className="text-slate-800 mt-3 font-semibold"
+              style={{ fontSize: "clamp(0.9rem, 3.2vw, 1.25rem)" }}
+            >
               Community Managers across Qld ranked
             </p>
             <MetricInfoButton />
