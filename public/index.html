@@ -573,6 +573,12 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
                   </span>
                 ))}
               </div>
+              <div className="mt-4 inline-flex items-center gap-2 bg-white border-2 border-amber-400 rounded-full px-4 sm:px-5 py-2 shadow-md">
+                <span className="text-base sm:text-lg">🏆</span>
+                <span className="font-extrabold text-sm sm:text-base text-slate-900">Leading the pack for a</span>
+                <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-5 sm:h-6 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
+                <span className="font-extrabold text-sm sm:text-base text-slate-900">$30 voucher!</span>
+              </div>
             </div>
 
             <div className="mt-6 bg-white/80 rounded-xl p-4 sm:p-6 space-y-4 text-center">
@@ -609,12 +615,6 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
                 </div>
               </div>
             )}
-
-            <p className="mt-6 text-base sm:text-lg font-extrabold text-slate-900 flex items-center justify-center gap-2 flex-wrap">
-              Leading the pack for a
-              <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-6 sm:h-7 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
-              $30 voucher!
-            </p>
           </div>
 
           {others.length > 0 && (
