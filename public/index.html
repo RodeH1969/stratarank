@@ -364,30 +364,39 @@ function App() {
   }, [data]);
 
   // Season leaderboard: 1 point per weekly win, tallied across every week to date.
+  // Tie on weekly wins is broken by total lots across those winning weeks
+  // (same rule used to decide a single week's winner).
   const seasonStandings = useMemo(() => {
     const wins = {};
+    const lots = {};
     for (const wk of Object.keys(weeklyWinners)) {
-      const id = weeklyWinners[wk].winnerManagerId;
+      const week = weeklyWinners[wk];
+      const id = week.winnerManagerId;
       wins[id] = (wins[id] || 0) + 1;
+      lots[id] = (lots[id] || 0) + (week.totals[0]?.lots || 0);
     }
     return Object.entries(wins)
-      .map(([managerId, weeklyWins]) => ({ manager: managerById(managerId), weeklyWins }))
+      .map(([managerId, weeklyWins]) => ({ manager: managerById(managerId), weeklyWins, lots: lots[managerId] || 0 }))
       .filter((row) => row.manager)
-      .sort((a, b) => b.weeklyWins - a.weeklyWins);
+      .sort((a, b) => b.weeklyWins - a.weeklyWins || b.lots - a.lots);
   }, [weeklyWinners, data]);
 
   const currentWeekKey = mondayOf(brisbaneToday());
 
   // Movement indicator: rank as of last week (excluding the still-open
-  // current week) compared to today's rank.
+  // current week) compared to today's rank. Uses the same tiebreak as
+  // seasonStandings so the ▲▼ arrows agree with the leaderboard.
   const previousRankMap = useMemo(() => {
     const wins = {};
+    const lots = {};
     for (const wk of Object.keys(weeklyWinners)) {
       if (wk === currentWeekKey) continue;
-      const id = weeklyWinners[wk].winnerManagerId;
+      const week = weeklyWinners[wk];
+      const id = week.winnerManagerId;
       wins[id] = (wins[id] || 0) + 1;
+      lots[id] = (lots[id] || 0) + (week.totals[0]?.lots || 0);
     }
-    const ordered = Object.entries(wins).sort((a, b) => b[1] - a[1]);
+    const ordered = Object.entries(wins).sort((a, b) => b[1] - a[1] || (lots[b[0]] || 0) - (lots[a[0]] || 0));
     const map = {};
     ordered.forEach(([managerId], i) => { map[managerId] = i + 1; });
     return map;
