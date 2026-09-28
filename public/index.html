@@ -518,7 +518,6 @@ function ManagerPhotoPopup({ manager, children }) {
               </div>
             )}
             <h3 className="font-serif text-xl">{manager.name}</h3>
-            {manager.agency && <p className="text-sm text-slate-500 mt-1">{manager.agency}</p>}
             {manager.linkedinUrl && (
               <a
                 href={manager.linkedinUrl}
@@ -687,7 +686,6 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
               </div>
 
               <h2 className="font-serif text-3xl sm:text-4xl mt-4">{leader.manager.name}</h2>
-              {leader.manager.agency && <p className="text-slate-600 mt-1">{leader.manager.agency}</p>}
 
               {leader.manager.linkedinUrl && (
                 <a
@@ -719,7 +717,7 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
               <div className="inline-flex items-center gap-2 bg-white border-2 border-amber-400 rounded-full px-4 sm:px-5 py-2 shadow-md">
                 <span className="text-base sm:text-lg">🏆</span>
                 <span className="font-extrabold text-sm sm:text-base text-slate-900">Leading the pack for a</span>
-                <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-5 sm:h-6 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
+                <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-8 sm:h-10 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
                 <span className="font-extrabold text-sm sm:text-base text-slate-900">$30 voucher!</span>
               </div>
             </div>
@@ -764,7 +762,6 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
                     <ManagerPhotoPopup manager={row.manager}>
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate hover:underline decoration-dotted">{row.manager.name}</p>
-                        {row.manager.agency && <p className="text-xs text-slate-500 truncate">{row.manager.agency}</p>}
                       </div>
                     </ManagerPhotoPopup>
                     <div className="ml-auto text-right shrink-0">
@@ -812,7 +809,6 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
                 <ManagerPhotoPopup manager={row.manager}>
                   <div className="min-w-0">
                     <p className="font-medium truncate hover:underline decoration-dotted">{row.manager.name}</p>
-                    {row.manager.agency && <p className="text-sm text-slate-500 truncate">{row.manager.agency}</p>}
                   </div>
                 </ManagerPhotoPopup>
                 {movement !== null && movement !== 0 && (
@@ -913,7 +909,6 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
                     <ManagerPhotoPopup manager={manager}>
                       <div className="min-w-0">
                         <p className="font-semibold text-base text-slate-900 truncate hover:underline decoration-dotted">{manager?.name || "Unknown"}</p>
-                        {manager?.agency && <p className="text-sm text-slate-500 truncate">{manager.agency}</p>}
                       </div>
                     </ManagerPhotoPopup>
                   </div>
