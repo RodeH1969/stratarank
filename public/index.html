@@ -144,8 +144,8 @@ const daysUntilLabel = (ms) => {
 const dealTermLabel = (ev) => {
   const yrs = (n) => `${n} year${n === 1 ? "" : "s"}`;
   if (ev.type === "renewal") {
-    if (ev.prevTerm && ev.prevTerm !== ev.newTerm) return `${yrs(ev.prevTerm)} converted to ${yrs(ev.newTerm)} Renewal`;
-    return `${yrs(ev.newTerm)} Renewal`;
+    if (ev.prevTerm && ev.prevTerm !== ev.newTerm) return `${yrs(ev.prevTerm)} converted to ${ev.newTerm} Year Renewal`;
+    return `${ev.newTerm} Year Renewal`;
   }
   return `Signed a new ${yrs(ev.newTerm)} term`;
 };
@@ -717,7 +717,7 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
               <div className="inline-flex items-center gap-2 bg-white border-2 border-amber-400 rounded-full px-4 sm:px-5 py-2 shadow-md">
                 <span className="text-base sm:text-lg">🏆</span>
                 <span className="font-extrabold text-sm sm:text-base text-slate-900">Leading the pack for a</span>
-                <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-8 sm:h-10 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
+                <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-16 sm:h-20 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
                 <span className="font-extrabold text-sm sm:text-base text-slate-900">$30 voucher!</span>
               </div>
             </div>
