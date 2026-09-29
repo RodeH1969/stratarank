@@ -476,8 +476,8 @@ app.patch('/api/events/:id/review', async (req, res) => {
   }
   if (proofUrl !== undefined) update.proof_url = proofUrl || null;
   if (tipSource !== undefined) {
-    if (tipSource && !['agency', 'anonymous', 'body_corporate'].includes(tipSource)) {
-      return res.status(400).json({ error: 'tipSource must be "agency", "anonymous", "body_corporate", or empty' });
+    if (tipSource && !['anonymous', 'body_corporate', 'strata_company', 'tradie'].includes(tipSource)) {
+      return res.status(400).json({ error: 'tipSource must be "anonymous", "body_corporate", "strata_company", "tradie", or empty' });
     }
     update.tip_source = tipSource || null;
   }

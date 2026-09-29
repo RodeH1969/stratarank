@@ -104,9 +104,10 @@ alter table strata_sponsor_invites add column if not exists logo_url text;
 alter table strata_sponsor_invites add column if not exists tagline text;
 alter table strata_sponsor_invites add column if not exists website_url text;
 
--- Drives the gold "tip source" sash shown on Win of the Week / Recent
--- wins. Admin-only — set from the nominations list, never by the public
--- submission. 'agency' | 'anonymous' | 'body_corporate' | null (no sash).
+-- Drives the colored "tip source" banner shown on Win of the Week /
+-- Recent wins. Admin-only — set from the nominations list, never by the
+-- public submission. One of 'anonymous' (gold) | 'body_corporate' (green)
+-- | 'strata_company' (blue) | 'tradie' (pink) | null (no banner).
 alter table strata_events add column if not exists tip_source text;
 alter table strata_sponsors add column if not exists website_url text;
 alter table strata_sponsor_invites add column if not exists category text;
