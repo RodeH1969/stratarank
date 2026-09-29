@@ -809,7 +809,7 @@ function RecordWin({ data, refresh }) {
           <select value={winType} onChange={(e) => { setWinType(e.target.value); setPrevTerm(""); }} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
             <option value="">Select…</option>
             <option value="competitor">Signed from a competitor</option>
-            <option value="renewal">Renewed with us</option>
+            <option value="renewal">Renewed</option>
           </select>
         </Field>
 
@@ -1327,7 +1327,7 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
             className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
           >
             <option value="competitor">Signed from a competitor</option>
-            <option value="renewal">Renewed with us</option>
+            <option value="renewal">Renewed</option>
           </select>
         </Field>
         <Field label="New term (years)">

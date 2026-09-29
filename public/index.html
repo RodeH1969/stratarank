@@ -159,8 +159,8 @@ const TIP_SOURCES = {
   strata_company: { label: "Strata Company Tip", color: "#60a5fa" },
   tradie: { label: "Tradie Tip", color: "#f472b6" },
 };
-// A full-width banner bar, not a diagonal corner ribbon — sits in normal
-// document flow above the card's content, so it can never overlap or clip
+// A small circular badge — sits in normal document flow above the card's
+// content (never absolutely positioned), so it can't overlap or clip
 // anything underneath, at any screen width.
 function TipSash({ tipSource }) {
   const entry = TIP_SOURCES[tipSource];
@@ -168,17 +168,23 @@ function TipSash({ tipSource }) {
   return (
     <div
       style={{
+        width: 60,
+        height: 60,
+        borderRadius: "50%",
         background: entry.color,
         color: "#0a0a0a",
-        fontWeight: 900,
-        fontSize: 13,
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         textAlign: "center",
-        padding: "8px 12px",
-        borderRadius: 10,
-        marginBottom: 14,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+        fontWeight: 900,
+        fontSize: 8.5,
+        textTransform: "uppercase",
+        letterSpacing: "0.01em",
+        lineHeight: 1.15,
+        padding: 4,
+        marginBottom: 10,
+        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
       }}
     >
       {entry.label}
@@ -265,7 +271,7 @@ function MetricInfoButton() {
               A win is recorded when a Body Corporate committee formally awards or renews the Administration Agreement — the contract that appoints a company as the scheme's strata manager.
             </p>
             <p className="text-sm text-slate-900 font-bold mt-3">
-              Deal must have BC minutes approval in the last 4 weeks to count.
+              Must have BC minutes approval in the last 4 weeks to count.
             </p>
           </div>
         </div>
@@ -826,12 +832,15 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
 
   return (
     <div>
-      <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {daysUntilLabel(msUntilSeasonEnd(seasonYear))} (to Dec 22)</p>
-      <p className="text-center text-sm text-slate-500 mb-6 flex items-center justify-center gap-1.5 flex-wrap">
-        1 point per weekly win · highest by Dec 22 wins a $100
-        <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-5 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
-        voucher (split on a tie).
-      </p>
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-300 rounded-full px-5 py-2.5 mb-6 mx-auto w-fit shadow-sm">
+        <span className="text-xs sm:text-sm font-bold text-rose-600">⏱ {daysUntilLabel(msUntilSeasonEnd(seasonYear))}</span>
+        <span className="text-amber-300 text-xs">|</span>
+        <span className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-800">
+          $100
+          <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-4 sm:h-5 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
+          to #1
+        </span>
+      </div>
       {standings.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No weekly wins recorded yet this season.</p>
       ) : (
@@ -1028,7 +1037,6 @@ function ReportWin({ data, refresh }) {
   const [prevTerm, setPrevTerm] = useState("");
   const [date, setDate] = useState(todayStr());
   const [tradieBusiness, setTradieBusiness] = useState("");
-  const [tradieName, setTradieName] = useState("");
   const [confirmation, setConfirmation] = useState(null);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -1068,7 +1076,6 @@ function ReportWin({ data, refresh }) {
     () => {
       const errs = {};
       if (!tradieBusiness.trim()) errs.tradieBusiness = true;
-      if (!tradieName.trim()) errs.tradieName = true;
       return errs;
     },
   ];
@@ -1102,7 +1109,6 @@ function ReportWin({ data, refresh }) {
     if (!newTerm) errs.newTerm = true;
     if (winType === "renewal" && !prevTerm) errs.prevTerm = true;
     if (!tradieBusiness.trim()) errs.tradieBusiness = true;
-    if (!tradieName.trim()) errs.tradieName = true;
 
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
@@ -1133,7 +1139,6 @@ function ReportWin({ data, refresh }) {
           date,
           source: "public",
           businessName: tradieBusiness.trim(),
-          contactName: tradieName.trim(),
         }),
       });
 
@@ -1141,7 +1146,7 @@ function ReportWin({ data, refresh }) {
       setManagerChoice("__new__"); setManagerName(""); setAgency(""); setManagerPhotoData(""); setManagerPhotoFileName("");
       setSuburb(""); setModule(""); setLotCount(""); setSchemeName("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
-      setTradieBusiness(""); setTradieName("");
+      setTradieBusiness("");
       setStep(0);
       if (result.inviteError) {
         setError(`Win saved, but the tradie suggestion didn't go through: ${result.inviteError}`);
@@ -1252,7 +1257,7 @@ function ReportWin({ data, refresh }) {
             <select value={winType} onChange={(e) => { setWinType(e.target.value); setPrevTerm(""); }} className={selectClass("winType")}>
               <option value="">Select…</option>
               <option value="competitor">Signed from a competitor</option>
-              <option value="renewal">Renewed with us</option>
+              <option value="renewal">Renewed</option>
             </select>
           </div>
 
@@ -1300,10 +1305,6 @@ function ReportWin({ data, refresh }) {
             <div>
               <label className={labelClass("tradieBusiness")}>Their business — who do they work under?</label>
               <input value={tradieBusiness} onChange={(e) => setTradieBusiness(e.target.value)} placeholder="e.g. Ace Plumbing" className={inputClass("tradieBusiness")} />
-            </div>
-            <div>
-              <label className={labelClass("tradieName")}>The name behind the tools</label>
-              <input value={tradieName} onChange={(e) => setTradieName(e.target.value)} className={inputClass("tradieName")} />
             </div>
           </div>
         </div>
