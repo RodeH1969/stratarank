@@ -298,7 +298,6 @@ app.post('/api/events', async (req, res) => {
       if (!schemeId && (!module || !module.trim())) missing.push('module');
       if (!schemeId && !lotCount) missing.push('lotCount');
       if (!schemeId && (!schemeName || !schemeName.trim())) missing.push('schemeName');
-      if (!schemeId && (!cts || !cts.trim())) missing.push('cts');
       if (!businessName || !businessName.trim()) missing.push('businessName');
       if (!contactName || !contactName.trim()) missing.push('contactName');
       if (missing.length > 0) {
