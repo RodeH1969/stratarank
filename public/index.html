@@ -160,31 +160,28 @@ const tipSourceLabel = (tipSource, agency) => {
   return null;
 };
 
+// A full-width banner bar, not a diagonal corner ribbon — sits in normal
+// document flow above the card's content, so it can never overlap or clip
+// anything underneath, at any screen width.
 function TipSash({ label }) {
   if (!label) return null;
   return (
-    <div style={{ position: "absolute", top: 0, left: 0, width: 240, height: 240, overflow: "hidden", pointerEvents: "none", zIndex: 10 }}>
-      <div
-        style={{
-          position: "absolute",
-          top: 42,
-          left: -66,
-          width: 320,
-          transform: "rotate(-45deg)",
-          background: "#f2c318",
-          color: "#0a0a0a",
-          fontWeight: 900,
-          fontSize: 15,
-          whiteSpace: "nowrap",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-          textAlign: "center",
-          padding: "8px 0",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
-        }}
-      >
-        {label}
-      </div>
+    <div
+      style={{
+        background: "#f2c318",
+        color: "#0a0a0a",
+        fontWeight: 900,
+        fontSize: 13,
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+        textAlign: "center",
+        padding: "8px 12px",
+        borderRadius: 10,
+        marginBottom: 14,
+        boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+      }}
+    >
+      {label}
     </div>
   );
 }
@@ -705,7 +702,7 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
         </div>
       ) : (
         <>
-          <div className={`relative bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl px-5 sm:px-8 pb-5 sm:pb-8 shadow-sm ${tipSourceLabel(leaderDeals[0]?.event?.tipSource, leader.manager.agency) ? "pt-16 sm:pt-20" : "pt-5 sm:pt-8"}`}>
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-5 sm:p-8 shadow-sm">
             <TipSash label={tipSourceLabel(leaderDeals[0]?.event?.tipSource, leader.manager.agency)} />
             <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-1">Week of {weekRangeLabel(weekKey)}</p>
             <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {countdownLabel(msUntilWeekEnd(weekKey))}</p>
@@ -942,7 +939,7 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
             return (
               <div key={ev.id} className="flex items-start gap-2 sm:gap-3">
                 <div className="font-serif text-lg sm:text-xl text-slate-400 w-6 shrink-0 pt-4 text-right">{idx + 1}.</div>
-                <div className={`flex-1 min-w-0 bg-white border border-slate-200 rounded-xl px-4 sm:px-5 pb-4 sm:pb-5 shadow-sm hover:shadow-md transition-shadow relative ${tipSourceLabel(ev.tipSource, manager?.agency) ? "pt-14 sm:pt-16" : "pt-4 sm:pt-5"}`}>
+                <div className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow relative">
                 <TipSash label={tipSourceLabel(ev.tipSource, manager?.agency)} />
                 {isNew(ev) && (
                   <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">NEW</span>
