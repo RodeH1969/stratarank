@@ -435,7 +435,7 @@ function App() {
               { id: "dotw", label: "Win of the Week", shortLabel: "Win of the Week" },
               { id: "log", label: "Recent wins", shortLabel: "Recent wins" },
               { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
-              { id: "report", label: "🏆 Claim a win", shortLabel: "🏆 Claim a win" },
+              { id: "report", label: "🔍 Tip-off", shortLabel: "🔍 Tip-off" },
             ].map(({ id, label, shortLabel }) => (
               <button
                 key={id}
@@ -1119,7 +1119,7 @@ function ReportWin({ data, refresh }) {
 
   return (
     <div className="max-w-lg space-y-4">
-      <h2 className="font-serif text-2xl mb-2">Claim a win by a Strata Manager</h2>
+      <h2 className="font-serif text-2xl mb-2">Tip-off: log a win</h2>
       <PointsInfoButton />
 
       <div className="flex items-center justify-center gap-2">
