@@ -1154,9 +1154,10 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
               className="border border-slate-300 rounded px-1.5 py-0.5 text-xs bg-white"
             >
               <option value="">None</option>
-              <option value="agency">Nominated by {manager?.agency || "agency"}</option>
-              <option value="anonymous">Anonymous tip</option>
-              <option value="body_corporate">Body Corporate tip</option>
+              <option value="anonymous">Anonymous Tip (gold)</option>
+              <option value="body_corporate">Body Corporate Tip (green)</option>
+              <option value="strata_company">Strata Company Tip (blue)</option>
+              <option value="tradie">Tradie Tip (pink)</option>
             </select>
           </label>
           {reviewError && <span className="text-xs text-rose-600">{reviewError}</span>}
