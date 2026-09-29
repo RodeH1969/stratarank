@@ -966,6 +966,19 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
     }
   };
 
+  const setTipSource = async (tipSource) => {
+    setReviewBusy(true);
+    setReviewError(null);
+    try {
+      await api(`/api/events/${ev.id}/review`, { method: "PATCH", body: JSON.stringify({ tipSource }) });
+      await refresh();
+    } catch (e) {
+      setReviewError(e.message);
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
   const uploadProof = (file) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -1132,6 +1145,20 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
               View proof
             </a>
           )}
+          <label className="text-xs text-slate-500 flex items-center gap-1">
+            Tip sash:
+            <select
+              value={ev.tipSource || ""}
+              disabled={reviewBusy}
+              onChange={(e) => setTipSource(e.target.value)}
+              className="border border-slate-300 rounded px-1.5 py-0.5 text-xs bg-white"
+            >
+              <option value="">None</option>
+              <option value="agency">Nominated by {manager?.agency || "agency"}</option>
+              <option value="anonymous">Anonymous tip</option>
+              <option value="body_corporate">Body Corporate tip</option>
+            </select>
+          </label>
           {reviewError && <span className="text-xs text-rose-600">{reviewError}</span>}
         </div>
 
