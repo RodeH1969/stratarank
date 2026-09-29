@@ -116,6 +116,7 @@ function toEventOut(e, opts) {
     points: e.points,
     date: e.date,
     status: e.status || 'pending',
+    tipSource: e.tip_source || '',
     createdAt: e.created_at,
   };
   if (opts && opts.includePrivate) {
@@ -465,7 +466,7 @@ app.patch('/api/events/:id', async (req, res) => {
 // motion (a screenshot of the minutes). Separate from the full-edit route
 // above so admin can review a submission without touching its content.
 app.patch('/api/events/:id/review', async (req, res) => {
-  const { status, proofUrl } = req.body;
+  const { status, proofUrl, tipSource } = req.body;
   const update = {};
   if (status !== undefined) {
     if (!['pending', 'approved'].includes(status)) {
@@ -474,6 +475,12 @@ app.patch('/api/events/:id/review', async (req, res) => {
     update.status = status;
   }
   if (proofUrl !== undefined) update.proof_url = proofUrl || null;
+  if (tipSource !== undefined) {
+    if (tipSource && !['agency', 'anonymous', 'body_corporate'].includes(tipSource)) {
+      return res.status(400).json({ error: 'tipSource must be "agency", "anonymous", "body_corporate", or empty' });
+    }
+    update.tip_source = tipSource || null;
+  }
   const { data, error } = await supabase
     .from('strata_events')
     .update(update)
