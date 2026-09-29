@@ -982,7 +982,6 @@ function ReportWin({ data, refresh }) {
   const [module, setModule] = useState("");
   const [lotCount, setLotCount] = useState("");
   const [schemeName, setSchemeName] = useState("");
-  const [cts, setCts] = useState("");
   const [winType, setWinType] = useState("");
   const [newTerm, setNewTerm] = useState("");
   const [prevTerm, setPrevTerm] = useState("");
@@ -1016,7 +1015,6 @@ function ReportWin({ data, refresh }) {
       if (!module.trim()) errs.module = true;
       if (!lotCount) errs.lotCount = true;
       if (!schemeName.trim()) errs.schemeName = true;
-      if (!cts.trim()) errs.cts = true;
       return errs;
     },
     () => {
@@ -1059,7 +1057,6 @@ function ReportWin({ data, refresh }) {
     if (!module.trim()) errs.module = true;
     if (!lotCount) errs.lotCount = true;
     if (!schemeName.trim()) errs.schemeName = true;
-    if (!cts.trim()) errs.cts = true;
     if (!winType) errs.winType = true;
     if (!newTerm) errs.newTerm = true;
     if (winType === "renewal" && !prevTerm) errs.prevTerm = true;
@@ -1089,7 +1086,6 @@ function ReportWin({ data, refresh }) {
           module,
           lotCount,
           schemeName,
-          cts,
           type: winType,
           newTerm,
           prevTerm: winType === "renewal" ? prevTerm : undefined,
@@ -1102,14 +1098,14 @@ function ReportWin({ data, refresh }) {
 
       await refresh();
       setManagerChoice("__new__"); setManagerName(""); setAgency(""); setManagerPhotoData(""); setManagerPhotoFileName("");
-      setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
+      setSuburb(""); setModule(""); setLotCount(""); setSchemeName("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
       setTradieBusiness(""); setTradieName("");
       setStep(0);
       if (result.inviteError) {
         setError(`Win saved, but the tradie suggestion didn't go through: ${result.inviteError}`);
       }
-      setConfirmation({ points: result.event.points, label: `Claimed for ${result.manager.name} — worth ${result.event.points} points once your committee's approval is verified. We'll be in touch for a snip of the motion from the minutes.` });
+      setConfirmation({ points: result.event.points, label: `Logged for ${result.manager.name} — worth ${result.event.points} points once we've confirmed it with them directly.` });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -1201,16 +1197,9 @@ function ReportWin({ data, refresh }) {
           <div>
             <label className={labelClass("schemeName") + " flex items-center"}>
               Scheme name
-              <InfoTooltip text="We never publish this — it's kept privately so we can verify the win is genuine." />
+              <InfoTooltip text="Never published. We use it to track down the manager and check the win with them before it goes on the board." />
             </label>
             <input value={schemeName} onChange={(e) => setSchemeName(e.target.value)} className={inputClass("schemeName")} />
-          </div>
-          <div>
-            <label className={labelClass("cts") + " flex items-center"}>
-              CTS number
-              <InfoTooltip text="We never publish this — it's kept privately so we can verify the win is genuine." />
-            </label>
-            <input value={cts} onChange={(e) => setCts(e.target.value)} className={inputClass("cts")} />
           </div>
         </div>
       )}
@@ -1291,7 +1280,7 @@ function ReportWin({ data, refresh }) {
           </button>
         ) : (
           <button onClick={submit} disabled={submitting} className="bg-amber-500 text-slate-900 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50">
-            {submitting ? "Saving…" : "Claim win"}
+            {submitting ? "Sending…" : "Send tip-off"}
           </button>
         )}
       </div>
@@ -1299,7 +1288,7 @@ function ReportWin({ data, refresh }) {
       {confirmation && (
         <div className="bg-gradient-to-br from-teal-50 to-emerald-50 border-2 border-teal-300 rounded-xl p-5 text-center shadow-md">
           <p className="text-3xl mb-2">🎉</p>
-          <p className="font-serif text-xl font-bold text-teal-900 mb-1">Nice work!</p>
+          <p className="font-serif text-xl font-bold text-teal-900 mb-1">Tip received!</p>
           <p className="text-sm text-teal-800">{confirmation.label}</p>
         </div>
       )}
