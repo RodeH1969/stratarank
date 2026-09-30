@@ -154,10 +154,10 @@ const dealTermLabel = (ev) => {
 // form. tipSource is one of 'anonymous' | 'body_corporate' |
 // 'strata_company' | 'tradie' | '' (no banner). Each has its own color.
 const TIP_SOURCES = {
-  anonymous: { label: "Anonymous Tip", color: "#f2c318" },
-  body_corporate: { label: "Body Corporate Tip", color: "#4ade80" },
-  strata_company: { label: "Strata Company Tip", color: "#60a5fa" },
-  tradie: { label: "Tradie Tip", color: "#f472b6" },
+  anonymous: { label: "Anonymous Tip", color: "#f2c318", glow: "242,195,24" },
+  body_corporate: { label: "Body Corporate Tip", color: "#4ade80", glow: "74,222,128" },
+  strata_company: { label: "Strata Company Tip", color: "#60a5fa", glow: "96,165,250" },
+  tradie: { label: "Tradie Tip", color: "#f472b6", glow: "244,114,182" },
 };
 // A small circular badge — sits in normal document flow above the card's
 // content (never absolutely positioned), so it can't overlap or clip
@@ -184,7 +184,8 @@ function TipSash({ tipSource }) {
         lineHeight: 1.15,
         padding: 4,
         marginBottom: 10,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+        border: "2px solid #ffffff",
+        boxShadow: `0 0 0 2px rgba(${entry.glow},0.9), 0 0 14px 4px rgba(${entry.glow},0.75), 0 1px 4px rgba(0,0,0,0.3)`,
       }}
     >
       {entry.label}
