@@ -193,6 +193,42 @@ function TipSash({ tipSource }) {
   );
 }
 
+// "VERIFIED" stamp — shown on every win once admin has approved it
+// (the public site only ever shows approved events, so in practice this
+// appears on every public card). Absolutely positioned over the card's
+// top-right corner — deliberately small and corner-pinned so it can never
+// collide with the TipSash badge (which sits in normal flow) or any text.
+function VerifiedStamp() {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 12,
+        right: 12,
+        width: 56,
+        height: 56,
+        borderRadius: "50%",
+        border: "3px double #0f766e",
+        background: "rgba(15,118,110,0.06)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transform: "rotate(-10deg)",
+        textAlign: "center",
+        color: "#0f766e",
+        fontWeight: 900,
+        fontSize: 8,
+        letterSpacing: "0.03em",
+        lineHeight: 1.2,
+        textTransform: "uppercase",
+        pointerEvents: "none",
+      }}
+    >
+      &#10003;<br />Verified
+    </div>
+  );
+}
+
 function computePoints(type, newTerm, prevTerm) {
   const t = Number(newTerm);
   const p = prevTerm != null && prevTerm !== "" ? Number(prevTerm) : null;
@@ -709,7 +745,8 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
         </div>
       ) : (
         <>
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-5 sm:p-8 shadow-sm">
+          <div className="relative bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-5 sm:p-8 shadow-sm">
+            {leaderDeals[0]?.event?.status === "approved" && <VerifiedStamp />}
             <TipSash tipSource={leaderDeals[0]?.event?.tipSource} />
             <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-1">Week of {weekRangeLabel(weekKey)}</p>
             <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {countdownLabel(msUntilWeekEnd(weekKey))}</p>
@@ -950,9 +987,10 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
               <div key={ev.id} className="flex items-start gap-2 sm:gap-3">
                 <div className="font-serif text-lg sm:text-xl text-slate-400 w-6 shrink-0 pt-4 text-right">{idx + 1}.</div>
                 <div className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow relative">
+                {ev.status === "approved" && <VerifiedStamp />}
                 <TipSash tipSource={ev.tipSource} />
                 {isNew(ev) && (
-                  <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">NEW</span>
+                  <span className="absolute -top-2 -left-2 bg-rose-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">NEW</span>
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-2.5 min-w-0">
