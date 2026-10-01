@@ -434,71 +434,8 @@ function App() {
   const managerById = (id) => data.managers.find((m) => m.id === id);
   const schemeById = (id) => data.schemes.find((s) => s.id === id);
 
-  // Every approved win grouped into its Mon–Sun week, with that week's
-  // leader worked out the same way as before (points, lots break ties).
-  const weeklyWinners = useMemo(() => {
-    const approved = data.events.filter((e) => e.status === "approved");
-    const byWeek = {};
-    for (const ev of approved) {
-      const wk = mondayOf(ev.date);
-      if (!byWeek[wk]) byWeek[wk] = {};
-      if (!byWeek[wk][ev.managerId]) byWeek[wk][ev.managerId] = { points: 0, lots: 0, events: [] };
-      byWeek[wk][ev.managerId].points += ev.points;
-      const scheme = schemeById(ev.schemeId);
-      byWeek[wk][ev.managerId].lots += scheme?.lotCount ? Number(scheme.lotCount) : 0;
-      byWeek[wk][ev.managerId].events.push(ev);
-    }
-    const result = {};
-    for (const wk of Object.keys(byWeek)) {
-      const totals = Object.entries(byWeek[wk])
-        .map(([managerId, t]) => ({ managerId, ...t }))
-        .sort((a, b) => b.points - a.points || b.lots - a.lots);
-      result[wk] = { winnerManagerId: totals[0].managerId, totals };
-    }
-    return result;
-  }, [data]);
-
-  // Season leaderboard: 1 point per weekly win, tallied across every week to date.
-  // Tie on weekly wins is broken by total lots across those winning weeks
-  // (same rule used to decide a single week's winner).
-  const seasonStandings = useMemo(() => {
-    const wins = {};
-    const lots = {};
-    for (const wk of Object.keys(weeklyWinners)) {
-      const week = weeklyWinners[wk];
-      const id = week.winnerManagerId;
-      wins[id] = (wins[id] || 0) + 1;
-      lots[id] = (lots[id] || 0) + (week.totals[0]?.lots || 0);
-    }
-    return Object.entries(wins)
-      .map(([managerId, weeklyWins]) => ({ manager: managerById(managerId), weeklyWins, lots: lots[managerId] || 0 }))
-      .filter((row) => row.manager)
-      .sort((a, b) => b.weeklyWins - a.weeklyWins || b.lots - a.lots);
-  }, [weeklyWinners, data]);
-
-  const currentWeekKey = mondayOf(brisbaneToday());
-
-  // Movement indicator: rank as of last week (excluding the still-open
-  // current week) compared to today's rank. Uses the same tiebreak as
-  // seasonStandings so the ▲▼ arrows agree with the leaderboard.
-  const previousRankMap = useMemo(() => {
-    const wins = {};
-    const lots = {};
-    for (const wk of Object.keys(weeklyWinners)) {
-      if (wk === currentWeekKey) continue;
-      const week = weeklyWinners[wk];
-      const id = week.winnerManagerId;
-      wins[id] = (wins[id] || 0) + 1;
-      lots[id] = (lots[id] || 0) + (week.totals[0]?.lots || 0);
-    }
-    const ordered = Object.entries(wins).sort((a, b) => b[1] - a[1] || (lots[b[0]] || 0) - (lots[a[0]] || 0));
-    const map = {};
-    ordered.forEach(([managerId], i) => { map[managerId] = i + 1; });
-    return map;
-  }, [weeklyWinners, currentWeekKey]);
-
-  // Every approved win grouped into its calendar month, leader worked out
-  // the same way as the weekly winner (points, lots break ties).
+  // Every approved win grouped into its calendar month, with that month's
+  // leader worked out by points (lots break ties).
   const monthlyWinners = useMemo(() => {
     const approved = data.events.filter((e) => e.status === "approved");
     const byMonth = {};
@@ -521,7 +458,46 @@ function App() {
     return result;
   }, [data]);
 
+  // Season leaderboard: 1 point per monthly win, tallied across every month
+  // to date — 12 possible wins a season. Tie on monthly wins is broken by
+  // total lots across those winning months (same rule used to decide a
+  // single month's winner).
+  const seasonStandings = useMemo(() => {
+    const wins = {};
+    const lots = {};
+    for (const mk of Object.keys(monthlyWinners)) {
+      const month = monthlyWinners[mk];
+      const id = month.winnerManagerId;
+      wins[id] = (wins[id] || 0) + 1;
+      lots[id] = (lots[id] || 0) + (month.totals[0]?.lots || 0);
+    }
+    return Object.entries(wins)
+      .map(([managerId, monthlyWins]) => ({ manager: managerById(managerId), monthlyWins, lots: lots[managerId] || 0 }))
+      .filter((row) => row.manager)
+      .sort((a, b) => b.monthlyWins - a.monthlyWins || b.lots - a.lots);
+  }, [monthlyWinners, data]);
+
   const currentMonthKey = monthKeyOf(brisbaneToday());
+
+  // Movement indicator: rank as of last month (excluding the still-open
+  // current month) compared to today's rank. Uses the same tiebreak as
+  // seasonStandings so the ▲▼ arrows agree with the leaderboard.
+  const previousRankMap = useMemo(() => {
+    const wins = {};
+    const lots = {};
+    for (const mk of Object.keys(monthlyWinners)) {
+      if (mk === currentMonthKey) continue;
+      const month = monthlyWinners[mk];
+      const id = month.winnerManagerId;
+      wins[id] = (wins[id] || 0) + 1;
+      lots[id] = (lots[id] || 0) + (month.totals[0]?.lots || 0);
+    }
+    const ordered = Object.entries(wins).sort((a, b) => b[1] - a[1] || (lots[b[0]] || 0) - (lots[a[0]] || 0));
+    const map = {};
+    ordered.forEach(([managerId], i) => { map[managerId] = i + 1; });
+    return map;
+  }, [monthlyWinners, currentMonthKey]);
+
   const currentMonth = monthlyWinners[currentMonthKey];
   const currentMonthEntries = currentMonth
     ? currentMonth.totals.map((t) => ({ manager: managerById(t.managerId), ...t })).filter((r) => r.manager)
@@ -553,7 +529,7 @@ function App() {
           <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1">
             {[
               { id: "dotm", label: "Win of the Month", shortLabel: "Win of Month" },
-              { id: "log", label: "Recent wins", shortLabel: "Recent wins" },
+              { id: "log", label: "Every Win", shortLabel: "Every Win" },
               { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
               { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
             ].map(({ id, label, shortLabel }) => (
@@ -914,7 +890,7 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
         </span>
       </div>
       {standings.length === 0 ? (
-        <p className="text-slate-500 text-center py-16">No weekly wins recorded yet this season.</p>
+        <p className="text-slate-500 text-center py-16">No monthly wins recorded yet this season.</p>
       ) : (
         standings.map((row, i) => {
           const prevRank = previousRankMap ? previousRankMap[row.manager.id] : undefined;
@@ -942,8 +918,8 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
                 )}
               </div>
               <div className="basis-full sm:basis-auto text-right sm:shrink-0 pl-12 sm:pl-0">
-                <span className="font-serif text-2xl sm:text-3xl">{row.weeklyWins}</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">weekly win{row.weeklyWins === 1 ? "" : "s"}</span>
+                <span className="font-serif text-2xl sm:text-3xl">{row.monthlyWins}</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">monthly win{row.monthlyWins === 1 ? "" : "s"}</span>
               </div>
             </div>
           );
