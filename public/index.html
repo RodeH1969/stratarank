@@ -7,12 +7,12 @@
 
 <meta name="description" content="Queensland's Community Managers, ranked by contracts awarded by committees. Weekly Win of the Week, Season Leaderboard, and more." />
 <meta property="og:title" content="QLD Strata Rankings" />
-<meta property="og:description" content="Ranking the elite Community Managers across Qld. The metric: contracts awarded by committees." />
+<meta property="og:description" content="Ranking ELITE strata managers across Qld. The metric: contracts awarded by committees." />
 <meta property="og:image" content="/og-image.png" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="QLD Strata Rankings" />
-<meta name="twitter:description" content="Ranking the elite Community Managers across Qld. The metric: contracts awarded by committees." />
+<meta name="twitter:description" content="Ranking ELITE strata managers across Qld. The metric: contracts awarded by committees." />
 <meta name="twitter:image" content="/og-image.png" />
 
 <link rel="manifest" href="/manifest.json" />
@@ -139,6 +139,20 @@ const daysUntilLabel = (ms) => {
   if (ms <= 0) return "Season closed";
   const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
   return `${days} day${days === 1 ? "" : "s"} left this season`;
+};
+
+// Monthly cycle — calendar month on Brisbane local time.
+const monthKeyOf = (dateStr) => dateStr.slice(0, 7); // "YYYY-MM"
+const monthLabel = (monthKey) => {
+  const [y, m] = monthKey.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-AU", { month: "long", year: "numeric", timeZone: "UTC" });
+};
+// Milliseconds until the end of this calendar month (last day 23:59:59 Brisbane time).
+const msUntilMonthEnd = (monthKey) => {
+  const [y, m] = monthKey.split("-").map(Number);
+  // First day of next month, UTC, minus 1 second, adjusted for Brisbane's fixed UTC+10.
+  const nextMonthStartUTC = Date.UTC(y, m, 1, 0, 0, 0) - 10 * 60 * 60 * 1000;
+  return nextMonthStartUTC - Date.now();
 };
 
 const dealTermLabel = (ev) => {
@@ -292,7 +306,7 @@ function MetricInfoButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="blue-pulse bg-blue-600 hover:bg-blue-700 text-white font-extrabold uppercase text-base sm:text-xl px-5 py-2.5 rounded-full inline-block"
+        className="blue-pulse bg-blue-600 hover:bg-blue-700 text-white font-extrabold uppercase text-xs sm:text-sm px-2.5 py-1.5 rounded-full inline-block"
       >
         Rankings Metric
       </button>
@@ -401,7 +415,7 @@ function App() {
   const [data, setData] = useState(emptyData);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [tab, setTab] = useState("dotw");
+  const [tab, setTab] = useState("dotm");
 
   const refresh = async () => {
     try {
@@ -420,71 +434,73 @@ function App() {
   const managerById = (id) => data.managers.find((m) => m.id === id);
   const schemeById = (id) => data.schemes.find((s) => s.id === id);
 
-  // Every approved win grouped into its Mon–Sun week, with that week's
-  // leader worked out the same way as before (points, lots break ties).
-  const weeklyWinners = useMemo(() => {
+  // Every approved win grouped into its calendar month, with that month's
+  // leader worked out by points (lots break ties).
+  const monthlyWinners = useMemo(() => {
     const approved = data.events.filter((e) => e.status === "approved");
-    const byWeek = {};
+    const byMonth = {};
     for (const ev of approved) {
-      const wk = mondayOf(ev.date);
-      if (!byWeek[wk]) byWeek[wk] = {};
-      if (!byWeek[wk][ev.managerId]) byWeek[wk][ev.managerId] = { points: 0, lots: 0, events: [] };
-      byWeek[wk][ev.managerId].points += ev.points;
+      const mk = monthKeyOf(ev.date);
+      if (!byMonth[mk]) byMonth[mk] = {};
+      if (!byMonth[mk][ev.managerId]) byMonth[mk][ev.managerId] = { points: 0, lots: 0, events: [] };
+      byMonth[mk][ev.managerId].points += ev.points;
       const scheme = schemeById(ev.schemeId);
-      byWeek[wk][ev.managerId].lots += scheme?.lotCount ? Number(scheme.lotCount) : 0;
-      byWeek[wk][ev.managerId].events.push(ev);
+      byMonth[mk][ev.managerId].lots += scheme?.lotCount ? Number(scheme.lotCount) : 0;
+      byMonth[mk][ev.managerId].events.push(ev);
     }
     const result = {};
-    for (const wk of Object.keys(byWeek)) {
-      const totals = Object.entries(byWeek[wk])
+    for (const mk of Object.keys(byMonth)) {
+      const totals = Object.entries(byMonth[mk])
         .map(([managerId, t]) => ({ managerId, ...t }))
         .sort((a, b) => b.points - a.points || b.lots - a.lots);
-      result[wk] = { winnerManagerId: totals[0].managerId, totals };
+      result[mk] = { winnerManagerId: totals[0].managerId, totals };
     }
     return result;
   }, [data]);
 
-  // Season leaderboard: 1 point per weekly win, tallied across every week to date.
-  // Tie on weekly wins is broken by total lots across those winning weeks
-  // (same rule used to decide a single week's winner).
+  // Season leaderboard: 1 point per monthly win, tallied across every month
+  // to date — 12 possible wins a season. Tie on monthly wins is broken by
+  // total lots across those winning months (same rule used to decide a
+  // single month's winner).
   const seasonStandings = useMemo(() => {
     const wins = {};
     const lots = {};
-    for (const wk of Object.keys(weeklyWinners)) {
-      const week = weeklyWinners[wk];
-      const id = week.winnerManagerId;
+    for (const mk of Object.keys(monthlyWinners)) {
+      const month = monthlyWinners[mk];
+      const id = month.winnerManagerId;
       wins[id] = (wins[id] || 0) + 1;
-      lots[id] = (lots[id] || 0) + (week.totals[0]?.lots || 0);
+      lots[id] = (lots[id] || 0) + (month.totals[0]?.lots || 0);
     }
     return Object.entries(wins)
-      .map(([managerId, weeklyWins]) => ({ manager: managerById(managerId), weeklyWins, lots: lots[managerId] || 0 }))
+      .map(([managerId, monthlyWins]) => ({ manager: managerById(managerId), monthlyWins, lots: lots[managerId] || 0 }))
       .filter((row) => row.manager)
-      .sort((a, b) => b.weeklyWins - a.weeklyWins || b.lots - a.lots);
-  }, [weeklyWinners, data]);
+      .sort((a, b) => b.monthlyWins - a.monthlyWins || b.lots - a.lots);
+  }, [monthlyWinners, data]);
 
-  const currentWeekKey = mondayOf(brisbaneToday());
+  const currentMonthKey = monthKeyOf(brisbaneToday());
 
-  // Movement indicator: rank as of last week (excluding the still-open
-  // current week) compared to today's rank. Uses the same tiebreak as
+  // Movement indicator: rank as of last month (excluding the still-open
+  // current month) compared to today's rank. Uses the same tiebreak as
   // seasonStandings so the ▲▼ arrows agree with the leaderboard.
   const previousRankMap = useMemo(() => {
     const wins = {};
     const lots = {};
-    for (const wk of Object.keys(weeklyWinners)) {
-      if (wk === currentWeekKey) continue;
-      const week = weeklyWinners[wk];
-      const id = week.winnerManagerId;
+    for (const mk of Object.keys(monthlyWinners)) {
+      if (mk === currentMonthKey) continue;
+      const month = monthlyWinners[mk];
+      const id = month.winnerManagerId;
       wins[id] = (wins[id] || 0) + 1;
-      lots[id] = (lots[id] || 0) + (week.totals[0]?.lots || 0);
+      lots[id] = (lots[id] || 0) + (month.totals[0]?.lots || 0);
     }
     const ordered = Object.entries(wins).sort((a, b) => b[1] - a[1] || (lots[b[0]] || 0) - (lots[a[0]] || 0));
     const map = {};
     ordered.forEach(([managerId], i) => { map[managerId] = i + 1; });
     return map;
-  }, [weeklyWinners, currentWeekKey]);
-  const currentWeek = weeklyWinners[currentWeekKey];
-  const currentWeekEntries = currentWeek
-    ? currentWeek.totals.map((t) => ({ manager: managerById(t.managerId), ...t })).filter((r) => r.manager)
+  }, [monthlyWinners, currentMonthKey]);
+
+  const currentMonth = monthlyWinners[currentMonthKey];
+  const currentMonthEntries = currentMonth
+    ? currentMonth.totals.map((t) => ({ manager: managerById(t.managerId), ...t })).filter((r) => r.manager)
     : [];
 
   const sortedEvents = useMemo(
@@ -507,16 +523,15 @@ function App() {
               className="text-slate-800 mt-3 font-semibold whitespace-nowrap"
               style={{ fontSize: "clamp(0.7rem, 2.8vw, 1.25rem)" }}
             >
-              Ranking the elite Community Managers across Qld
+              Ranking ELITE strata managers across Qld
             </p>
-            <MetricInfoButton />
           </div>
           <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1">
             {[
-              { id: "dotw", label: "Win of the Week", shortLabel: "Win of the Week" },
-              { id: "log", label: "Recent wins", shortLabel: "Recent wins" },
+              { id: "dotm", label: "Win of the Month", shortLabel: "Win of Month" },
+              { id: "log", label: "Every Win", shortLabel: "Every Win" },
               { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
-              { id: "report", label: "🔍 Tip-off", shortLabel: "🔍 Tip-off" },
+              { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
             ].map(({ id, label, shortLabel }) => (
               <button
                 key={id}
@@ -532,6 +547,7 @@ function App() {
               </button>
             ))}
           </nav>
+          <MetricInfoButton />
         </header>
 
         {loadError && (
@@ -542,8 +558,8 @@ function App() {
 
         {loading ? (
           <SkeletonLoader />
-        ) : tab === "dotw" ? (
-          <WinOfTheWeek weekKey={currentWeekKey} entries={currentWeekEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} schemeById={schemeById} sponsorInvites={data.sponsorInvites} />
+        ) : tab === "dotm" ? (
+          <WinOfTheMonth monthKey={currentMonthKey} entries={currentMonthEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} schemeById={schemeById} sponsorInvites={data.sponsorInvites} />
         ) : tab === "log" ? (
           <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
         ) : tab === "season" ? (
@@ -712,7 +728,10 @@ function SponsorStrip({ sponsors }) {
   );
 }
 
-function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, sponsorInvites }) {
+// The site's featured card: current month's leading manager by points
+// (lots break ties). Eligibility rule is stricter than a plain deal —
+// the contract must be passed at an AGM held within the current month.
+function WinOfTheMonth({ monthKey, entries, sponsors, agencyLogos, schemeById, sponsorInvites }) {
   const [, forceTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => forceTick((n) => n + 1), 60000);
@@ -731,25 +750,26 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
         .slice(0, 5)
     : [];
   const shareText = leader
-    ? `${leader.manager.name} is leading the QLD Strata Rankings this week with ${leader.points} points!`
+    ? `${leader.manager.name} is leading the QLD Strata Rankings this month with ${leader.points} points!`
     : "";
 
   return (
     <div>
       {!leader ? (
         <div className="text-center py-16">
-          <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-4">Week of {weekRangeLabel(weekKey)}</p>
-          <p className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">No win of the week yet!</p>
-          <p className="text-lg sm:text-xl font-bold text-amber-600">If you nailed a deal this week, let the strata world know!</p>
+          <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-4">{monthLabel(monthKey)}</p>
+          <p className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">No win of the month yet!</p>
+          <p className="text-lg sm:text-xl font-bold text-amber-600">If you nailed a deal this month, let the strata world know!</p>
         </div>
       ) : (
         <>
           <div className="relative bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-5 sm:p-8 shadow-sm">
             {leaderDeals[0]?.event?.status === "approved" && <VerifiedStamp />}
             <TipSash tipSource={leaderDeals[0]?.event?.tipSource} />
-            <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-1">Week of {weekRangeLabel(weekKey)}</p>
-            <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {countdownLabel(msUntilWeekEnd(weekKey))}</p>
-            <p className="text-center text-xs sm:text-sm font-bold uppercase tracking-wide text-amber-700 mb-5">This week's leader</p>
+            <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-1">{monthLabel(monthKey)}</p>
+            <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {countdownLabel(msUntilMonthEnd(monthKey))}</p>
+            <p className="text-center text-xs sm:text-sm font-bold uppercase tracking-wide text-amber-700 mb-1">This month's leader</p>
+            <p className="text-center text-[11px] sm:text-xs font-bold text-teal-700 mb-5">Contract must be passed at an AGM held this month to count.</p>
 
             <div className="text-center">
               {leader.manager.photoUrl ? (
@@ -796,15 +816,6 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
               ))}
             </div>
 
-            <div className="mt-4 flex justify-center">
-              <div className="inline-flex items-center gap-2 bg-white border-2 border-amber-400 rounded-full px-4 sm:px-5 py-2 shadow-md">
-                <span className="text-base sm:text-lg">🏆</span>
-                <span className="font-extrabold text-sm sm:text-base text-slate-900">Leading the pack for a</span>
-                <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-16 sm:h-20 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
-                <span className="font-extrabold text-sm sm:text-base text-slate-900">$30 voucher!</span>
-              </div>
-            </div>
-
             {leaderTrades.length > 0 && (
               <div className="mt-6 bg-slate-900 rounded-2xl p-5 sm:p-6 shadow-lg">
                 <p className="text-center text-xs sm:text-sm font-extrabold uppercase tracking-widest text-amber-400 mb-4">
@@ -837,7 +848,7 @@ function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, spo
 
           {others.length > 0 && (
             <div className="mt-6">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Also in the running this week</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Also in the running this month</p>
               <div className="space-y-2">
                 {others.map((row) => (
                   <div key={row.managerId} className="flex items-center gap-3 py-2 px-3 border border-slate-200 rounded-lg">
@@ -879,7 +890,7 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
         </span>
       </div>
       {standings.length === 0 ? (
-        <p className="text-slate-500 text-center py-16">No weekly wins recorded yet this season.</p>
+        <p className="text-slate-500 text-center py-16">No monthly wins recorded yet this season.</p>
       ) : (
         standings.map((row, i) => {
           const prevRank = previousRankMap ? previousRankMap[row.manager.id] : undefined;
@@ -907,8 +918,8 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
                 )}
               </div>
               <div className="basis-full sm:basis-auto text-right sm:shrink-0 pl-12 sm:pl-0">
-                <span className="font-serif text-2xl sm:text-3xl">{row.weeklyWins}</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">weekly win{row.weeklyWins === 1 ? "" : "s"}</span>
+                <span className="font-serif text-2xl sm:text-3xl">{row.monthlyWins}</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">monthly win{row.monthlyWins === 1 ? "" : "s"}</span>
               </div>
             </div>
           );
@@ -1360,7 +1371,7 @@ function ReportWin({ data, refresh }) {
           </button>
         ) : (
           <button onClick={submit} disabled={submitting} className="bg-amber-500 text-slate-900 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50">
-            {submitting ? "Sending…" : "Send tip-off"}
+            {submitting ? "Sending…" : "File the scoop"}
           </button>
         )}
       </div>
