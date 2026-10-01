@@ -465,14 +465,23 @@ function App() {
   const seasonStandings = useMemo(() => {
     const wins = {};
     const lots = {};
-    for (const mk of Object.keys(monthlyWinners)) {
+    const monthsWon = {};
+    for (const mk of Object.keys(monthlyWinners).sort()) {
       const month = monthlyWinners[mk];
       const id = month.winnerManagerId;
+      const winLots = month.totals[0]?.lots || 0;
       wins[id] = (wins[id] || 0) + 1;
-      lots[id] = (lots[id] || 0) + (month.totals[0]?.lots || 0);
+      lots[id] = (lots[id] || 0) + winLots;
+      if (!monthsWon[id]) monthsWon[id] = [];
+      monthsWon[id].push({ monthKey: mk, lots: winLots });
     }
     return Object.entries(wins)
-      .map(([managerId, monthlyWins]) => ({ manager: managerById(managerId), monthlyWins, lots: lots[managerId] || 0 }))
+      .map(([managerId, monthlyWins]) => ({
+        manager: managerById(managerId),
+        monthlyWins,
+        lots: lots[managerId] || 0,
+        monthsWon: monthsWon[managerId] || [],
+      }))
       .filter((row) => row.manager)
       .sort((a, b) => b.monthlyWins - a.monthlyWins || b.lots - a.lots);
   }, [monthlyWinners, data]);
@@ -889,6 +898,7 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
           to #1
         </span>
       </div>
+      <p className="text-center text-xs text-slate-500 mb-6">Ranked by number of monthly wins — ties broken by total lots won across those months.</p>
       {standings.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No monthly wins recorded yet this season.</p>
       ) : (
@@ -901,25 +911,33 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
               <div className="w-8 sm:w-10 text-center font-serif text-xl sm:text-2xl text-slate-400 shrink-0">
                 {medal(i) ? <span className="text-xl sm:text-2xl">{medal(i)}</span> : currentRank}
               </div>
-              <div className="flex-1 min-w-0 flex items-center gap-2.5">
-                <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} />
-                <ManagerPhotoPopup manager={row.manager}>
-                  <div className="min-w-0">
-                    <p className="font-medium truncate hover:underline decoration-dotted">{row.manager.name}</p>
-                  </div>
-                </ManagerPhotoPopup>
-                {movement !== null && movement !== 0 && (
-                  <span className={`text-xs font-bold shrink-0 ${movement > 0 ? "text-teal-600" : "text-rose-500"}`}>
-                    {movement > 0 ? `▲${movement}` : `▼${Math.abs(movement)}`}
-                  </span>
-                )}
-                {prevRank === undefined && (
-                  <span className="text-xs font-bold text-amber-600 shrink-0 bg-amber-100 px-1.5 py-0.5 rounded">NEW</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2.5">
+                  <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} />
+                  <ManagerPhotoPopup manager={row.manager}>
+                    <div className="min-w-0">
+                      <p className="font-medium truncate hover:underline decoration-dotted">{row.manager.name}</p>
+                    </div>
+                  </ManagerPhotoPopup>
+                  {movement !== null && movement !== 0 && (
+                    <span className={`text-xs font-bold shrink-0 ${movement > 0 ? "text-teal-600" : "text-rose-500"}`}>
+                      {movement > 0 ? `▲${movement}` : `▼${Math.abs(movement)}`}
+                    </span>
+                  )}
+                  {prevRank === undefined && (
+                    <span className="text-xs font-bold text-amber-600 shrink-0 bg-amber-100 px-1.5 py-0.5 rounded">NEW</span>
+                  )}
+                </div>
+                {row.monthsWon.length > 0 && (
+                  <p className="text-xs text-slate-500 mt-1 pl-0 sm:pl-[52px]">
+                    Won {row.monthsWon.map((m) => `${monthLabel(m.monthKey)} (${m.lots} lots)`).join(", ")}
+                  </p>
                 )}
               </div>
               <div className="basis-full sm:basis-auto text-right sm:shrink-0 pl-12 sm:pl-0">
                 <span className="font-serif text-2xl sm:text-3xl">{row.monthlyWins}</span>
                 <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">monthly win{row.monthlyWins === 1 ? "" : "s"}</span>
+                <p className="text-xs text-slate-500 mt-0.5">{row.lots} total lots (tiebreak)</p>
               </div>
             </div>
           );
@@ -951,23 +969,23 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
     });
   }, [events, query]);
 
-  const weekGroups = useMemo(() => {
-    const byWeek = {};
+  const monthGroups = useMemo(() => {
+    const byMonth = {};
     for (const ev of filteredEvents) {
-      const wk = mondayOf(ev.date);
-      if (!byWeek[wk]) byWeek[wk] = [];
-      byWeek[wk].push(ev);
+      const mk = monthKeyOf(ev.date);
+      if (!byMonth[mk]) byMonth[mk] = [];
+      byMonth[mk].push(ev);
     }
-    return Object.keys(byWeek)
+    return Object.keys(byMonth)
       .sort((a, b) => (a < b ? 1 : -1))
-      .map((wk) => {
-        const ranked = [...byWeek[wk]].sort((a, b) => {
+      .map((mk) => {
+        const ranked = [...byMonth[mk]].sort((a, b) => {
           if (b.points !== a.points) return b.points - a.points;
           const lotsA = schemeById(a.schemeId)?.lotCount || 0;
           const lotsB = schemeById(b.schemeId)?.lotCount || 0;
           return lotsB - lotsA;
         });
-        return { weekKey: wk, events: ranked };
+        return { monthKey: mk, events: ranked };
       });
   }, [filteredEvents]);
 
@@ -981,13 +999,13 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
       />
       {events.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No wins reported yet.</p>
-      ) : weekGroups.length === 0 ? (
+      ) : monthGroups.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No wins match "{query}".</p>
       ) : (
         <div className="space-y-8">
-          {weekGroups.map((group) => (
-            <div key={group.weekKey}>
-              <p className="text-sm font-bold text-slate-700 mb-3">Week of {weekRangeLabel(group.weekKey)}</p>
+          {monthGroups.map((group) => (
+            <div key={group.monthKey}>
+              <p className="text-sm font-bold text-slate-700 mb-3">{monthLabel(group.monthKey)}</p>
               <div className="space-y-4">
                 {group.events.map((ev, idx) => {
             const manager = managerById(ev.managerId);
