@@ -7,12 +7,12 @@
 
 <meta name="description" content="Queensland's Community Managers, ranked by contracts awarded by committees. Weekly Win of the Week, Season Leaderboard, and more." />
 <meta property="og:title" content="QLD Strata Rankings" />
-<meta property="og:description" content="Ranking the elite Community Managers across Qld. The metric: contracts awarded by committees." />
+<meta property="og:description" content="Ranking ELITE strata managers across Qld. The metric: contracts awarded by committees." />
 <meta property="og:image" content="/og-image.png" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="QLD Strata Rankings" />
-<meta name="twitter:description" content="Ranking the elite Community Managers across Qld. The metric: contracts awarded by committees." />
+<meta name="twitter:description" content="Ranking ELITE strata managers across Qld. The metric: contracts awarded by committees." />
 <meta name="twitter:image" content="/og-image.png" />
 
 <link rel="manifest" href="/manifest.json" />
@@ -292,7 +292,7 @@ function MetricInfoButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="blue-pulse bg-blue-600 hover:bg-blue-700 text-white font-extrabold uppercase text-base sm:text-xl px-5 py-2.5 rounded-full inline-block"
+        className="blue-pulse bg-blue-600 hover:bg-blue-700 text-white font-extrabold uppercase text-xs sm:text-sm px-2.5 py-1.5 rounded-full inline-block"
       >
         Rankings Metric
       </button>
@@ -507,16 +507,15 @@ function App() {
               className="text-slate-800 mt-3 font-semibold whitespace-nowrap"
               style={{ fontSize: "clamp(0.7rem, 2.8vw, 1.25rem)" }}
             >
-              Ranking the elite Community Managers across Qld
+              Ranking ELITE strata managers across Qld
             </p>
-            <MetricInfoButton />
           </div>
           <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1">
             {[
               { id: "dotw", label: "Win of the Week", shortLabel: "Win of the Week" },
               { id: "log", label: "Recent wins", shortLabel: "Recent wins" },
               { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
-              { id: "report", label: "🔍 Tip-off", shortLabel: "🔍 Tip-off" },
+              { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
             ].map(({ id, label, shortLabel }) => (
               <button
                 key={id}
@@ -532,6 +531,7 @@ function App() {
               </button>
             ))}
           </nav>
+          <MetricInfoButton />
         </header>
 
         {loadError && (
@@ -1360,7 +1360,7 @@ function ReportWin({ data, refresh }) {
           </button>
         ) : (
           <button onClick={submit} disabled={submitting} className="bg-amber-500 text-slate-900 font-medium px-5 py-2.5 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50">
-            {submitting ? "Sending…" : "Send tip-off"}
+            {submitting ? "Sending…" : "File the scoop"}
           </button>
         )}
       </div>
