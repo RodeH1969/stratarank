@@ -415,7 +415,7 @@ function App() {
   const [data, setData] = useState(emptyData);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [tab, setTab] = useState("dotw");
+  const [tab, setTab] = useState("dotm");
 
   const refresh = async () => {
     try {
@@ -496,10 +496,6 @@ function App() {
     ordered.forEach(([managerId], i) => { map[managerId] = i + 1; });
     return map;
   }, [weeklyWinners, currentWeekKey]);
-  const currentWeek = weeklyWinners[currentWeekKey];
-  const currentWeekEntries = currentWeek
-    ? currentWeek.totals.map((t) => ({ manager: managerById(t.managerId), ...t })).filter((r) => r.manager)
-    : [];
 
   // Every approved win grouped into its calendar month, leader worked out
   // the same way as the weekly winner (points, lots break ties).
@@ -556,7 +552,6 @@ function App() {
           </div>
           <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1">
             {[
-              { id: "dotw", label: "Win of the Week", shortLabel: "Win of Week" },
               { id: "dotm", label: "Win of the Month", shortLabel: "Win of Month" },
               { id: "log", label: "Recent wins", shortLabel: "Recent wins" },
               { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
@@ -587,8 +582,6 @@ function App() {
 
         {loading ? (
           <SkeletonLoader />
-        ) : tab === "dotw" ? (
-          <WinOfTheWeek weekKey={currentWeekKey} entries={currentWeekEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} schemeById={schemeById} sponsorInvites={data.sponsorInvites} />
         ) : tab === "dotm" ? (
           <WinOfTheMonth monthKey={currentMonthKey} entries={currentMonthEntries} agencyLogos={data.agencyLogos} sponsors={data.sponsors} schemeById={schemeById} sponsorInvites={data.sponsorInvites} />
         ) : tab === "log" ? (
@@ -759,161 +752,9 @@ function SponsorStrip({ sponsors }) {
   );
 }
 
-function WinOfTheWeek({ weekKey, entries, sponsors, agencyLogos, schemeById, sponsorInvites }) {
-  const [, forceTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => forceTick((n) => n + 1), 60000);
-    return () => clearInterval(id);
-  }, []);
-
-  const sorted = [...entries].sort((a, b) => b.points - a.points || b.lots - a.lots);
-  const leader = sorted[0];
-  const others = sorted.slice(1);
-  const leaderDeals = leader
-    ? leader.events.map((ev) => ({ event: ev, scheme: schemeById(ev.schemeId) })).filter((d) => d.scheme)
-    : [];
-  const leaderTrades = leader
-    ? leader.events
-        .flatMap((ev) => (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl))
-        .slice(0, 5)
-    : [];
-  const shareText = leader
-    ? `${leader.manager.name} is leading the QLD Strata Rankings this week with ${leader.points} points!`
-    : "";
-
-  return (
-    <div>
-      {!leader ? (
-        <div className="text-center py-16">
-          <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-4">Week of {weekRangeLabel(weekKey)}</p>
-          <p className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">No win of the week yet!</p>
-          <p className="text-lg sm:text-xl font-bold text-amber-600">If you nailed a deal this week, let the strata world know!</p>
-        </div>
-      ) : (
-        <>
-          <div className="relative bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl p-5 sm:p-8 shadow-sm">
-            {leaderDeals[0]?.event?.status === "approved" && <VerifiedStamp />}
-            <TipSash tipSource={leaderDeals[0]?.event?.tipSource} />
-            <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-1">Week of {weekRangeLabel(weekKey)}</p>
-            <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {countdownLabel(msUntilWeekEnd(weekKey))}</p>
-            <p className="text-center text-xs sm:text-sm font-bold uppercase tracking-wide text-amber-700 mb-5">This week's leader</p>
-
-            <div className="text-center">
-              {leader.manager.photoUrl ? (
-                <img
-                  src={leader.manager.photoUrl}
-                  alt={leader.manager.name}
-                  className="w-32 h-32 sm:w-44 sm:h-44 rounded-full object-cover mx-auto border-4 border-white shadow-lg"
-                />
-              ) : (
-                <div className="w-32 h-32 sm:w-44 sm:h-44 rounded-full bg-slate-200 flex items-center justify-center mx-auto text-4xl sm:text-5xl font-bold text-slate-500 border-4 border-white shadow-lg">
-                  {leader.manager.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
-                </div>
-              )}
-
-              <div className="flex justify-center mt-5">
-                <AgencyBadge agency={leader.manager.agency} agencyLogos={agencyLogos} size="h-16 sm:h-20" />
-              </div>
-
-              <h2 className="font-serif text-3xl sm:text-4xl mt-4">{leader.manager.name}</h2>
-
-              {leader.manager.linkedinUrl && (
-                <a
-                  href={leader.manager.linkedinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-[#0A66C2] bg-white px-3 py-1.5 rounded-full shadow-sm hover:shadow transition-shadow"
-                >
-                  <LinkedInIcon /> View on LinkedIn
-                </a>
-              )}
-            </div>
-
-            <div className="mt-6 bg-white/80 rounded-xl p-4 sm:p-6 text-center">
-              {leaderDeals.map(({ event, scheme }, i) => (
-                <div key={i} className={i > 0 ? "mt-4 pt-4 border-t border-amber-100" : ""}>
-                  <p className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">{dealTermLabel(event)}</p>
-                  <p className="text-xs sm:text-sm font-bold text-amber-800 mt-1.5 tracking-wide">{leader.points} Ranking Points</p>
-                  <p className="text-sm sm:text-base text-slate-700 mt-2">
-                    {scheme.suburb}
-                    {[scheme.planType, scheme.module].filter(Boolean).length ? ` · ${[scheme.planType, scheme.module].filter(Boolean).join(" · ")}` : ""}
-                    {scheme.lotCount ? ` · ${scheme.lotCount} lots` : ""}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex justify-center">
-              <div className="inline-flex items-center gap-2 bg-white border-2 border-amber-400 rounded-full px-4 sm:px-5 py-2 shadow-md">
-                <span className="text-base sm:text-lg">🏆</span>
-                <span className="font-extrabold text-sm sm:text-base text-slate-900">Leading the pack for a</span>
-                <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-16 sm:h-20 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
-                <span className="font-extrabold text-sm sm:text-base text-slate-900">$30 voucher!</span>
-              </div>
-            </div>
-
-            {leaderTrades.length > 0 && (
-              <div className="mt-6 bg-slate-900 rounded-2xl p-5 sm:p-6 shadow-lg">
-                <p className="text-center text-xs sm:text-sm font-extrabold uppercase tracking-widest text-amber-400 mb-4">
-                  🏆 Top Trades at This Scheme
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-                  {leaderTrades.map((t) => {
-                    const pair = (
-                      <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-md">
-                        {t.iconUrl && <img src={t.iconUrl} alt="" className="h-6 w-6 sm:h-8 sm:w-8 object-contain shrink-0" />}
-                        <img src={t.logoUrl} alt={t.businessName} title={t.tagline ? `${t.businessName} — ${t.tagline}` : t.businessName} className="h-8 sm:h-10 max-w-[100px] sm:max-w-[130px] object-contain" />
-                      </div>
-                    );
-                    return t.websiteUrl ? (
-                      <a key={t.id} href={t.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:opacity-90 transition-opacity">
-                        {pair}
-                      </a>
-                    ) : (
-                      <div key={t.id}>{pair}</div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-center">
-              <ShareButton text={shareText} />
-            </div>
-          </div>
-
-          {others.length > 0 && (
-            <div className="mt-6">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Also in the running this week</p>
-              <div className="space-y-2">
-                {others.map((row) => (
-                  <div key={row.managerId} className="flex items-center gap-3 py-2 px-3 border border-slate-200 rounded-lg">
-                    <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} />
-                    <ManagerPhotoPopup manager={row.manager}>
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate hover:underline decoration-dotted">{row.manager.name}</p>
-                      </div>
-                    </ManagerPhotoPopup>
-                    <div className="ml-auto text-right shrink-0">
-                      <span className="font-serif text-lg">{row.points}</span>
-                      <span className="text-xs text-slate-500 ml-1">({row.events.length} · {row.lots} lots)</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-      <SponsorStrip sponsors={sponsors} />
-    </div>
-  );
-}
-
-// Same idea as Win of the Week, but tallied over the calendar month.
-// Eligibility rule is stricter: the win must be an AGM-passed contract,
-// and the AGM itself must fall within the current month (not just the
-// underlying deal being recorded this month).
+// The site's featured card: current month's leading manager by points
+// (lots break ties). Eligibility rule is stricter than a plain deal —
+// the contract must be passed at an AGM held within the current month.
 function WinOfTheMonth({ monthKey, entries, sponsors, agencyLogos, schemeById, sponsorInvites }) {
   const [, forceTick] = useState(0);
   useEffect(() => {
