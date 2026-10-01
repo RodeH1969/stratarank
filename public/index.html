@@ -1014,7 +1014,7 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
             return (
               <div key={ev.id} className="flex items-start gap-2 sm:gap-3">
                 <div className="font-serif text-lg sm:text-xl text-slate-400 w-6 shrink-0 pt-4 text-right">{idx + 1}.</div>
-                <div className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow relative">
+                <div className={`flex-1 min-w-0 bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow relative ${ev.status === "approved" ? "sm:pr-20" : ""}`}>
                 {ev.status === "approved" && <VerifiedStamp />}
                 <TipSash tipSource={ev.tipSource} />
                 {isNew(ev) && (
@@ -1037,8 +1037,8 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
                   </div>
 
                   <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:shrink-0">
-                    <div className="bg-teal-50 text-teal-700 font-serif font-bold text-lg px-3.5 py-1 rounded-full">
-                      +{ev.points}
+                    <div className="bg-teal-50 text-teal-700 font-serif font-bold text-lg px-3.5 py-1 rounded-full whitespace-nowrap">
+                      {ev.points} Point{ev.points === 1 ? "" : "s"}
                     </div>
                     <span className="text-xs sm:text-sm font-semibold text-white bg-indigo-500 px-2.5 py-1 rounded-full whitespace-nowrap">
                       {formatDate(ev.date)}
