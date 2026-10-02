@@ -245,6 +245,7 @@ function VerifiedStamp() {
         border: "3px double #0f766e",
         background: "rgba(15,118,110,0.06)",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         transform: "rotate(-10deg)",
@@ -258,7 +259,9 @@ function VerifiedStamp() {
         pointerEvents: "none",
       }}
     >
-      <span style={{ color: "#dc2626" }}>QSR</span><br />Verified<br />&#10003;
+      <span style={{ color: "#dc2626" }}>QSR</span>
+      <span>Verified</span>
+      <span>&#10003;</span>
     </div>
   );
 }
