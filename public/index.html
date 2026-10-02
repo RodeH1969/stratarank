@@ -930,14 +930,13 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-300 rounded-full px-5 py-2.5 mb-6 mx-auto w-fit shadow-sm">
-        <span className="text-xs sm:text-sm font-bold text-rose-600">⏱ {daysUntilLabel(msUntilSeasonEnd(seasonYear))}</span>
-        <span className="text-amber-300 text-xs">|</span>
-        <span className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-800">
-          $500
-          <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-4 sm:h-5 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
-          to #1
-        </span>
+      <div className="gold-pulse-ring bg-gradient-to-br from-amber-300 to-amber-500 border-4 border-amber-600 rounded-2xl px-5 sm:px-8 py-5 sm:py-6 mb-6 shadow-lg text-center">
+        <p className="text-xl sm:text-3xl font-extrabold text-slate-900 flex items-center justify-center gap-2 flex-wrap">
+          🏆 $500
+          <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-9 sm:h-12 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
+          to Qld's #1 strata manager!
+        </p>
+        <p className="mt-2 text-sm sm:text-base font-bold text-rose-700">⏱ {daysUntilLabel(msUntilSeasonEnd(seasonYear))} to climb the board</p>
       </div>
       <p className="text-center text-xs text-slate-500 mb-6">Ranked by total points accumulated this season — ties broken by total lots won.</p>
       {standings.length === 0 ? (
