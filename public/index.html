@@ -1254,8 +1254,7 @@ function ReportWin({ data, refresh }) {
       {step === 0 && (
         <>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Tap the one that fits:</p>
-            <p className="text-xs text-slate-500 mt-0.5 mb-2">How do you know about this win?</p>
+            <p className="text-sm font-semibold text-slate-900 mb-2">Tap the one that fits:</p>
             <div className="flex flex-col gap-2">
               {Object.entries(TIP_SOURCES).map(([key, entry]) => {
                 const selected = tipSource === key;
@@ -1292,8 +1291,7 @@ function ReportWin({ data, refresh }) {
             </div>
           </div>
           <div className="space-y-4">
-            <p className="text-sm font-medium text-slate-700">The Strata Manager who signed the deal</p>
-            <div><label className={labelClass("managerName")}>Their name —</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
+            <div><label className={labelClass("managerName")}>Strata Manager (name)</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
             <div><label className={labelClass("agency")}>Strata Company</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
           </div>
         </>
