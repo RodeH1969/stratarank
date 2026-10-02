@@ -1234,7 +1234,6 @@ function ReportWin({ data, refresh }) {
   return (
     <div className="max-w-lg space-y-4">
       <h2 className="font-serif text-2xl mb-2">Know about a win? Tell us.</h2>
-      <PointsInfoButton />
 
       <div className="flex items-center justify-center gap-2">
         {[0, 1, 2, 3].map((i) => (
@@ -1246,13 +1245,25 @@ function ReportWin({ data, refresh }) {
       {step === 0 && (
         <>
           <div>
-            <label className={labelClass("tipSource")}>What's your angle on this scoop?</label>
-            <select value={tipSource} onChange={(e) => setTipSource(e.target.value)} className={selectClass("tipSource")}>
-              <option value="">Select…</option>
+            <label className={labelClass("tipSource")}>How do you know about this win?</label>
+            <div className="flex flex-wrap gap-2">
               {Object.entries(TIP_SOURCES).map(([key, entry]) => (
-                <option key={key} value={key}>{entry.label}</option>
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTipSource(key)}
+                  style={{
+                    background: entry.color,
+                    color: "#0a0a0a",
+                    border: tipSource === key ? "2px solid #0a0a0a" : "2px solid transparent",
+                    boxShadow: tipSource === key ? `0 0 0 2px rgba(${entry.glow},0.9)` : "none",
+                  }}
+                  className="px-3.5 py-2 rounded-full text-sm font-extrabold uppercase tracking-wide"
+                >
+                  {entry.label}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
           <div className="space-y-4">
             <p className="text-sm font-medium text-slate-700">The Strata Manager who signed the deal</p>
