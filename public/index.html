@@ -168,9 +168,30 @@ const dealTermLabel = (ev) => {
 // form. tipSource is one of 'body_corporate' | 'strata_company' |
 // 'tradie' | '' (no banner). Each has its own color.
 const TIP_SOURCES = {
-  body_corporate: { label: "Committee Fanclub", color: "#4ade80", glow: "74,222,128" },
-  strata_company: { label: "Water Cooler Chat", color: "#60a5fa", glow: "96,165,250" },
-  tradie: { label: "Tradie Intel", color: "#f472b6", glow: "244,114,182" },
+  body_corporate: {
+    label: "Committee Fanclub",
+    hint: "You're on the committee",
+    color: "#4ade80",
+    glow: "74,222,128",
+    ring: "#16a34a",
+    tint: "#f0fdf4",
+  },
+  strata_company: {
+    label: "Water Cooler Chat",
+    hint: "You work in strata and heard about it",
+    color: "#60a5fa",
+    glow: "96,165,250",
+    ring: "#2563eb",
+    tint: "#eff6ff",
+  },
+  tradie: {
+    label: "Tradie Intel",
+    hint: "You're a tradie on the scheme, or know the manager",
+    color: "#f472b6",
+    glow: "244,114,182",
+    ring: "#db2777",
+    tint: "#fdf2f8",
+  },
 };
 // A small circular badge — sits in normal document flow above the card's
 // content (never absolutely positioned), so it can't overlap or clip
@@ -1121,7 +1142,7 @@ function ReportWin({ data, refresh }) {
   const previewPoints = computePoints(winType, newTerm, prevTerm);
 
   const labelClass = (key) => `block text-sm mb-1 ${fieldErrors[key] ? "text-rose-600 font-medium" : "text-slate-600"}`;
-  const inputClass = (key) => `w-full rounded px-3 py-2 text-sm border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
+  const inputClass = (key) => `w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
   const selectClass = (key) => `w-full rounded px-3 py-2 text-sm bg-white border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
 
   const stepValidators = [
@@ -1245,24 +1266,41 @@ function ReportWin({ data, refresh }) {
       {step === 0 && (
         <>
           <div>
-            <label className={labelClass("tipSource")}>How do you know about this win?</label>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(TIP_SOURCES).map(([key, entry]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setTipSource(key)}
-                  style={{
-                    background: entry.color,
-                    color: "#0a0a0a",
-                    border: tipSource === key ? "2px solid #0a0a0a" : "2px solid transparent",
-                    boxShadow: tipSource === key ? `0 0 0 2px rgba(${entry.glow},0.9)` : "none",
-                  }}
-                  className="px-3.5 py-2 rounded-full text-sm font-extrabold uppercase tracking-wide"
-                >
-                  {entry.label}
-                </button>
-              ))}
+            <p className="text-sm font-semibold text-slate-900">Tap the one that fits:</p>
+            <p className="text-xs text-slate-500 mt-0.5 mb-2">How do you know about this win?</p>
+            <div className="flex flex-col gap-2">
+              {Object.entries(TIP_SOURCES).map(([key, entry]) => {
+                const selected = tipSource === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setTipSource(key)}
+                    style={{
+                      background: selected ? entry.tint : "#ffffff",
+                      border: `2px solid ${selected ? entry.ring : "#e2e8f0"}`,
+                    }}
+                    className="flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left"
+                  >
+                    <span
+                      style={{ background: entry.color, boxShadow: `0 0 0 3px ${entry.tint}` }}
+                      className="w-3.5 h-3.5 rounded-full shrink-0"
+                    />
+                    <span className="flex-1">
+                      <span className="block text-sm font-extrabold text-slate-900">{entry.label}</span>
+                      <span className="block text-xs text-slate-500 mt-0.5">{entry.hint}</span>
+                    </span>
+                    {selected && (
+                      <span
+                        style={{ background: entry.ring }}
+                        className="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center shrink-0"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="space-y-4">
