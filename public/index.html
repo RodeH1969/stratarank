@@ -1105,8 +1105,6 @@ function ReportWin({ data, refresh }) {
   const [managerChoice, setManagerChoice] = useState("__new__");
   const [managerName, setManagerName] = useState("");
   const [agency, setAgency] = useState("");
-  const [managerPhotoData, setManagerPhotoData] = useState("");
-  const [managerPhotoFileName, setManagerPhotoFileName] = useState("");
   const [suburb, setSuburb] = useState("");
   const [lotCount, setLotCount] = useState("");
   const [schemeName, setSchemeName] = useState("");
@@ -1205,7 +1203,6 @@ function ReportWin({ data, refresh }) {
           managerId: isNewManager ? null : managerChoice,
           managerName: isNewManager ? managerName : undefined,
           agency: isNewManager ? agency : undefined,
-          managerPhotoUrl: isNewManager ? managerPhotoData || undefined : undefined,
           schemeId: null,
           suburb,
           lotCount,
@@ -1221,7 +1218,7 @@ function ReportWin({ data, refresh }) {
 
       await refresh();
       setTipSource("");
-      setManagerChoice("__new__"); setManagerName(""); setAgency(""); setManagerPhotoData(""); setManagerPhotoFileName("");
+      setManagerChoice("__new__"); setManagerName(""); setAgency("");
       setSuburb(""); setLotCount(""); setSchemeName("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
       setTradieBusiness("");
@@ -1262,7 +1259,7 @@ function ReportWin({ data, refresh }) {
           </div>
           {sortedManagers.length > 0 && (
             <div>
-              <label className="block text-sm text-slate-600 mb-1">The legend Strata Manager who signed the deal</label>
+              <label className="block text-sm text-slate-600 mb-1">The Strata Manager who signed the deal</label>
               <select value={managerChoice} onChange={(e) => setManagerChoice(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
                 <option value="__new__">+ Add new manager…</option>
                 {sortedManagers.map((m) => (
@@ -1273,35 +1270,8 @@ function ReportWin({ data, refresh }) {
           )}
           {managerChoice === "__new__" && (
           <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
-            <div><label className={labelClass("managerName")}>Their name — give credit where it's due</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
-            <div><label className={labelClass("agency")}>Who do they fly the flag for?</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Manager's photo (optional)</label>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 2 * 1024 * 1024) {
-                    window.alert("Please choose a photo smaller than 2 MB.");
-                    e.target.value = "";
-                    return;
-                  }
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    setManagerPhotoData(reader.result);
-                    setManagerPhotoFileName(file.name);
-                  };
-                  reader.readAsDataURL(file);
-                }}
-                className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-              />
-              {managerPhotoFileName && <p className="text-xs text-slate-500 mt-1">Selected: {managerPhotoFileName}</p>}
-              {managerPhotoData && (
-                <img src={managerPhotoData} alt="Preview" className="mt-2 w-16 h-16 rounded-full object-cover border border-slate-200" />
-              )}
-            </div>
+            <div><label className={labelClass("managerName")}>Their name —</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
+            <div><label className={labelClass("agency")}>Strata Company</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
           </div>
           )}
         </>
