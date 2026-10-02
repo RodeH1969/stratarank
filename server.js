@@ -306,9 +306,10 @@ function buildSchemeLabel(scheme) {
 // Record/nominate a win, upgrade, or loss. Either pass an existing
 // managerId/schemeId, or pass the new-record fields and one gets created.
 // source: 'public' marks a submission from the public nomination form,
-// where every field — including the tradie/contractor's business name —
-// is mandatory. It's how the site is monetised. Admin's own "Record a
-// win" doesn't send this flag, so it isn't held to it.
+// where the core fields are mandatory. Admin's own "Record a win"
+// doesn't send this flag, so it isn't held to it. businessName is
+// admin-only now — Rod approaches tradies on site himself and adds
+// them under the "All nominations" tab — so it's optional here.
 app.post('/api/events', async (req, res) => {
   try {
     const {
@@ -325,7 +326,6 @@ app.post('/api/events', async (req, res) => {
       if (!schemeId && (!suburb || !suburb.trim())) missing.push('suburb');
       if (!schemeId && !lotCount) missing.push('lotCount');
       if (!schemeId && (!schemeName || !schemeName.trim())) missing.push('schemeName');
-      if (!businessName || !businessName.trim()) missing.push('businessName');
       if (!tipSource || !['body_corporate', 'strata_company', 'tradie'].includes(tipSource)) missing.push('tipSource');
       if (missing.length > 0) {
         return res.status(400).json({ error: 'All fields are required.', missingFields: missing });

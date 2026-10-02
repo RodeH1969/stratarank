@@ -1562,7 +1562,6 @@ function AdminPanel({ data, refresh }) {
           { id: "overview", label: "Overview" },
           { id: "agencies", label: "Agency Logos" },
           { id: "manager-photos", label: "Manager Photos" },
-          { id: "invites", label: "Sponsor invites" },
           { id: "sponsors", label: "Sponsors" },
           { id: "record", label: "Record a win" },
           { id: "nominations", label: "All nominations" },
@@ -1580,7 +1579,6 @@ function AdminPanel({ data, refresh }) {
       {section === "overview" && <Overview data={data} refresh={refresh} />}
       {section === "agencies" && <AgencyLogoManager data={data} refresh={refresh} />}
       {section === "manager-photos" && <ManagerPhotoManager data={data} refresh={refresh} />}
-      {section === "invites" && <SponsorInvites data={data} refresh={refresh} />}
       {section === "sponsors" && <SponsorManager data={data} refresh={refresh} />}
       {section === "record" && <RecordWin data={data} refresh={refresh} />}
       {section === "nominations" && <NominationsManager data={data} refresh={refresh} />}
