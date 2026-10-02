@@ -254,6 +254,33 @@ app.delete('/api/managers/:id', async (req, res) => {
   res.json({ deleted: true });
 });
 
+// Merge a duplicate manager record into another — every win recorded
+// against the duplicate (fromId) is reassigned to the keeper (toId), so
+// their points accumulate onto one person, then the duplicate is deleted.
+// This is how admin reconciles different spellings of the same name
+// coming in through the public tip-off form, which no longer lets the
+// person picking a win pick from an existing-manager list.
+app.post('/api/managers/:fromId/merge-into/:toId', async (req, res) => {
+  const { fromId, toId } = req.params;
+  if (fromId === toId) return res.status(400).json({ error: 'Cannot merge a manager into themselves.' });
+
+  const { data: fromManager, error: fromError } = await supabase.from('strata_managers').select('*').eq('id', fromId).single();
+  if (fromError) return res.status(404).json({ error: 'Manager to merge from was not found.' });
+  const { data: toManager, error: toError } = await supabase.from('strata_managers').select('*').eq('id', toId).single();
+  if (toError) return res.status(404).json({ error: 'Manager to merge into was not found.' });
+
+  const { error: eventsError } = await supabase.from('strata_events').update({ manager_id: toId }).eq('manager_id', fromId);
+  if (eventsError) return res.status(500).json({ error: eventsError.message });
+
+  const { error: schemesError } = await supabase.from('strata_schemes').update({ current_manager_id: toId }).eq('current_manager_id', fromId);
+  if (schemesError) return res.status(500).json({ error: schemesError.message });
+
+  const { error: deleteError } = await supabase.from('strata_managers').delete().eq('id', fromId);
+  if (deleteError) return res.status(500).json({ error: deleteError.message });
+
+  res.json({ merged: true, from: toManagerOut(fromManager), into: toManagerOut(toManager) });
+});
+
 // --- schemes ---------------------------------------------------------------
 
 app.patch('/api/schemes/:id', async (req, res) => {
