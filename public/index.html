@@ -1142,7 +1142,7 @@ function ReportWin({ data, refresh }) {
   const previewPoints = computePoints(winType, newTerm, prevTerm);
 
   const labelClass = (key) => `block text-sm mb-1 ${fieldErrors[key] ? "text-rose-600 font-medium" : "text-slate-600"}`;
-  const inputClass = (key) => `w-full rounded px-3 py-2 text-sm border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
+  const inputClass = (key) => `w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
   const selectClass = (key) => `w-full rounded px-3 py-2 text-sm bg-white border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
 
   const stepValidators = [
