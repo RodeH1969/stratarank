@@ -953,13 +953,21 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
   const contractors = (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl);
   const agencyNames = [...new Set(Object.values(agencyLogos || {}).map((v) => v.name))].sort((a, b) => a.localeCompare(b));
 
-  // Public tip-offs no longer collect scheme type / module — admin must
-  // fill those in (via Edit) before a win can go live.
+  // Public tip-offs no longer collect scheme type / module, or a manager
+  // photo — admin must fill those in before a win can go live.
   const missingSchemeDetails = approved => approved && (!scheme?.planType || !scheme?.module);
+  const missingManagerPhoto = approved => approved && !manager?.photoUrl;
+  const approvalBlockers = () => {
+    const reasons = [];
+    if (missingSchemeDetails(true)) reasons.push("scheme type & module (Edit)");
+    if (missingManagerPhoto(true)) reasons.push("manager photo (Managers tab)");
+    return reasons;
+  };
 
   const setApproved = async (approved) => {
-    if (missingSchemeDetails(approved)) {
-      setReviewError("Add scheme type & module (Edit) before approving.");
+    const blockers = approved ? approvalBlockers() : [];
+    if (blockers.length > 0) {
+      setReviewError(`Add ${blockers.join(" and ")} before approving.`);
       return;
     }
     setReviewBusy(true);
@@ -1143,10 +1151,10 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
             <button
               onClick={() => setApproved(true)}
               disabled={reviewBusy}
-              title={missingSchemeDetails(true) ? "Add scheme type & module (Edit) first" : undefined}
-              className={`text-xs font-medium hover:underline ${missingSchemeDetails(true) ? "text-amber-600" : "text-teal-700"}`}
+              title={approvalBlockers().length > 0 ? `Add ${approvalBlockers().join(" and ")} first` : undefined}
+              className={`text-xs font-medium hover:underline ${approvalBlockers().length > 0 ? "text-amber-600" : "text-teal-700"}`}
             >
-              {reviewBusy ? "Working…" : missingSchemeDetails(true) ? "Approve (needs scheme type/module)" : "Approve"}
+              {reviewBusy ? "Working…" : approvalBlockers().length > 0 ? `Approve (needs ${approvalBlockers().join(", ")})` : "Approve"}
             </button>
           )}
           <label className="text-xs text-slate-500 hover:underline cursor-pointer">
