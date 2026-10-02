@@ -1499,48 +1499,16 @@ function NominationsManager({ data, refresh }) {
 }
 
 function Overview({ data, refresh }) {
-  const managerById = (id) => data.managers.find((m) => m.id === id);
-  const schemeById = (id) => data.schemes.find((s) => s.id === id);
-
   const pending = data.events.filter((e) => e.status !== "approved");
-  const currentWeekKey = mondayOf(brisbaneToday());
-
-  const thisWeekLeader = useMemo(() => {
-    const approvedThisWeek = data.events.filter((e) => e.status === "approved" && mondayOf(e.date) === currentWeekKey);
-    if (approvedThisWeek.length === 0) return null;
-    const totals = {};
-    for (const ev of approvedThisWeek) {
-      if (!totals[ev.managerId]) totals[ev.managerId] = { points: 0, lots: 0 };
-      totals[ev.managerId].points += ev.points;
-      const scheme = schemeById(ev.schemeId);
-      totals[ev.managerId].lots += scheme?.lotCount ? Number(scheme.lotCount) : 0;
-    }
-    const ranked = Object.entries(totals)
-      .map(([managerId, t]) => ({ manager: managerById(managerId), ...t }))
-      .filter((r) => r.manager)
-      .sort((a, b) => b.points - a.points || b.lots - a.lots);
-    return ranked[0] || null;
-  }, [data, currentWeekKey]);
 
   return (
     <section className="mb-10">
       <h2 className="font-serif text-2xl mb-4">Overview</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+      <div className="max-w-2xl">
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
           <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-1">Awaiting review</p>
           <p className="font-serif text-4xl text-amber-800">{pending.length}</p>
           <p className="text-sm text-slate-600 mt-1">nomination{pending.length === 1 ? "" : "s"} pending approval</p>
-        </div>
-        <div className="bg-teal-50 border border-teal-200 rounded-xl p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-teal-700 mb-1">This week's leader</p>
-          {thisWeekLeader ? (
-            <>
-              <p className="font-serif text-2xl text-teal-900">{thisWeekLeader.manager.name}</p>
-              <p className="text-sm text-slate-600 mt-1">{thisWeekLeader.points} points{thisWeekLeader.manager.agency ? ` · ${thisWeekLeader.manager.agency}` : ""}</p>
-            </>
-          ) : (
-            <p className="text-sm text-slate-600 mt-1">No approved wins yet this week ({weekRangeLabel(currentWeekKey)}).</p>
-          )}
         </div>
       </div>
       {pending.length > 0 && (
