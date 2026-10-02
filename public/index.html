@@ -1102,7 +1102,6 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
 
 function ReportWin({ data, refresh }) {
   const [tipSource, setTipSource] = useState("");
-  const [managerChoice, setManagerChoice] = useState("__new__");
   const [managerName, setManagerName] = useState("");
   const [agency, setAgency] = useState("");
   const [suburb, setSuburb] = useState("");
@@ -1119,20 +1118,18 @@ function ReportWin({ data, refresh }) {
   const [submitting, setSubmitting] = useState(false);
 
   const [step, setStep] = useState(0);
-  const sortedManagers = [...data.managers].sort((a, b) => a.name.localeCompare(b.name));
   const previewPoints = computePoints(winType, newTerm, prevTerm);
 
   const labelClass = (key) => `block text-sm mb-1 ${fieldErrors[key] ? "text-rose-600 font-medium" : "text-slate-600"}`;
   const inputClass = (key) => `w-full rounded px-3 py-2 text-sm border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
   const selectClass = (key) => `w-full rounded px-3 py-2 text-sm bg-white border ${fieldErrors[key] ? "border-rose-400" : "border-slate-300"}`;
 
-  const isNewManager = managerChoice === "__new__";
   const stepValidators = [
     () => {
       const errs = {};
       if (!tipSource) errs.tipSource = true;
-      if (isNewManager && !managerName.trim()) errs.managerName = true;
-      if (isNewManager && !agency.trim()) errs.agency = true;
+      if (!managerName.trim()) errs.managerName = true;
+      if (!agency.trim()) errs.agency = true;
       return errs;
     },
     () => {
@@ -1176,8 +1173,8 @@ function ReportWin({ data, refresh }) {
   const submit = async () => {
     const errs = {};
     if (!tipSource) errs.tipSource = true;
-    if (isNewManager && !managerName.trim()) errs.managerName = true;
-    if (isNewManager && !agency.trim()) errs.agency = true;
+    if (!managerName.trim()) errs.managerName = true;
+    if (!agency.trim()) errs.agency = true;
     if (!suburb.trim()) errs.suburb = true;
     if (!lotCount) errs.lotCount = true;
     if (!schemeName.trim()) errs.schemeName = true;
@@ -1200,9 +1197,9 @@ function ReportWin({ data, refresh }) {
         method: "POST",
         body: JSON.stringify({
           tipSource,
-          managerId: isNewManager ? null : managerChoice,
-          managerName: isNewManager ? managerName : undefined,
-          agency: isNewManager ? agency : undefined,
+          managerId: null,
+          managerName,
+          agency,
           schemeId: null,
           suburb,
           lotCount,
@@ -1218,7 +1215,7 @@ function ReportWin({ data, refresh }) {
 
       await refresh();
       setTipSource("");
-      setManagerChoice("__new__"); setManagerName(""); setAgency("");
+      setManagerName(""); setAgency("");
       setSuburb(""); setLotCount(""); setSchemeName("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
       setTradieBusiness("");
@@ -1257,23 +1254,11 @@ function ReportWin({ data, refresh }) {
               ))}
             </select>
           </div>
-          {sortedManagers.length > 0 && (
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">The Strata Manager who signed the deal</label>
-              <select value={managerChoice} onChange={(e) => setManagerChoice(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
-                <option value="__new__">+ Add new manager…</option>
-                {sortedManagers.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}{m.agency ? ` · ${m.agency}` : ""}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          {managerChoice === "__new__" && (
-          <div className={sortedManagers.length > 0 ? "pl-3 border-l-2 border-slate-200 space-y-4" : "space-y-4"}>
+          <div className="space-y-4">
+            <p className="text-sm font-medium text-slate-700">The Strata Manager who signed the deal</p>
             <div><label className={labelClass("managerName")}>Their name —</label><input value={managerName} onChange={(e) => setManagerName(e.target.value)} className={inputClass("managerName")} /></div>
             <div><label className={labelClass("agency")}>Strata Company</label><input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputClass("agency")} /></div>
           </div>
-          )}
         </>
       )}
 

@@ -357,6 +357,23 @@ function ManagerPhotoManager({ data, refresh }) {
     }
   };
 
+  const mergeManager = async (fromManager, toId) => {
+    if (!toId) return;
+    const toManager = (data.managers || []).find((m) => m.id === toId);
+    if (!toManager) return;
+    if (!window.confirm(`Merge "${fromManager.name}" into "${toManager.name}"? All their wins move to ${toManager.name} and "${fromManager.name}" is deleted. This can't be undone.`)) return;
+    setBusyId(fromManager.id);
+    setError(null);
+    try {
+      await api(`/api/managers/${fromManager.id}/merge-into/${toId}`, { method: "POST" });
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const sorted = [...(data.managers || [])].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
@@ -364,6 +381,8 @@ function ManagerPhotoManager({ data, refresh }) {
       <h2 className="font-serif text-2xl">Manager Photos</h2>
       <p className="text-sm text-slate-500 mt-1 mb-4">
         Upload a photo and LinkedIn link for each manager — shown in a popup when their name is clicked on Rankings and Recent wins.
+        The public tip-off form no longer lets people pick an existing manager, so the same person can land here twice under slightly
+        different spellings — use "Merge into…" below to combine duplicates and keep their points on one profile.
       </p>
       {error && <div className="mb-3 bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
       <div className="border border-slate-200 rounded-lg overflow-hidden max-w-lg">
@@ -373,10 +392,12 @@ function ManagerPhotoManager({ data, refresh }) {
             key={m.id}
             manager={m}
             busy={busyId === m.id}
+            otherManagers={sorted.filter((o) => o.id !== m.id)}
             onUploadPhoto={uploadPhoto}
             onRemovePhoto={removePhoto}
             onSaveLinkedIn={saveLinkedIn}
             onDelete={deleteManager}
+            onMerge={mergeManager}
           />
         ))}
       </div>
@@ -384,8 +405,9 @@ function ManagerPhotoManager({ data, refresh }) {
   );
 }
 
-function ManagerPhotoRow({ manager, busy, onUploadPhoto, onRemovePhoto, onSaveLinkedIn, onDelete }) {
+function ManagerPhotoRow({ manager, busy, otherManagers, onUploadPhoto, onRemovePhoto, onSaveLinkedIn, onDelete, onMerge }) {
   const [linkedin, setLinkedin] = useState(manager.linkedinUrl || "");
+  const [mergeTarget, setMergeTarget] = useState("");
 
   return (
     <div className="p-3 border-b last:border-b-0 border-slate-200 space-y-2">
@@ -435,6 +457,28 @@ function ManagerPhotoRow({ manager, busy, onUploadPhoto, onRemovePhoto, onSaveLi
           {busy ? "Saving…" : "Save"}
         </button>
       </div>
+      {otherManagers && otherManagers.length > 0 && (
+        <div className="flex items-center gap-2 pl-16">
+          <select
+            value={mergeTarget}
+            onChange={(e) => setMergeTarget(e.target.value)}
+            disabled={busy}
+            className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs bg-white"
+          >
+            <option value="">Merge into…</option>
+            {otherManagers.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}{o.agency ? ` · ${o.agency}` : ""}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => onMerge(manager, mergeTarget)}
+            disabled={busy || !mergeTarget}
+            className="text-xs text-amber-700 font-semibold hover:underline shrink-0 disabled:opacity-40 disabled:no-underline"
+          >
+            {busy ? "Merging…" : "Merge"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
