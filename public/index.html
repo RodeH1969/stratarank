@@ -1101,14 +1101,13 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
 }
 
 function ReportWin({ data, refresh }) {
+  const [tipSource, setTipSource] = useState("");
   const [managerChoice, setManagerChoice] = useState("__new__");
   const [managerName, setManagerName] = useState("");
   const [agency, setAgency] = useState("");
   const [managerPhotoData, setManagerPhotoData] = useState("");
   const [managerPhotoFileName, setManagerPhotoFileName] = useState("");
   const [suburb, setSuburb] = useState("");
-  const [planType, setPlanType] = useState("BFP");
-  const [module, setModule] = useState("");
   const [lotCount, setLotCount] = useState("");
   const [schemeName, setSchemeName] = useState("");
   const [winType, setWinType] = useState("");
@@ -1133,6 +1132,7 @@ function ReportWin({ data, refresh }) {
   const stepValidators = [
     () => {
       const errs = {};
+      if (!tipSource) errs.tipSource = true;
       if (isNewManager && !managerName.trim()) errs.managerName = true;
       if (isNewManager && !agency.trim()) errs.agency = true;
       return errs;
@@ -1140,7 +1140,6 @@ function ReportWin({ data, refresh }) {
     () => {
       const errs = {};
       if (!suburb.trim()) errs.suburb = true;
-      if (!module.trim()) errs.module = true;
       if (!lotCount) errs.lotCount = true;
       if (!schemeName.trim()) errs.schemeName = true;
       return errs;
@@ -1178,10 +1177,10 @@ function ReportWin({ data, refresh }) {
 
   const submit = async () => {
     const errs = {};
+    if (!tipSource) errs.tipSource = true;
     if (isNewManager && !managerName.trim()) errs.managerName = true;
     if (isNewManager && !agency.trim()) errs.agency = true;
     if (!suburb.trim()) errs.suburb = true;
-    if (!module.trim()) errs.module = true;
     if (!lotCount) errs.lotCount = true;
     if (!schemeName.trim()) errs.schemeName = true;
     if (!winType) errs.winType = true;
@@ -1202,14 +1201,13 @@ function ReportWin({ data, refresh }) {
       const result = await api("/api/events", {
         method: "POST",
         body: JSON.stringify({
+          tipSource,
           managerId: isNewManager ? null : managerChoice,
           managerName: isNewManager ? managerName : undefined,
           agency: isNewManager ? agency : undefined,
           managerPhotoUrl: isNewManager ? managerPhotoData || undefined : undefined,
           schemeId: null,
           suburb,
-          planType,
-          module,
           lotCount,
           schemeName,
           type: winType,
@@ -1222,8 +1220,9 @@ function ReportWin({ data, refresh }) {
       });
 
       await refresh();
+      setTipSource("");
       setManagerChoice("__new__"); setManagerName(""); setAgency(""); setManagerPhotoData(""); setManagerPhotoFileName("");
-      setSuburb(""); setModule(""); setLotCount(""); setSchemeName("");
+      setSuburb(""); setLotCount(""); setSchemeName("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
       setTradieBusiness("");
       setStep(0);
@@ -1252,6 +1251,15 @@ function ReportWin({ data, refresh }) {
 
       {step === 0 && (
         <>
+          <div>
+            <label className={labelClass("tipSource")}>What's your angle on this scoop?</label>
+            <select value={tipSource} onChange={(e) => setTipSource(e.target.value)} className={selectClass("tipSource")}>
+              <option value="">Select…</option>
+              {Object.entries(TIP_SOURCES).map(([key, entry]) => (
+                <option key={key} value={key}>{entry.label}</option>
+              ))}
+            </select>
+          </div>
           {sortedManagers.length > 0 && (
             <div>
               <label className="block text-sm text-slate-600 mb-1">The legend Strata Manager who signed the deal</label>
@@ -1302,22 +1310,6 @@ function ReportWin({ data, refresh }) {
       {step === 1 && (
         <div className="space-y-4">
           <div><label className={labelClass("suburb")}>Suburb (where the scheme is located)</label><input value={suburb} onChange={(e) => setSuburb(e.target.value)} placeholder="e.g. New Farm" className={inputClass("suburb")} /></div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Scheme type</label>
-            <select value={planType} onChange={(e) => setPlanType(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white">
-              <option value="BFP">BFP</option>
-              <option value="SFP">SFP</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelClass("module")}>Module</label>
-            <select value={module} onChange={(e) => setModule(e.target.value)} className={selectClass("module")}>
-              <option value="">Select…</option>
-              {BCCM_MODULES.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
           <div><label className={labelClass("lotCount")}>Number of lots</label><input type="number" min="1" value={lotCount} onChange={(e) => setLotCount(e.target.value)} className={inputClass("lotCount")} /></div>
           <div>
             <label className={labelClass("schemeName") + " flex items-center"}>

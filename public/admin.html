@@ -953,7 +953,15 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
   const contractors = (sponsorInvites || []).filter((inv) => inv.eventId === ev.id && inv.status === "accepted" && inv.logoUrl);
   const agencyNames = [...new Set(Object.values(agencyLogos || {}).map((v) => v.name))].sort((a, b) => a.localeCompare(b));
 
+  // Public tip-offs no longer collect scheme type / module — admin must
+  // fill those in (via Edit) before a win can go live.
+  const missingSchemeDetails = approved => approved && (!scheme?.planType || !scheme?.module);
+
   const setApproved = async (approved) => {
+    if (missingSchemeDetails(approved)) {
+      setReviewError("Add scheme type & module (Edit) before approving.");
+      return;
+    }
     setReviewBusy(true);
     setReviewError(null);
     try {
@@ -1132,8 +1140,13 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
               {reviewBusy ? "Working…" : "Unapprove"}
             </button>
           ) : (
-            <button onClick={() => setApproved(true)} disabled={reviewBusy} className="text-xs text-teal-700 font-medium hover:underline">
-              {reviewBusy ? "Working…" : "Approve"}
+            <button
+              onClick={() => setApproved(true)}
+              disabled={reviewBusy}
+              title={missingSchemeDetails(true) ? "Add scheme type & module (Edit) first" : undefined}
+              className={`text-xs font-medium hover:underline ${missingSchemeDetails(true) ? "text-amber-600" : "text-teal-700"}`}
+            >
+              {reviewBusy ? "Working…" : missingSchemeDetails(true) ? "Approve (needs scheme type/module)" : "Approve"}
             </button>
           )}
           <label className="text-xs text-slate-500 hover:underline cursor-pointer">

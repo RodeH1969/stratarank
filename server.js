@@ -288,7 +288,7 @@ app.post('/api/events', async (req, res) => {
       managerId, managerName, agency, managerPhotoUrl,
       schemeId, suburb, planType, module, lotCount, schemeName, cts,
       type, newTerm, prevTerm, date,
-      source, businessName, contactName,
+      source, businessName, contactName, tipSource,
     } = req.body;
 
     if (source === 'public') {
@@ -296,10 +296,10 @@ app.post('/api/events', async (req, res) => {
       if (!managerId && (!managerName || !managerName.trim())) missing.push('managerName');
       if (!managerId && (!agency || !agency.trim())) missing.push('agency');
       if (!schemeId && (!suburb || !suburb.trim())) missing.push('suburb');
-      if (!schemeId && (!module || !module.trim())) missing.push('module');
       if (!schemeId && !lotCount) missing.push('lotCount');
       if (!schemeId && (!schemeName || !schemeName.trim())) missing.push('schemeName');
       if (!businessName || !businessName.trim()) missing.push('businessName');
+      if (!tipSource || !['body_corporate', 'strata_company', 'tradie'].includes(tipSource)) missing.push('tipSource');
       if (missing.length > 0) {
         return res.status(400).json({ error: 'All fields are required.', missingFields: missing });
       }
@@ -327,15 +327,17 @@ app.post('/api/events', async (req, res) => {
       if (error) return res.status(400).json({ error: 'scheme not found' });
       scheme = data;
     } else {
-      if (!suburb || !suburb.trim() || !module || !module.trim() || !lotCount) {
-        return res.status(400).json({ error: 'suburb, module, and lotCount are required for a new scheme' });
+      if (!suburb || !suburb.trim() || !lotCount) {
+        return res.status(400).json({ error: 'suburb and lotCount are required for a new scheme' });
       }
       const { data, error } = await supabase
         .from('strata_schemes')
         .insert({
           suburb: suburb.trim(),
-          plan_type: planType || 'BFP',
-          module: module.trim(),
+          // Scheme type & module are no longer collected on the public tip-off
+          // form — admin fills these in before approving (see schema.sql note).
+          plan_type: (planType || '').trim() || null,
+          module: (module || '').trim() || null,
           lot_count: Number(lotCount),
           scheme_name: (schemeName || '').trim() || null,
           cts: (cts || '').trim() || null,
@@ -361,6 +363,7 @@ app.post('/api/events', async (req, res) => {
     }
 
     const points = computePoints(evType, term, prev);
+    const validTipSource = ['body_corporate', 'strata_company', 'tradie'].includes(tipSource) ? tipSource : null;
 
     const { data: event, error: eventError } = await supabase
       .from('strata_events')
@@ -372,6 +375,7 @@ app.post('/api/events', async (req, res) => {
         prev_term: prev,
         points,
         date: date || new Date().toISOString().slice(0, 10),
+        tip_source: validTipSource,
       })
       .select()
       .single();
