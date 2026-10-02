@@ -17,8 +17,8 @@ create table if not exists strata_managers (
 create table if not exists strata_schemes (
   id uuid primary key default gen_random_uuid(),
   suburb text not null,
-  plan_type text not null,       -- 'BFP' or 'SFP'
-  module text not null,          -- industry-known scheme identifier
+  plan_type text,                -- 'BFP' or 'SFP' — admin fills in before approval
+  module text,                   -- industry-known scheme identifier — admin fills in before approval
   lot_count int not null,
   scheme_name text,              -- PRIVATE — verification only, never sent to the public site
   cts text,                      -- PRIVATE — Community Titles Scheme number, verification only
@@ -115,6 +115,12 @@ alter table strata_sponsor_invites add column if not exists icon_url text;
 alter table strata_agency_logos add column if not exists website_url text;
 alter table strata_managers add column if not exists photo_url text;
 alter table strata_managers add column if not exists linkedin_url text;
+
+-- The public Scoop form stopped collecting scheme type & module a
+-- while back (admin fills these in before approving), so the columns
+-- can no longer be required at insert time.
+alter table strata_schemes alter column plan_type drop not null;
+alter table strata_schemes alter column module drop not null;
 
 -- Fix for installs that ran this file before the cascade rule existed:
 -- deleting a win should also delete any contractor attached to it,
