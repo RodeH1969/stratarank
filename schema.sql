@@ -148,3 +148,7 @@ create table if not exists strata_quiz_entries (
   unique (quiz_date, name, company)
 );
 create index if not exists idx_quiz_entries_date on strata_quiz_entries(quiz_date, is_correct, elapsed_seconds);
+
+-- Admin attaches a photo to a top finisher by hand (behind the scenes —
+-- not shown on the public quiz tab).
+alter table strata_quiz_entries add column if not exists photo_url text;

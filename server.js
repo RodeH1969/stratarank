@@ -752,5 +752,50 @@ app.get('/api/quiz/leaderboard', async (req, res) => {
   });
 });
 
+// Admin: every entry for a day (correct and incorrect alike) — so Rod can
+// see who actually played, not just who's on the public leaderboard, and
+// attach a photo to a top finisher by hand. Includes that day's question
+// for context, since the question bank itself isn't visible from the UI.
+app.get('/api/admin/quiz', async (req, res) => {
+  const quizDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : brisbaneDateStr();
+  const q = questionForDate(quizDate);
+  const { data, error } = await supabase
+    .from('strata_quiz_entries')
+    .select('*')
+    .eq('quiz_date', quizDate)
+    .order('is_correct', { ascending: false })
+    .order('elapsed_seconds', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({
+    quizDate,
+    question: q ? { id: q.id, section: q.section, question: q.question, correctOption: q.correctOption } : null,
+    entries: data.map((e) => ({
+      id: e.id,
+      name: e.name,
+      role: e.role || '',
+      company: e.company,
+      selectedOption: e.selected_option,
+      isCorrect: e.is_correct,
+      elapsedSeconds: e.elapsed_seconds,
+      photoUrl: e.photo_url || '',
+      submittedAt: e.submitted_at,
+    })),
+  });
+});
+
+// Admin: attach (or clear) a photo on a quiz entry — behind the scenes
+// only, never shown on the public quiz tab.
+app.patch('/api/admin/quiz/:id', async (req, res) => {
+  const { photoUrl } = req.body;
+  const { data, error } = await supabase
+    .from('strata_quiz_entries')
+    .update({ photo_url: photoUrl || null })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ id: data.id, photoUrl: data.photo_url || '' });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`QLD Strata Rankings running on port ${PORT}`));
