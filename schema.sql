@@ -128,3 +128,23 @@ alter table strata_schemes alter column module drop not null;
 alter table strata_sponsor_invites drop constraint if exists strata_sponsor_invites_event_id_fkey;
 alter table strata_sponsor_invites add constraint strata_sponsor_invites_event_id_fkey
   foreign key (event_id) references strata_events(id) on delete cascade;
+
+-- Daily strata quiz. One row per answer submitted. The question bank
+-- itself lives as a static file (public/Quiz Questions/questions.json),
+-- not in the database — this table only records who answered what and
+-- how fast. One entry per person per day (same name + company on the
+-- same quiz_date is rejected as a duplicate play).
+create table if not exists strata_quiz_entries (
+  id uuid primary key default gen_random_uuid(),
+  quiz_date date not null,
+  question_id int not null,
+  name text not null,
+  role text,
+  company text not null,
+  selected_option text not null,
+  is_correct boolean not null,
+  elapsed_seconds int not null,
+  submitted_at timestamptz default now(),
+  unique (quiz_date, name, company)
+);
+create index if not exists idx_quiz_entries_date on strata_quiz_entries(quiz_date, is_correct, elapsed_seconds);
