@@ -6,6 +6,21 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(express.json({ limit: '5mb' })); // logo uploads come through as base64 data URLs
+
+// The quiz question bank lives in public/Quiz Questions/ so Rod can find
+// and edit it like any other site file, but it holds the correct answers
+// — never serve it as a static file, or anyone could view-source today's
+// answer before playing. Only the /api/quiz/* routes below read it.
+app.use((req, res, next) => {
+  let decoded;
+  try {
+    decoded = decodeURIComponent(req.path);
+  } catch {
+    return res.status(400).end();
+  }
+  if (decoded.startsWith('/Quiz Questions/')) return res.status(404).end();
+  next();
+});
 app.use(express.static('public'));
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -630,6 +645,111 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
   const { error } = await supabase.from('strata_sponsor_invites').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ deleted: true });
+});
+
+// --- daily strata quiz ---------------------------------------------------
+//
+// A hook to get people checking the site daily, and into the habit of
+// coming back — from there they're one tap from The Scoop. One multiple-
+// choice question a day, pulled in rotation from the 100-question bank in
+// public/Quiz Questions/questions.json. Anyone can play; they just have
+// to say who they are and what strata company they're with (honour
+// system — not verified against anything). Ranked by how fast they
+// answered correctly, timed from when that day's question went live
+// (Brisbane midnight) to when the server received their answer.
+
+const QUIZ_QUESTIONS_PATH = path.join(__dirname, 'public', 'Quiz Questions', 'questions.json');
+let QUIZ_QUESTIONS = [];
+try {
+  QUIZ_QUESTIONS = JSON.parse(fs.readFileSync(QUIZ_QUESTIONS_PATH, 'utf8'));
+} catch (err) {
+  console.error('Could not load quiz questions from', QUIZ_QUESTIONS_PATH, err.message);
+}
+
+// Queensland doesn't observe daylight saving, so Brisbane is always a
+// fixed UTC+10 — no timezone-DB lookup needed.
+function brisbaneDateStr(d = new Date()) {
+  return new Date(d.getTime() + 10 * 3600 * 1000).toISOString().slice(0, 10);
+}
+function brisbaneDayStart(dateStr) {
+  return new Date(`${dateStr}T00:00:00+10:00`);
+}
+const QUIZ_EPOCH = '2026-10-05'; // day 0 — first question in the bank
+function questionForDate(dateStr) {
+  if (QUIZ_QUESTIONS.length === 0) return null;
+  const daysSince = Math.floor((brisbaneDayStart(dateStr) - brisbaneDayStart(QUIZ_EPOCH)) / 86400000);
+  const idx = ((daysSince % QUIZ_QUESTIONS.length) + QUIZ_QUESTIONS.length) % QUIZ_QUESTIONS.length;
+  return QUIZ_QUESTIONS[idx];
+}
+
+// Today's question — never includes the correct answer.
+app.get('/api/quiz/today', (req, res) => {
+  const quizDate = brisbaneDateStr();
+  const q = questionForDate(quizDate);
+  if (!q) return res.status(500).json({ error: 'No quiz questions loaded.' });
+  res.json({
+    quizDate,
+    questionId: q.id,
+    section: q.section,
+    question: q.question,
+    options: q.options,
+    postedAt: brisbaneDayStart(quizDate).toISOString(),
+  });
+});
+
+// Submit today's answer. Correctness and elapsed time are both computed
+// here, server-side, from the question bank and the server clock — never
+// trust a client-supplied answer or timestamp for either.
+app.post('/api/quiz/answer', async (req, res) => {
+  const { name, role, company, selectedOption } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required.' });
+  if (!company || !company.trim()) return res.status(400).json({ error: 'Strata company is required.' });
+  if (!['A', 'B', 'C', 'D'].includes(selectedOption)) return res.status(400).json({ error: 'Pick an answer.' });
+
+  const quizDate = brisbaneDateStr();
+  const q = questionForDate(quizDate);
+  if (!q) return res.status(500).json({ error: 'No quiz questions loaded.' });
+
+  const postedAt = brisbaneDayStart(quizDate);
+  const now = new Date();
+  const elapsedSeconds = Math.max(0, Math.round((now - postedAt) / 1000));
+  const isCorrect = selectedOption === q.correctOption;
+
+  const { error } = await supabase.from('strata_quiz_entries').insert({
+    quiz_date: quizDate,
+    question_id: q.id,
+    name: name.trim(),
+    role: (role || '').trim() || null,
+    company: company.trim(),
+    selected_option: selectedOption,
+    is_correct: isCorrect,
+    elapsed_seconds: elapsedSeconds,
+  });
+  if (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: "Looks like you've already played today's quiz." });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ quizDate, isCorrect, correctOption: q.correctOption, elapsedSeconds });
+});
+
+// Today's (or a given day's) correct answers, fastest first.
+app.get('/api/quiz/leaderboard', async (req, res) => {
+  const quizDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : brisbaneDateStr();
+  const { data, error } = await supabase
+    .from('strata_quiz_entries')
+    .select('name, role, company, elapsed_seconds')
+    .eq('quiz_date', quizDate)
+    .eq('is_correct', true)
+    .order('elapsed_seconds', { ascending: true })
+    .limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({
+    quizDate,
+    entries: data.map((e) => ({ name: e.name, role: e.role, company: e.company, elapsedSeconds: e.elapsed_seconds })),
+  });
 });
 
 const PORT = process.env.PORT || 3000;

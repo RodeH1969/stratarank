@@ -141,6 +141,12 @@ const daysUntilLabel = (ms) => {
   return `${days} day${days === 1 ? "" : "s"} left this season`;
 };
 
+const elapsedLabel = (seconds) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+};
+
 // Monthly cycle — calendar month on Brisbane local time.
 const monthKeyOf = (dateStr) => dateStr.slice(0, 7); // "YYYY-MM"
 const monthLabel = (monthKey) => {
@@ -567,6 +573,7 @@ function App() {
               { id: "dotm", label: "Win of the Month", shortLabel: "Win of Month" },
               { id: "log", label: "Every Win", shortLabel: "Every Win" },
               { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
+              { id: "quiz", label: "🧠 Daily Quiz", shortLabel: "🧠 Quiz" },
               { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
             ].map(({ id, label, shortLabel }) => (
               <button
@@ -600,6 +607,8 @@ function App() {
           <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
         ) : tab === "season" ? (
           <SeasonLeaderboard standings={seasonStandings} agencyLogos={data.agencyLogos} sponsors={data.sponsors} previousRankMap={previousRankMap} seasonYear={data.seasonYear} />
+        ) : tab === "quiz" ? (
+          <DailyQuiz />
         ) : (
           <ReportWin data={data} refresh={refresh} />
         )}
@@ -1127,6 +1136,203 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function DailyQuiz() {
+  const [quiz, setQuiz] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("");
+  const [company, setCompany] = useState("");
+  const [selectedOption, setSelectedOption] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [result, setResult] = useState(null);
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [leaderboardError, setLeaderboardError] = useState(null);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const q = await api("/api/quiz/today");
+        if (cancelled) return;
+        setQuiz(q);
+        try {
+          const cached = localStorage.getItem(`quizResult_${q.quizDate}`);
+          if (cached) setResult(JSON.parse(cached));
+        } catch {}
+      } catch (e) {
+        if (!cancelled) setLoadError(e.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (result) return; // stop the clock once answered
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [result, quiz]);
+
+  useEffect(() => {
+    if (!quiz) return;
+    (async () => {
+      try {
+        const lb = await api(`/api/quiz/leaderboard?date=${quiz.quizDate}`);
+        setLeaderboard(lb.entries);
+      } catch (e) {
+        setLeaderboardError(e.message);
+      }
+    })();
+  }, [quiz, result]);
+
+  const submit = async () => {
+    const errs = {};
+    if (!name.trim()) errs.name = true;
+    if (!company.trim()) errs.company = true;
+    if (!selectedOption) errs.selectedOption = true;
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      setSubmitError("Please fill in the fields marked in red.");
+      return;
+    }
+    setFieldErrors({});
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const r = await api("/api/quiz/answer", {
+        method: "POST",
+        body: JSON.stringify({ name: name.trim(), role: role.trim(), company: company.trim(), selectedOption }),
+      });
+      setResult(r);
+      try { localStorage.setItem(`quizResult_${r.quizDate}`, JSON.stringify(r)); } catch {}
+    } catch (e) {
+      setSubmitError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loadError) {
+    return <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">Couldn't load today's quiz: {loadError}</div>;
+  }
+  if (!quiz) {
+    return <div className="text-center text-slate-400 py-16">Loading today's quiz…</div>;
+  }
+
+  const liveElapsed = Math.max(0, Math.round((now - new Date(quiz.postedAt).getTime()) / 1000));
+
+  return (
+    <div className="max-w-lg space-y-5">
+      <div className="text-center">
+        <h2 className="font-serif text-2xl mb-1">🧠 Daily Strata Quiz</h2>
+        <p className="text-sm text-slate-500">One question a day. Fastest correct answer tops the board.</p>
+      </div>
+
+      {!result && (
+        <p className="text-center text-xs font-bold text-rose-600">⏱ {elapsedLabel(liveElapsed)} and counting — answer fast!</p>
+      )}
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-2">{quiz.section}</p>
+        <p className="font-serif text-lg sm:text-xl text-slate-900 mb-4">{quiz.question}</p>
+
+        {result ? (
+          <div className="space-y-4">
+            <div className={`rounded-xl p-4 text-center border-2 ${result.isCorrect ? "bg-teal-50 border-teal-300" : "bg-rose-50 border-rose-300"}`}>
+              <p className={`font-serif text-xl font-bold ${result.isCorrect ? "text-teal-900" : "text-rose-900"}`}>
+                {result.isCorrect ? "Correct! 🎉" : "Not quite."}
+              </p>
+              {!result.isCorrect && (
+                <p className="text-sm text-slate-700 mt-1">Correct answer: <span className="font-bold">{result.correctOption}.</span> {quiz.options[result.correctOption]}</p>
+              )}
+              <p className="text-sm text-slate-600 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2 mb-5">
+              {Object.entries(quiz.options).map(([key, text]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSelectedOption(key)}
+                  style={{
+                    background: selectedOption === key ? "#fef3c7" : "#ffffff",
+                    border: `2px solid ${selectedOption === key ? "#d97706" : fieldErrors.selectedOption ? "#fb7185" : "#e2e8f0"}`,
+                  }}
+                  className="flex items-start gap-3 w-full rounded-xl px-3.5 py-3 text-left"
+                >
+                  <span
+                    style={{ background: selectedOption === key ? "#d97706" : "#f1f5f9", color: selectedOption === key ? "#fff" : "#475569" }}
+                    className="w-6 h-6 rounded-full text-xs font-extrabold flex items-center justify-center shrink-0 mt-0.5"
+                  >
+                    {key}
+                  </span>
+                  <span className="text-sm text-slate-800">{text}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-3 border-t border-slate-100 pt-4">
+              <p className="text-sm font-semibold text-slate-900">Who's answering?</p>
+              <div>
+                <label className={`block text-sm mb-1 ${fieldErrors.name ? "text-rose-600 font-medium" : "text-slate-600"}`}>Name</label>
+                <input value={name} onChange={(e) => setName(e.target.value)} className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.name ? "border-rose-400" : "border-slate-300"}`} />
+              </div>
+              <div>
+                <label className="block text-sm mb-1 text-slate-600">Role</label>
+                <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Strata Manager" className="w-full rounded px-3 py-2 text-base sm:text-sm border border-slate-300" />
+              </div>
+              <div>
+                <label className={`block text-sm mb-1 ${fieldErrors.company ? "text-rose-600 font-medium" : "text-slate-600"}`}>Strata company</label>
+                <input value={company} onChange={(e) => setCompany(e.target.value)} className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.company ? "border-rose-400" : "border-slate-300"}`} />
+              </div>
+            </div>
+
+            {submitError && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700 mt-4">{submitError}</div>}
+
+            <button
+              onClick={submit}
+              disabled={submitting}
+              className="gold-pulse-ring mt-4 w-full bg-amber-500 text-slate-900 font-bold px-5 py-3 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50"
+            >
+              {submitting ? "Sending…" : "Submit Answer"}
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
+        <p className="text-sm font-bold text-slate-900 mb-3 text-center">🏆 Today's Fastest</p>
+        {leaderboardError ? (
+          <p className="text-sm text-rose-500 text-center">Couldn't load the leaderboard right now.</p>
+        ) : !leaderboard ? (
+          <p className="text-sm text-slate-400 text-center">Loading…</p>
+        ) : leaderboard.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center">No correct answers yet today — be the first!</p>
+        ) : (
+          <div className="space-y-2">
+            {leaderboard.map((e, i) => (
+              <div key={i} className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg ${i === 0 ? "bg-amber-50" : ""}`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-bold text-slate-400 w-5 shrink-0">{i + 1}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">{e.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{[e.role, e.company].filter(Boolean).join(" · ")}</p>
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-amber-700 shrink-0">{elapsedLabel(e.elapsedSeconds)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
