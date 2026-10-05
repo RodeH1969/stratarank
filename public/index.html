@@ -1246,6 +1246,48 @@ function Stopwatch({ seconds, running, label }) {
   );
 }
 
+const DRILL_DAYS_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DRILL_DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DRILL_MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DRILL_MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// drillDate is a plain "YYYY-MM-DD" Brisbane date; read it as UTC so no timezone shifts the day.
+const drillDateParts = (dateStr) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return { dow, d, m: m - 1 };
+};
+
+function DrillShareButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const full = `${text}\n${window.location.origin}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: full });
+        return;
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(full);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this to share:", full);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={share}
+      className="mt-4 w-full bg-teal-600 hover:bg-teal-700 text-white font-extrabold uppercase tracking-wide py-3 rounded-lg text-sm"
+    >
+      {copied ? "Copied! ✓" : "📤 Share your time"}
+    </button>
+  );
+}
+
 function DrillInfoButton() {
   const [open, setOpen] = useState(false);
   return (
@@ -1394,13 +1436,32 @@ function DailyDrill() {
     return <div className="text-center text-slate-900 py-16">Loading today's drill…</div>;
   }
 
+  const dp = drillDateParts(drill.drillDate);
+  const isWeekend = dp.dow === 0 || dp.dow === 6;
+  const shareText = `🧠 Strata Daily Drill\n📅 ${DRILL_DAYS_SHORT[dp.dow]} ${dp.d} ${DRILL_MONTHS_SHORT[dp.m]}\n⏱ Answered in ${result ? elapsedLabel(result.elapsedSeconds) : ""}\nThink you can beat me?`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
       <div className="text-center">
         <h2 className="font-serif text-2xl mb-1">🧠 Strata Daily Drill</h2>
-        <p className="text-sm text-slate-900">One real-world task every day at 9am (Brisbane time)</p>
+        <p className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">
+          {DRILL_DAYS_LONG[dp.dow]} {dp.d} {DRILL_MONTHS_LONG[dp.m]}
+        </p>
+        <div className="flex items-center justify-center gap-1.5 mt-3">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <span
+              key={n}
+              title={DRILL_DAYS_LONG[n]}
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-extrabold border-2 ${
+                dp.dow === n ? "bg-amber-400 border-slate-900 text-slate-900 shadow-md" : "bg-slate-900 border-slate-900 text-stone-200"
+              }`}
+            >
+              {DRILL_DAYS_SHORT[n][0]}
+            </span>
+          ))}
+        </div>
+        <p className="text-sm font-extrabold uppercase tracking-wide text-slate-900 mt-2">Runs Monday to Friday · new task 9am Brisbane time</p>
       </div>
 
       <DrillInfoButton />
@@ -1412,18 +1473,19 @@ function DailyDrill() {
         <span className="font-extrabold text-sm sm:text-base text-slate-900">$20 voucher!</span>
       </div>
 
-      <Stopwatch seconds={result ? result.elapsedSeconds : liveElapsed} running={!result && !drill.locked} label={drill.locked ? "Starts at 9am" : null} />
+      <Stopwatch seconds={result ? result.elapsedSeconds : liveElapsed} running={!result && !drill.locked} label={drill.locked ? (isWeekend ? "Back Monday" : "Starts at 9am") : null} />
 
       {drill.locked ? (
         <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
-          <p className="font-serif text-xl font-bold text-slate-900">Today's task goes live at 9am</p>
-          <p className="text-base text-slate-900 mt-2">Come back then — the clock starts at 9:00am sharp.</p>
+          <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "The Drill is back Monday at 9am" : "Today's task goes live at 9am"}</p>
+          <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday — see you then." : "Come back then — the clock starts at 9:00am sharp."}</p>
         </div>
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
           <p className="text-sm text-slate-900 mt-2">Your answer is in — Rod judges answers by hand, so check the board below in a bit to see if you made the cut.</p>
           <p className="text-sm text-slate-900 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
+          <DrillShareButton text={shareText} />
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
