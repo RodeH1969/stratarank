@@ -1460,34 +1460,63 @@ function DailyDrill() {
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
-        <p className="text-sm font-bold text-slate-900 mb-3 text-center">🏆 Today's Winners</p>
+        <p className="font-serif text-xl font-bold text-slate-900 mb-3 text-center">🏆 Today's Winners</p>
         {winnersError ? (
-          <p className="text-sm text-rose-500 text-center">Couldn't load the board right now.</p>
+          <p className="text-sm text-rose-600 text-center">Couldn't load the board right now.</p>
         ) : !winners ? (
           <p className="text-sm text-slate-900 text-center">Loading…</p>
         ) : winners.length === 0 ? (
           <p className="text-sm text-slate-900 text-center">No submissions marked correct yet today — check back soon.</p>
         ) : (
-          <div className="space-y-2">
-            {winners.map((e, i) => (
-              <div key={i} className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg ${i === 0 ? "bg-amber-50" : ""}`}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-bold text-slate-900 w-5 shrink-0">{i + 1}</span>
-                  {i < 5 && (e.photoUrl || e.logoUrl) && (
-                    <span className="flex items-center -space-x-1 shrink-0">
-                      {e.photoUrl && <img src={e.photoUrl} alt={e.name} className="w-8 h-8 rounded-full object-cover border-2 border-white shadow" />}
-                      {e.logoUrl && <img src={e.logoUrl} alt={e.company} className="w-8 h-8 rounded object-cover border-2 border-white shadow" />}
-                    </span>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">{e.name}</p>
-                    <p className="text-xs text-slate-800 truncate">{[e.role, e.company].filter(Boolean).join(" · ")}</p>
+          <>
+            <div className="space-y-3">
+              {winners.slice(0, 5).map((e, i) => {
+                const medal = ["🥇", "🥈", "🥉"][i] || null;
+                const initials = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 border-2 shadow-sm ${
+                      i === 0 ? "bg-gradient-to-br from-amber-100 to-amber-200 border-amber-500" : i < 3 ? "bg-amber-50 border-amber-300" : "bg-stone-50 border-amber-200"
+                    }`}
+                  >
+                    <span className="w-8 text-center text-2xl shrink-0 font-extrabold text-amber-800">{medal || i + 1}</span>
+                    {e.photoUrl ? (
+                      <img src={e.photoUrl} alt={e.name} className="w-14 h-14 rounded-full object-cover border-2 border-white shadow shrink-0" />
+                    ) : (
+                      <span className="w-14 h-14 rounded-full bg-amber-500 text-white font-extrabold text-lg flex items-center justify-center border-2 border-white shadow shrink-0">{initials}</span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-extrabold text-slate-900 truncate">{e.name}</p>
+                      <p className="text-sm text-slate-900 truncate">{[e.role, e.company].filter(Boolean).join(" · ")}</p>
+                      <p className="text-sm font-extrabold text-amber-800">{elapsedLabel(e.elapsedSeconds)}</p>
+                    </div>
+                    {e.logoUrl && <img src={e.logoUrl} alt={e.company} className="h-12 max-w-[5rem] object-contain shrink-0" />}
                   </div>
+                );
+              })}
+            </div>
+
+            {winners.length > 5 && (
+              <div className="mt-5">
+                <p className="text-sm font-bold text-slate-900 mb-2">Also got it right</p>
+                <div className="divide-y divide-slate-200">
+                  {winners.slice(5).map((e, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 py-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-bold text-slate-900 w-6 shrink-0">{i + 6}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">{e.name}</p>
+                          <p className="text-xs text-slate-900 truncate">{[e.role, e.company].filter(Boolean).join(" · ")}</p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-amber-800 shrink-0">{elapsedLabel(e.elapsedSeconds)}</span>
+                    </div>
+                  ))}
                 </div>
-                <span className="text-sm font-bold text-amber-700 shrink-0">{elapsedLabel(e.elapsedSeconds)}</span>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>
