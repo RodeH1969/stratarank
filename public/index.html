@@ -609,7 +609,7 @@ function App() {
               </button>
             ))}
           </nav>
-          <MetricInfoButton />
+          {tab !== "drill" && <MetricInfoButton />}
         </header>
 
         {loadError && (
