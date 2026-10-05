@@ -1526,7 +1526,7 @@ function AdminPanel({ data, refresh }) {
 
   return (
     <div>
-      <nav className="flex flex-wrap gap-1 bg-slate-900 rounded-full p-1 mb-8 w-fit">
+      <nav className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1 mb-8 sm:w-fit">
         {[
           { id: "overview", label: "Overview" },
           { id: "agencies", label: "Agency Logos" },
@@ -1539,7 +1539,7 @@ function AdminPanel({ data, refresh }) {
           <button
             key={id}
             onClick={() => setSection(id)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${section === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`}
+            className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-full text-sm font-medium text-center whitespace-nowrap transition-colors ${section === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`}
           >
             {label}
           </button>
@@ -2020,9 +2020,9 @@ function AdminApp() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-slate-900">
-      <div className="max-w-4xl mx-auto px-6 py-10">
-        <header className="border-b-2 border-slate-900 pb-5 mb-8 flex justify-between items-end">
-          <h1 className="font-serif text-4xl">Admin Dashboard</h1>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <header className="border-b-2 border-slate-900 pb-4 mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-1">
+          <h1 className="font-serif text-3xl sm:text-4xl">Admin Dashboard</h1>
           <a href="index.html" className="text-sm text-teal-700 hover:underline">View public rankings →</a>
         </header>
         {loadError && (
