@@ -570,10 +570,10 @@ function App() {
           </div>
           <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1">
             {[
+              { id: "drill", label: "🧠 Daily Drill", shortLabel: "🧠 Drill" },
               { id: "dotm", label: "Win of the Month", shortLabel: "Win of Month" },
               { id: "log", label: "Every Win", shortLabel: "Every Win" },
               { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
-              { id: "drill", label: "🧠 Daily Drill", shortLabel: "🧠 Drill" },
               { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
             ].map(({ id, label, shortLabel }) => (
               <button
