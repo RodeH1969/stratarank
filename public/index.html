@@ -66,6 +66,12 @@
   .gold-pulse-ring {
     animation: claimPulseRing 2.2s ease-out infinite;
   }
+  @keyframes redPulseRing {
+    0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.65); }
+    70%  { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  }
+  .red-pulse { animation: redPulseRing 1.6s ease-out infinite; }
   @keyframes swGlow {
     0%, 100% { filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.35)); }
     50%      { filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.75)); }
@@ -1231,6 +1237,51 @@ function Stopwatch({ seconds, running, label }) {
   );
 }
 
+function DrillInfoButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="text-center">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="red-pulse bg-red-600 hover:bg-red-700 text-white font-extrabold uppercase tracking-wide text-xs sm:text-sm px-4 py-2 rounded-full inline-flex items-center gap-2 shadow-md"
+      >
+        <span className="w-5 h-5 rounded-full bg-white text-red-600 text-xs font-black flex items-center justify-center shrink-0">?</span>
+        What's the Daily Drill?
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden text-left" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-red-600 text-white px-6 py-4 flex items-start justify-between">
+              <h3 className="font-serif text-2xl font-bold">🧠 The Daily Drill</h3>
+              <button onClick={() => setOpen(false)} aria-label="Close" className="text-white/80 hover:text-white text-2xl leading-none shrink-0 ml-3">×</button>
+            </div>
+            <div className="p-6">
+              <p className="font-serif text-xl text-slate-900 font-bold leading-snug">
+                Queensland's smartest strata managers battle it out daily — who's the smartest and the quickest?
+              </p>
+              <ul className="mt-4 space-y-2 text-base text-slate-900 font-medium">
+                <li>⏰ A fresh real-world task drops every day at 9am.</li>
+                <li>✍️ Write your answer. Hit submit. Beat the clock.</li>
+                <li>✅ Get it right and you're on the board.</li>
+                <li>⚡ Fastest correct answer wins the day.</li>
+              </ul>
+              <p className="mt-4 text-base text-slate-900 font-extrabold">Win it for the bragging rights — and a $20 Dan Murphy's voucher.</p>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="mt-5 w-full bg-red-600 hover:bg-red-700 text-white font-extrabold uppercase tracking-wide py-3 rounded-lg text-sm"
+              >
+                Let's go
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DailyDrill() {
   const [drill, setDrill] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -1339,6 +1390,8 @@ function DailyDrill() {
         <h2 className="font-serif text-2xl mb-1">🧠 Strata Daily Drill</h2>
         <p className="text-sm text-slate-900">One real-world task every day at 9am (Brisbane time), answered in writing. Fastest correct answer tops the board.</p>
       </div>
+
+      <DrillInfoButton />
 
       <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-full px-4 py-2.5 flex items-center justify-center gap-2 flex-wrap shadow-sm">
         <span className="text-base">🏆</span>
