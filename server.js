@@ -650,11 +650,11 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
 // --- strata daily drill ---------------------------------------------------
 //
 // A hook to get people checking the site daily, and into the habit of
-// coming back — from there they're one tap from The Scoop. Ten practical,
-// scenario-based tasks a day, pulled in order from the 100-task bank in
-// public/Daily Drill/tasks.json (day 1 = tasks 1-10, day 2 = tasks 11-20,
-// wrapping after 10 days). Anyone can play; they write a freeform answer
-// to each task and say who they are and what strata company they're with
+// coming back — from there they're one tap from The Scoop. One practical,
+// scenario-based task a day, pulled in order from the 100-task bank in
+// public/Daily Drill/tasks.json (day 1 = task 1, day 2 = task 2, wrapping
+// after 100 days). Anyone can play; they write a freeform answer
+// and say who they are and what strata company they're with
 // (honour system — not verified against anything).
 //
 // There's no auto-marking a freeform answer, so every submission starts
@@ -662,7 +662,7 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
 // bank's model answer and marking guide from the Daily Drill admin tab
 // and marks it correct or incorrect by hand. Only submissions marked
 // correct ever appear on the public board, ranked by how fast they
-// answered — timed from when that day's set went live (Brisbane
+// answered — timed from when that day's task went live (Brisbane
 // midnight) to when the server received their submission.
 
 const DRILL_TASKS_PATH = path.join(__dirname, 'public', 'Daily Drill', 'tasks.json');
@@ -672,7 +672,7 @@ try {
 } catch (err) {
   console.error('Could not load Daily Drill tasks from', DRILL_TASKS_PATH, err.message);
 }
-const DRILL_SET_SIZE = 10;
+const DRILL_SET_SIZE = 1;
 
 // Queensland doesn't observe daylight saving, so Brisbane is always a
 // fixed UTC+10 — no timezone-DB lookup needed.
@@ -691,7 +691,7 @@ function tasksForDate(dateStr) {
   return DRILL_TASKS.slice(setIdx * DRILL_SET_SIZE, setIdx * DRILL_SET_SIZE + DRILL_SET_SIZE);
 }
 
-// Today's set of tasks — scenario and instructions only, never the model
+// Today's task(s) — scenario and instructions only, never the model
 // answer or marking guide.
 app.get('/api/drill/today', (req, res) => {
   const drillDate = brisbaneDateStr();
@@ -704,7 +704,7 @@ app.get('/api/drill/today', (req, res) => {
   });
 });
 
-// Submit today's set of answers in one go. Elapsed time is computed here,
+// Submit today's answer(s) in one go. Elapsed time is computed here,
 // server-side, from the server clock — never trust a client-supplied
 // timestamp. Correctness is left null (pending) — an admin judges it.
 app.post('/api/drill/submit', async (req, res) => {

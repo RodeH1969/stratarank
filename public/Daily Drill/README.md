@@ -1,13 +1,14 @@
 # Strata Daily Drill question bank
 
 `tasks.json` holds the pool the Daily Drill draws from — 100 practical,
-scenario-based tasks. Each day's drill pulls the next 10 in order
-(day 1 → tasks 1–10, day 2 → tasks 11–20, …), wrapping back to task 1
-after 10 days.
+scenario-based tasks. Each day's drill is one task, in order
+(day 1 → task 1, day 2 → task 2, …), wrapping back to task 1
+after 100 days. To change how many a day, set `DRILL_SET_SIZE` in
+`server.js`.
 
 This file is never sent to visitors' browsers directly (the server
 blocks it, since it holds the model answers) — only read by the server
-to build each day's set of tasks. Judging is manual: there's no
+to build each day's task. Judging is manual: there's no
 "correct option" to check against, so every submission sits as
 **pending** until an admin reads the contestant's written answers
 against the model answer and marking guide here, and marks it correct

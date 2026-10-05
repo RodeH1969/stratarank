@@ -1732,7 +1732,7 @@ function DrillAdmin() {
         <>
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
             <button onClick={() => setTasksOpen((o) => !o)} className="text-xs font-bold uppercase tracking-wide text-amber-700">
-              {tasksOpen ? "▾" : "▸"} Today's 10 tasks ({payload.tasks.length})
+              {tasksOpen ? "▾" : "▸"} {payload.tasks.length === 1 ? "Today's task" : `Today's ${payload.tasks.length} tasks`}
             </button>
             {tasksOpen && (
               <div className="mt-3 space-y-3">

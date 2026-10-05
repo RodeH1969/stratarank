@@ -66,6 +66,17 @@
   .gold-pulse-ring {
     animation: claimPulseRing 2.2s ease-out infinite;
   }
+  @keyframes swGlow {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.35)); }
+    50%      { filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.75)); }
+  }
+  .sw-running { animation: swGlow 2s ease-in-out infinite; }
+  .sw-stopped { filter: drop-shadow(0 0 14px rgba(13, 148, 136, 0.55)); }
+  @keyframes swCrown {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(2.5px); }
+  }
+  .sw-crown { animation: swCrown 1s steps(1, end) infinite; }
 </style>
 </head>
 <body>
@@ -142,8 +153,10 @@ const daysUntilLabel = (ms) => {
 };
 
 const elapsedLabel = (seconds) => {
-  const m = Math.floor(seconds / 60);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 };
 
@@ -1140,6 +1153,84 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
   );
 }
 
+function Stopwatch({ seconds, running }) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const sec = seconds % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  // Cumulative angles (never wrap back to 0) so the hand ticks forward
+  // with a little mechanical overshoot instead of spinning backwards.
+  const secDeg = seconds * 6;
+  const minDeg = (seconds / 60) * 6;
+  const ticks = Array.from({ length: 60 }, (_, i) => i);
+  const cx = 100, cy = 112;
+  const polar = (deg, r) => [cx + r * Math.sin((deg * Math.PI) / 180), cy - r * Math.cos((deg * Math.PI) / 180)];
+  return (
+    <div className="flex flex-col items-center">
+      <svg viewBox="0 0 200 232" className={`w-44 sm:w-52 ${running ? "sw-running" : "sw-stopped"}`} role="img" aria-label={`Stopwatch: ${elapsedLabel(seconds)}`}>
+        <defs>
+          <linearGradient id="swBrass" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#fde68a" />
+            <stop offset="0.45" stopColor="#d97706" />
+            <stop offset="1" stopColor="#78350f" />
+          </linearGradient>
+          <radialGradient id="swFace" cx="0.5" cy="0.4" r="0.7">
+            <stop offset="0" stopColor="#fffdf5" />
+            <stop offset="1" stopColor="#fef3c7" />
+          </radialGradient>
+        </defs>
+        {/* crown + side button */}
+        <g className={running ? "sw-crown" : ""}>
+          <rect x="88" y="4" width="24" height="12" rx="3" fill="url(#swBrass)" stroke="#78350f" strokeWidth="1" />
+          <rect x="94" y="14" width="12" height="12" fill="url(#swBrass)" stroke="#78350f" strokeWidth="1" />
+        </g>
+        <rect x="152" y="30" width="12" height="20" rx="3" fill="url(#swBrass)" stroke="#78350f" strokeWidth="1" transform="rotate(40 158 40)" />
+        {/* case */}
+        <circle cx={cx} cy={cy} r="88" fill="url(#swBrass)" stroke="#78350f" strokeWidth="2" />
+        <circle cx={cx} cy={cy} r="78" fill="#78350f" opacity="0.35" />
+        <circle cx={cx} cy={cy} r="75" fill="url(#swFace)" stroke="#92400e" strokeWidth="1.5" />
+        {/* ticks */}
+        {ticks.map((i) => {
+          const major = i % 5 === 0;
+          const [x1, y1] = polar(i * 6, major ? 60 : 66);
+          const [x2, y2] = polar(i * 6, 71);
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={major ? "#78350f" : "#b45309"} strokeWidth={major ? 2.2 : 0.9} strokeLinecap="round" />;
+        })}
+        {[0, 15, 30, 45].map((n) => {
+          const [x, y] = polar(n * 6, 50);
+          return <text key={n} x={x} y={y + 4} textAnchor="middle" fontSize="11" fontWeight="800" fill="#78350f" fontFamily="Georgia, serif">{n === 0 ? 60 : n}</text>;
+        })}
+        {/* minutes sub-dial */}
+        <circle cx={cx} cy={cy + 26} r="16" fill="#fffbeb" stroke="#b45309" strokeWidth="1" />
+        {Array.from({ length: 12 }, (_, i) => {
+          const a = i * 30;
+          const x1 = cx + 13 * Math.sin((a * Math.PI) / 180), y1 = cy + 26 - 13 * Math.cos((a * Math.PI) / 180);
+          const x2 = cx + 16 * Math.sin((a * Math.PI) / 180), y2 = cy + 26 - 16 * Math.cos((a * Math.PI) / 180);
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#92400e" strokeWidth="0.8" />;
+        })}
+        <line x1={cx} y1={cy + 26} x2={cx} y2={cy + 15} stroke="#78350f" strokeWidth="1.6" strokeLinecap="round" style={{ transform: `rotate(${minDeg}deg)`, transformOrigin: `${cx}px ${cy + 26}px`, transition: "transform 0.4s cubic-bezier(.4,2.2,.5,1)" }} />
+        <circle cx={cx} cy={cy + 26} r="1.8" fill="#78350f" />
+        <text x={cx} y={cy - 22} textAnchor="middle" fontSize="7" fontWeight="800" letterSpacing="2" fill="#b45309">STRATA</text>
+        {/* second hand */}
+        <g style={{ transform: `rotate(${secDeg}deg)`, transformOrigin: `${cx}px ${cy}px`, transition: running ? "transform 0.3s cubic-bezier(.4,2.4,.5,1)" : "none" }}>
+          <line x1={cx} y1={cy + 14} x2={cx} y2={cy - 64} stroke="#dc2626" strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx={cx} cy={cy - 64} r="2.2" fill="#dc2626" />
+        </g>
+        <circle cx={cx} cy={cy} r="4.5" fill="#dc2626" stroke="#7f1d1d" strokeWidth="1" />
+        <circle cx={cx} cy={cy} r="1.5" fill="#fef2f2" />
+        {/* glass glint */}
+        <path d="M44 70 A62 62 0 0 1 100 48" fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+      <div className="-mt-1 px-4 py-1.5 rounded-lg bg-slate-900 border border-amber-500/60 shadow-inner">
+        <span className="font-mono text-xl sm:text-2xl font-bold tracking-widest" style={{ color: running ? "#fbbf24" : "#5eead4", textShadow: running ? "0 0 8px rgba(251,191,36,0.6)" : "0 0 8px rgba(94,234,212,0.6)" }}>
+          {pad(h)}:{pad(m)}:{pad(sec)}
+        </span>
+      </div>
+      <p className="mt-1.5 text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-700">{running ? "Clock's running" : "Stopped"}</p>
+    </div>
+  );
+}
+
 function DailyDrill() {
   const [drill, setDrill] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -1207,7 +1298,7 @@ function DailyDrill() {
     if (answers.some((a) => !a.text)) errs.answers = true;
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
-      setSubmitError(errs.answers ? "Please answer every task before submitting." : "Please fill in the fields marked in red.");
+      setSubmitError(errs.answers ? "Please write your answer before submitting." : "Please fill in the fields marked in red.");
       return;
     }
     setFieldErrors({});
@@ -1240,7 +1331,7 @@ function DailyDrill() {
     <div className="max-w-lg space-y-5">
       <div className="text-center">
         <h2 className="font-serif text-2xl mb-1">🧠 Strata Daily Drill</h2>
-        <p className="text-sm text-slate-500">Ten real-world tasks a day, answered in writing. Fastest correct submission tops the board.</p>
+        <p className="text-sm text-slate-500">One real-world task a day, answered in writing. Fastest correct answer tops the board.</p>
       </div>
 
       <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-full px-4 py-2.5 flex items-center justify-center gap-2 flex-wrap shadow-sm">
@@ -1250,28 +1341,26 @@ function DailyDrill() {
         <span className="font-extrabold text-sm sm:text-base text-slate-900">$20 voucher!</span>
       </div>
 
-      {!result && (
-        <p className="text-center text-xs font-bold text-rose-600">⏱ {elapsedLabel(liveElapsed)} and counting — write fast!</p>
-      )}
+      <Stopwatch seconds={result ? result.elapsedSeconds : liveElapsed} running={!result} />
 
       {result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
-          <p className="text-sm text-slate-600 mt-2">Your answers are in — Rod judges each one by hand, so check the board below in a bit to see if you made the cut.</p>
+          <p className="text-sm text-slate-600 mt-2">Your answer is in — Rod judges answers by hand, so check the board below in a bit to see if you made the cut.</p>
           <p className="text-sm text-slate-600 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
           {drill.tasks.map((t, i) => (
             <div key={t.id} className={i > 0 ? "border-t border-slate-100 pt-4" : ""}>
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-1">Task {i + 1} of {drill.tasks.length} — {t.section}</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-1">{t.section}</p>
               <p className="font-serif text-base sm:text-lg text-slate-900 mb-1">{t.title}</p>
               <p className="text-sm text-slate-700 whitespace-pre-wrap mb-2">{t.scenario}</p>
               <p className="text-sm text-slate-700 whitespace-pre-wrap mb-2">{t.instructions}</p>
               <textarea
                 value={drillAnswers[t.id] || ""}
                 onChange={(e) => setAnswer(t.id, e.target.value)}
-                rows={4}
+                rows={drill.tasks.length === 1 ? 7 : 4}
                 placeholder="Write your answer…"
                 className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.answers && !(drillAnswers[t.id] || "").trim() ? "border-rose-400" : "border-slate-300"}`}
               />
@@ -1301,7 +1390,7 @@ function DailyDrill() {
             disabled={submitting}
             className="gold-pulse-ring w-full bg-amber-500 text-slate-900 font-bold px-5 py-3 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50"
           >
-            {submitting ? "Sending…" : "Submit Answers"}
+            {submitting ? "Sending…" : drill.tasks.length === 1 ? "Submit Answer" : "Submit Answers"}
           </button>
         </div>
       )}
