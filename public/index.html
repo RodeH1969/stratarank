@@ -1226,7 +1226,7 @@ function Stopwatch({ seconds, running }) {
           {pad(h)}:{pad(m)}:{pad(sec)}
         </span>
       </div>
-      <p className="mt-1.5 text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-700">{running ? "Clock's running" : "Stopped"}</p>
+      <p className="mt-1.5 text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-900">{running ? "Clock's running" : "Stopped"}</p>
     </div>
   );
 }
@@ -1322,7 +1322,7 @@ function DailyDrill() {
     return <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">Couldn't load today's drill: {loadError}</div>;
   }
   if (!drill) {
-    return <div className="text-center text-slate-400 py-16">Loading today's drill…</div>;
+    return <div className="text-center text-slate-700 py-16">Loading today's drill…</div>;
   }
 
   const liveElapsed = Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000));
@@ -1331,7 +1331,7 @@ function DailyDrill() {
     <div className="max-w-lg space-y-5">
       <div className="text-center">
         <h2 className="font-serif text-2xl mb-1">🧠 Strata Daily Drill</h2>
-        <p className="text-sm text-slate-500">One real-world task a day, answered in writing. Fastest correct answer tops the board.</p>
+        <p className="text-sm text-slate-800">One real-world task a day, answered in writing. Fastest correct answer tops the board.</p>
       </div>
 
       <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-full px-4 py-2.5 flex items-center justify-center gap-2 flex-wrap shadow-sm">
@@ -1346,8 +1346,8 @@ function DailyDrill() {
       {result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
-          <p className="text-sm text-slate-600 mt-2">Your answer is in — Rod judges answers by hand, so check the board below in a bit to see if you made the cut.</p>
-          <p className="text-sm text-slate-600 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
+          <p className="text-sm text-slate-800 mt-2">Your answer is in — Rod judges answers by hand, so check the board below in a bit to see if you made the cut.</p>
+          <p className="text-sm text-slate-800 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
@@ -1370,15 +1370,15 @@ function DailyDrill() {
           <div className="space-y-3 border-t border-slate-100 pt-4">
             <p className="text-sm font-semibold text-slate-900">Who's answering?</p>
             <div>
-              <label className={`block text-sm mb-1 ${fieldErrors.name ? "text-rose-600 font-medium" : "text-slate-600"}`}>Name</label>
+              <label className={`block text-sm mb-1 ${fieldErrors.name ? "text-rose-600 font-medium" : "text-slate-800"}`}>Name</label>
               <input value={name} onChange={(e) => setName(e.target.value)} className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.name ? "border-rose-400" : "border-slate-300"}`} />
             </div>
             <div>
-              <label className="block text-sm mb-1 text-slate-600">Role</label>
+              <label className="block text-sm mb-1 text-slate-800">Role</label>
               <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Strata Manager" className="w-full rounded px-3 py-2 text-base sm:text-sm border border-slate-300" />
             </div>
             <div>
-              <label className={`block text-sm mb-1 ${fieldErrors.company ? "text-rose-600 font-medium" : "text-slate-600"}`}>Strata company</label>
+              <label className={`block text-sm mb-1 ${fieldErrors.company ? "text-rose-600 font-medium" : "text-slate-800"}`}>Strata company</label>
               <input value={company} onChange={(e) => setCompany(e.target.value)} className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.company ? "border-rose-400" : "border-slate-300"}`} />
             </div>
           </div>
@@ -1400,15 +1400,15 @@ function DailyDrill() {
         {winnersError ? (
           <p className="text-sm text-rose-500 text-center">Couldn't load the board right now.</p>
         ) : !winners ? (
-          <p className="text-sm text-slate-400 text-center">Loading…</p>
+          <p className="text-sm text-slate-700 text-center">Loading…</p>
         ) : winners.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center">No submissions marked correct yet today — check back soon.</p>
+          <p className="text-sm text-slate-700 text-center">No submissions marked correct yet today — check back soon.</p>
         ) : (
           <div className="space-y-2">
             {winners.map((e, i) => (
               <div key={i} className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg ${i === 0 ? "bg-amber-50" : ""}`}>
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-bold text-slate-400 w-5 shrink-0">{i + 1}</span>
+                  <span className="text-xs font-bold text-slate-700 w-5 shrink-0">{i + 1}</span>
                   {i < 5 && (e.photoUrl || e.logoUrl) && (
                     <span className="flex items-center -space-x-1 shrink-0">
                       {e.photoUrl && <img src={e.photoUrl} alt={e.name} className="w-8 h-8 rounded-full object-cover border-2 border-white shadow" />}
@@ -1417,7 +1417,7 @@ function DailyDrill() {
                   )}
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">{e.name}</p>
-                    <p className="text-xs text-slate-500 truncate">{[e.role, e.company].filter(Boolean).join(" · ")}</p>
+                    <p className="text-xs text-slate-800 truncate">{[e.role, e.company].filter(Boolean).join(" · ")}</p>
                   </div>
                 </div>
                 <span className="text-sm font-bold text-amber-700 shrink-0">{elapsedLabel(e.elapsedSeconds)}</span>
