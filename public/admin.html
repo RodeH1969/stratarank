@@ -23,7 +23,7 @@
 <div id="root"></div>
 <script type="text/plain" id="app-source">
 
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 
 const BCCM_MODULES = [
   "Standard Module",
@@ -1668,6 +1668,60 @@ function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved }) {
 
 const brisbaneTime = (iso) => new Date(iso).toLocaleTimeString("en-AU", { timeZone: "Australia/Brisbane", hour: "numeric", minute: "2-digit" });
 
+function DrillAudioUploader({ library, onDone }) {
+  const [log, setLog] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+
+  const readB64 = (file) => new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(new Error("Couldn't read file"));
+    r.readAsDataURL(file);
+  });
+
+  const upload = async (fileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+    setBusy(true);
+    setLog([]);
+    const out = [];
+    for (const f of files) {
+      const m = /^(scenario|question)[\s_-]*(\d+)/i.exec(f.name);
+      if (!m) { out.push({ name: f.name, ok: false, msg: "Name must be like Scenario 12.mp3 or Question 12.mp3" }); setLog([...out]); continue; }
+      try {
+        const data = await readB64(f);
+        await api("/api/admin/drill/audio", { method: "POST", body: JSON.stringify({ taskId: Number(m[2]), part: m[1].toLowerCase(), data }) });
+        out.push({ name: f.name, ok: true });
+      } catch (e) {
+        out.push({ name: f.name, ok: false, msg: e.message });
+      }
+      setLog([...out]);
+    }
+    setBusy(false);
+    if (inputRef.current) inputRef.current.value = "";
+    onDone();
+  };
+
+  const complete = library.filter((t) => t.audio && t.audio.scenario && t.audio.question).length;
+  const failed = log.filter((l) => !l.ok);
+
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Audio ({complete} of {library.length} questions ready)</p>
+      <p className="text-xs text-slate-500 mt-1 mb-3">Pick as many MP3s as you like. Name them <span className="font-semibold">Scenario 1.mp3</span> and <span className="font-semibold">Question 1.mp3</span> (the number is the question number). Re-uploading replaces the old clip.</p>
+      <input ref={inputRef} type="file" accept="audio/*,.mp3" multiple disabled={busy} onChange={(e) => upload(e.target.files)} className="text-sm" />
+      {busy && <p className="text-xs text-slate-600 mt-2">Uploading… {log.length}</p>}
+      {!busy && log.length > 0 && (
+        <p className={`text-xs mt-2 font-semibold ${failed.length ? "text-rose-600" : "text-teal-700"}`}>
+          {log.length - failed.length} uploaded{failed.length ? `, ${failed.length} failed` : ""}
+        </p>
+      )}
+      {failed.map((l, i) => <p key={i} className="text-xs text-rose-600">{l.name}: {l.msg}</p>)}
+    </div>
+  );
+}
+
 function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId }) {
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState(null);
@@ -1705,6 +1759,9 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId }
                   <p className="text-sm font-medium text-slate-900">{t.title}</p>
                   <p className="text-xs text-slate-500">{t.section}</p>
                 </div>
+                <span className={`text-xs font-bold shrink-0 ${t.audio && t.audio.scenario && t.audio.question ? "text-teal-700" : "text-rose-600"}`} title="Scenario + question audio">
+                  🎧 {t.audio && t.audio.scenario ? "S✓" : "S✗"} {t.audio && t.audio.question ? "Q✓" : "Q✗"}
+                </span>
                 {t.usedOn.length > 0 && (
                   <span className="text-xs text-slate-500 shrink-0" title={t.usedOn.join(", ")}>Used {t.usedOn[0]}{t.usedOn.length > 1 ? ` +${t.usedOn.length - 1}` : ""}</span>
                 )}
@@ -1713,7 +1770,7 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId }
                 ) : (
                   <button
                     onClick={() => onLaunch(t)}
-                    disabled={locked || busyId !== null}
+                    disabled={locked || busyId !== null || !(t.audio && t.audio.scenario && t.audio.question)}
                     className="text-xs font-extrabold uppercase tracking-wide px-3 py-1.5 rounded-full bg-red-600 text-white hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
                   >
                     {busyId === t.id ? "…" : launch ? "Switch to this" : "Launch"}
@@ -1857,6 +1914,8 @@ function DrillAdmin() {
               )}
             </div>
           )}
+
+          {isToday && library && <DrillAudioUploader library={library.tasks} onDone={loadLibrary} />}
 
           {isToday && library && (
             <DrillQuestionBank

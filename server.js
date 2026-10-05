@@ -5,7 +5,7 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-app.use(express.json({ limit: '5mb' })); // logo uploads come through as base64 data URLs
+app.use(express.json({ limit: '10mb' })); // logo uploads come through as base64 data URLs
 
 // The Daily Drill task bank lives in public/Daily Drill/ so QSR can find
 // and edit it like any other site file, but it holds the model answers
@@ -706,10 +706,46 @@ app.get('/api/drill/today', async (req, res) => {
       drillDate,
       postedAt: new Date(launch.launched_at).toISOString(),
       locked: false,
-      tasks: [{ id: task.id, section: task.section, title: task.title, scenario: task.scenario, instructions: task.instructions }],
+      // Audio only: the task's text is never sent to visitors.
+      tasks: [{ id: task.id }],
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// Today's spoken clip — 'scenario' or 'question'. Only served for the task
+// launched today, so nothing can be fetched early. Supports Range requests
+// (Safari won't play audio without them).
+app.get('/api/drill/audio/:part', async (req, res) => {
+  const part = req.params.part;
+  if (part !== 'scenario' && part !== 'question') return res.status(404).end();
+  try {
+    const launch = await getDrillLaunch(brisbaneDateStr());
+    if (!launch) return res.status(403).end();
+    const { data, error } = await supabase
+      .from('strata_drill_audio')
+      .select('mime, data_b64')
+      .eq('task_id', launch.task_id)
+      .eq('part', part)
+      .maybeSingle();
+    if (error) return res.status(500).end();
+    if (!data) return res.status(404).end();
+    const buf = Buffer.from(data.data_b64, 'base64');
+    res.set({ 'Content-Type': data.mime || 'audio/mpeg', 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, no-store' });
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      let start = m[1] ? parseInt(m[1], 10) : buf.length - parseInt(m[2], 10);
+      let end = m[1] && m[2] ? parseInt(m[2], 10) : buf.length - 1;
+      end = Math.min(end, buf.length - 1);
+      if (start < 0 || start > end) return res.status(416).set('Content-Range', `bytes */${buf.length}`).end();
+      res.status(206).set({ 'Content-Range': `bytes ${start}-${end}/${buf.length}`, 'Content-Length': end - start + 1 });
+      return res.end(buf.subarray(start, end + 1));
+    }
+    res.set('Content-Length', buf.length);
+    res.end(buf);
+  } catch (e) {
+    res.status(500).end();
   }
 });
 
@@ -819,13 +855,34 @@ app.get('/api/admin/drill/tasks', async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   const usedOn = {};
   for (const l of data) (usedOn[l.task_id] = usedOn[l.task_id] || []).push(l.drill_date);
+  const { data: audioRows, error: aErr } = await supabase.from('strata_drill_audio').select('task_id, part');
+  if (aErr) return res.status(500).json({ error: aErr.message });
+  const audio = {};
+  for (const a of audioRows) (audio[a.task_id] = audio[a.task_id] || {})[a.part] = true;
   const today = brisbaneDateStr();
   const todays = data.find((l) => l.drill_date === today);
   res.json({
     today,
     launch: todays ? { taskId: todays.task_id, launchedAt: todays.launched_at } : null,
-    tasks: DRILL_TASKS.map((t) => ({ ...drillTaskFull(t), usedOn: usedOn[t.id] || [] })),
+    tasks: DRILL_TASKS.map((t) => ({ ...drillTaskFull(t), usedOn: usedOn[t.id] || [], audio: { scenario: !!(audio[t.id] && audio[t.id].scenario), question: !!(audio[t.id] && audio[t.id].question) } })),
   });
+});
+
+// Admin: upload one clip (base64 data URL or raw base64) for a task.
+app.post('/api/admin/drill/audio', async (req, res) => {
+  const taskId = Number(req.body && req.body.taskId);
+  const part = req.body && req.body.part;
+  if (!drillTaskById(taskId)) return res.status(400).json({ error: 'Unknown question number.' });
+  if (part !== 'scenario' && part !== 'question') return res.status(400).json({ error: 'Part must be scenario or question.' });
+  const raw = String((req.body && req.body.data) || '');
+  const b64 = raw.includes(',') ? raw.slice(raw.indexOf(',') + 1) : raw;
+  const size = Buffer.from(b64, 'base64').length;
+  if (!size) return res.status(400).json({ error: 'Empty file.' });
+  const { error } = await supabase
+    .from('strata_drill_audio')
+    .upsert({ task_id: taskId, part, mime: 'audio/mpeg', size, data_b64: b64, updated_at: new Date().toISOString() }, { onConflict: 'task_id,part' });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ taskId, part, size });
 });
 
 // Admin: launch today's question — records the pick and starts the clock.
@@ -836,6 +893,9 @@ app.post('/api/admin/drill/launch', async (req, res) => {
   if (!drillTaskById(taskId)) return res.status(400).json({ error: 'Unknown question.' });
   const drillDate = brisbaneDateStr();
   try {
+    const { data: clips, error: aErr } = await supabase.from('strata_drill_audio').select('part').eq('task_id', taskId);
+    if (aErr) return res.status(500).json({ error: aErr.message });
+    if (!clips || clips.length < 2) return res.status(400).json({ error: "This question has no audio yet. Upload its scenario and question clips first." });
     const existing = await getDrillLaunch(drillDate);
     if (existing) {
       const { count, error: cErr } = await supabase

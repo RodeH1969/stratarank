@@ -187,3 +187,16 @@ create table if not exists strata_drill_launches (
   task_id int not null,
   launched_at timestamptz not null default now()
 );
+
+-- Daily Drill audio. Each task is delivered as two spoken clips (a scenario
+-- and a question, two voices) instead of text, to stop copy-and-paste.
+-- Uploaded in bulk from the admin tab; served only for today's launched task.
+create table if not exists strata_drill_audio (
+  task_id int not null,
+  part text not null check (part in ('scenario','question')),
+  mime text not null default 'audio/mpeg',
+  size int not null,
+  data_b64 text not null,
+  updated_at timestamptz default now(),
+  primary key (task_id, part)
+);
