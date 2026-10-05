@@ -1862,6 +1862,17 @@ function DrillAdmin() {
     }
   };
 
+  const unlaunch = async () => {
+    if (!window.confirm("Take today's question offline? The public page goes back to 'goes live at 9am'.")) return;
+    setError(null);
+    try {
+      await api("/api/admin/drill/unlaunch", { method: "POST", body: "{}" });
+      await Promise.all([load(date, true), loadLibrary()]);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const onVerdict = async (entryId, isCorrect) => {
     setPayload((p) => p && { ...p, entries: p.entries.map((e) => (e.id === entryId ? { ...e, isCorrect } : e)) });
     try {
@@ -1905,6 +1916,9 @@ function DrillAdmin() {
                 <>
                   <p className="text-xs font-bold uppercase tracking-wide text-teal-800">Live now — launched {brisbaneTime(payload.launch.launchedAt)}</p>
                   <p className="text-sm font-semibold text-slate-900 mt-1">{liveTask ? liveTask.title : `Question ${payload.launch.taskId}`}</p>
+                  {payload.entries.length === 0 && (
+                    <button onClick={unlaunch} className="mt-2 text-xs font-extrabold uppercase tracking-wide px-3 py-1.5 rounded-full bg-slate-900 text-white hover:bg-slate-700">Take offline</button>
+                  )}
                 </>
               ) : (
                 <>

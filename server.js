@@ -916,6 +916,21 @@ app.post('/api/admin/drill/launch', async (req, res) => {
   }
 });
 
+// Admin: take today's question offline (back to "goes live at 9am").
+// Only while nobody's submitted.
+app.post('/api/admin/drill/unlaunch', async (req, res) => {
+  const drillDate = brisbaneDateStr();
+  const { count, error: cErr } = await supabase
+    .from('strata_drill_entries')
+    .select('id', { count: 'exact', head: true })
+    .eq('drill_date', drillDate);
+  if (cErr) return res.status(500).json({ error: cErr.message });
+  if (count > 0) return res.status(409).json({ error: "Today's drill already has submissions, so it can't be taken offline." });
+  const { error } = await supabase.from('strata_drill_launches').delete().eq('drill_date', drillDate);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ drillDate, launch: null });
+});
+
 // Admin: every submission for a day (pending, correct and incorrect
 // alike), plus that day's launched question including its model answer
 // and marking guide, so QSR can judge each written answer against them.
