@@ -573,7 +573,7 @@ function App() {
               { id: "dotm", label: "Win of the Month", shortLabel: "Win of Month" },
               { id: "log", label: "Every Win", shortLabel: "Every Win" },
               { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
-              { id: "quiz", label: "🧠 Daily Quiz", shortLabel: "🧠 Quiz" },
+              { id: "drill", label: "🧠 Daily Drill", shortLabel: "🧠 Drill" },
               { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
             ].map(({ id, label, shortLabel }) => (
               <button
@@ -607,8 +607,8 @@ function App() {
           <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
         ) : tab === "season" ? (
           <SeasonLeaderboard standings={seasonStandings} agencyLogos={data.agencyLogos} sponsors={data.sponsors} previousRankMap={previousRankMap} seasonYear={data.seasonYear} />
-        ) : tab === "quiz" ? (
-          <DailyQuiz />
+        ) : tab === "drill" ? (
+          <DailyDrill />
         ) : (
           <ReportWin data={data} refresh={refresh} />
         )}
@@ -1140,30 +1140,30 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
   );
 }
 
-function DailyQuiz() {
-  const [quiz, setQuiz] = useState(null);
+function DailyDrill() {
+  const [drill, setDrill] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [company, setCompany] = useState("");
-  const [selectedOption, setSelectedOption] = useState("");
+  const [drillAnswers, setDrillAnswers] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [result, setResult] = useState(null);
-  const [leaderboard, setLeaderboard] = useState(null);
-  const [leaderboardError, setLeaderboardError] = useState(null);
+  const [winners, setWinners] = useState(null);
+  const [winnersError, setWinnersError] = useState(null);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const q = await api("/api/quiz/today");
+        const q = await api("/api/drill/today");
         if (cancelled) return;
-        setQuiz(q);
+        setDrill(q);
         try {
-          const cached = localStorage.getItem(`quizResult_${q.quizDate}`);
+          const cached = localStorage.getItem(`drillResult_${q.drillDate}`);
           if (cached) setResult(JSON.parse(cached));
         } catch {}
       } catch (e) {
@@ -1174,43 +1174,52 @@ function DailyQuiz() {
   }, []);
 
   useEffect(() => {
-    if (result) return; // stop the clock once answered
+    if (result) return; // stop the clock once submitted
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [result, quiz]);
+  }, [result, drill]);
 
+  // Winners are judged by hand and can land any time, so keep polling —
+  // not just a once-off load like the old auto-marked leaderboard.
   useEffect(() => {
-    if (!quiz) return;
-    (async () => {
+    if (!drill) return;
+    let cancelled = false;
+    const load = async () => {
       try {
-        const lb = await api(`/api/quiz/leaderboard?date=${quiz.quizDate}`);
-        setLeaderboard(lb.entries);
+        const r = await api(`/api/drill/winners?date=${drill.drillDate}`);
+        if (!cancelled) setWinners(r.entries);
       } catch (e) {
-        setLeaderboardError(e.message);
+        if (!cancelled) setWinnersError(e.message);
       }
-    })();
-  }, [quiz, result]);
+    };
+    load();
+    const id = setInterval(load, 20000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [drill]);
+
+  const setAnswer = (taskId, text) => setDrillAnswers((a) => ({ ...a, [taskId]: text }));
 
   const submit = async () => {
     const errs = {};
     if (!name.trim()) errs.name = true;
     if (!company.trim()) errs.company = true;
-    if (!selectedOption) errs.selectedOption = true;
+    const answers = drill.tasks.map((t) => ({ taskId: t.id, text: (drillAnswers[t.id] || "").trim() }));
+    if (answers.some((a) => !a.text)) errs.answers = true;
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
-      setSubmitError("Please fill in the fields marked in red.");
+      setSubmitError(errs.answers ? "Please answer every task before submitting." : "Please fill in the fields marked in red.");
       return;
     }
     setFieldErrors({});
     setSubmitError(null);
     setSubmitting(true);
     try {
-      const r = await api("/api/quiz/answer", {
+      const r = await api("/api/drill/submit", {
         method: "POST",
-        body: JSON.stringify({ name: name.trim(), role: role.trim(), company: company.trim(), selectedOption }),
+        body: JSON.stringify({ name: name.trim(), role: role.trim(), company: company.trim(), answers }),
       });
       setResult(r);
-      try { localStorage.setItem(`quizResult_${r.quizDate}`, JSON.stringify(r)); } catch {}
+      try { localStorage.setItem(`drillResult_${r.drillDate}`, JSON.stringify(r)); } catch {}
     } catch (e) {
       setSubmitError(e.message);
     } finally {
@@ -1219,116 +1228,104 @@ function DailyQuiz() {
   };
 
   if (loadError) {
-    return <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">Couldn't load today's quiz: {loadError}</div>;
+    return <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">Couldn't load today's drill: {loadError}</div>;
   }
-  if (!quiz) {
-    return <div className="text-center text-slate-400 py-16">Loading today's quiz…</div>;
+  if (!drill) {
+    return <div className="text-center text-slate-400 py-16">Loading today's drill…</div>;
   }
 
-  const liveElapsed = Math.max(0, Math.round((now - new Date(quiz.postedAt).getTime()) / 1000));
+  const liveElapsed = Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000));
 
   return (
     <div className="max-w-lg space-y-5">
       <div className="text-center">
-        <h2 className="font-serif text-2xl mb-1">🧠 Daily Strata Quiz</h2>
-        <p className="text-sm text-slate-500">One question a day. Fastest correct answer tops the board.</p>
+        <h2 className="font-serif text-2xl mb-1">🧠 Strata Daily Drill</h2>
+        <p className="text-sm text-slate-500">Ten real-world tasks a day, answered in writing. Fastest correct submission tops the board.</p>
       </div>
 
       <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-full px-4 py-2.5 flex items-center justify-center gap-2 flex-wrap shadow-sm">
         <span className="text-base">🏆</span>
-        <span className="font-extrabold text-sm sm:text-base text-slate-900">Today's fastest correct answer wins a</span>
+        <span className="font-extrabold text-sm sm:text-base text-slate-900">Today's fastest correct submission wins a</span>
         <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-7 sm:h-9 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
         <span className="font-extrabold text-sm sm:text-base text-slate-900">$20 voucher!</span>
       </div>
 
       {!result && (
-        <p className="text-center text-xs font-bold text-rose-600">⏱ {elapsedLabel(liveElapsed)} and counting — answer fast!</p>
+        <p className="text-center text-xs font-bold text-rose-600">⏱ {elapsedLabel(liveElapsed)} and counting — write fast!</p>
       )}
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-2">{quiz.section}</p>
-        <p className="font-serif text-lg sm:text-xl text-slate-900 mb-4">{quiz.question}</p>
+      {result ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
+          <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
+          <p className="text-sm text-slate-600 mt-2">Your answers are in — Rod judges each one by hand, so check the board below in a bit to see if you made the cut.</p>
+          <p className="text-sm text-slate-600 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+          {drill.tasks.map((t, i) => (
+            <div key={t.id} className={i > 0 ? "border-t border-slate-100 pt-4" : ""}>
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-1">Task {i + 1} of {drill.tasks.length} — {t.section}</p>
+              <p className="font-serif text-base sm:text-lg text-slate-900 mb-1">{t.title}</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap mb-2">{t.scenario}</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap mb-2">{t.instructions}</p>
+              <textarea
+                value={drillAnswers[t.id] || ""}
+                onChange={(e) => setAnswer(t.id, e.target.value)}
+                rows={4}
+                placeholder="Write your answer…"
+                className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.answers && !(drillAnswers[t.id] || "").trim() ? "border-rose-400" : "border-slate-300"}`}
+              />
+            </div>
+          ))}
 
-        {result ? (
-          <div className="space-y-4">
-            <div className={`rounded-xl p-4 text-center border-2 ${result.isCorrect ? "bg-teal-50 border-teal-300" : "bg-rose-50 border-rose-300"}`}>
-              <p className={`font-serif text-xl font-bold ${result.isCorrect ? "text-teal-900" : "text-rose-900"}`}>
-                {result.isCorrect ? "Correct! 🎉" : "Not quite."}
-              </p>
-              {!result.isCorrect && (
-                <p className="text-sm text-slate-700 mt-1">Correct answer: <span className="font-bold">{result.correctOption}.</span> {quiz.options[result.correctOption]}</p>
-              )}
-              <p className="text-sm text-slate-600 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
+          <div className="space-y-3 border-t border-slate-100 pt-4">
+            <p className="text-sm font-semibold text-slate-900">Who's answering?</p>
+            <div>
+              <label className={`block text-sm mb-1 ${fieldErrors.name ? "text-rose-600 font-medium" : "text-slate-600"}`}>Name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.name ? "border-rose-400" : "border-slate-300"}`} />
+            </div>
+            <div>
+              <label className="block text-sm mb-1 text-slate-600">Role</label>
+              <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Strata Manager" className="w-full rounded px-3 py-2 text-base sm:text-sm border border-slate-300" />
+            </div>
+            <div>
+              <label className={`block text-sm mb-1 ${fieldErrors.company ? "text-rose-600 font-medium" : "text-slate-600"}`}>Strata company</label>
+              <input value={company} onChange={(e) => setCompany(e.target.value)} className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.company ? "border-rose-400" : "border-slate-300"}`} />
             </div>
           </div>
-        ) : (
-          <>
-            <div className="space-y-2 mb-5">
-              {Object.entries(quiz.options).map(([key, text]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setSelectedOption(key)}
-                  style={{
-                    background: selectedOption === key ? "#fef3c7" : "#ffffff",
-                    border: `2px solid ${selectedOption === key ? "#d97706" : fieldErrors.selectedOption ? "#fb7185" : "#e2e8f0"}`,
-                  }}
-                  className="flex items-start gap-3 w-full rounded-xl px-3.5 py-3 text-left"
-                >
-                  <span
-                    style={{ background: selectedOption === key ? "#d97706" : "#f1f5f9", color: selectedOption === key ? "#fff" : "#475569" }}
-                    className="w-6 h-6 rounded-full text-xs font-extrabold flex items-center justify-center shrink-0 mt-0.5"
-                  >
-                    {key}
-                  </span>
-                  <span className="text-sm text-slate-800">{text}</span>
-                </button>
-              ))}
-            </div>
 
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              <p className="text-sm font-semibold text-slate-900">Who's answering?</p>
-              <div>
-                <label className={`block text-sm mb-1 ${fieldErrors.name ? "text-rose-600 font-medium" : "text-slate-600"}`}>Name</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.name ? "border-rose-400" : "border-slate-300"}`} />
-              </div>
-              <div>
-                <label className="block text-sm mb-1 text-slate-600">Role</label>
-                <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Strata Manager" className="w-full rounded px-3 py-2 text-base sm:text-sm border border-slate-300" />
-              </div>
-              <div>
-                <label className={`block text-sm mb-1 ${fieldErrors.company ? "text-rose-600 font-medium" : "text-slate-600"}`}>Strata company</label>
-                <input value={company} onChange={(e) => setCompany(e.target.value)} className={`w-full rounded px-3 py-2 text-base sm:text-sm border ${fieldErrors.company ? "border-rose-400" : "border-slate-300"}`} />
-              </div>
-            </div>
+          {submitError && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{submitError}</div>}
 
-            {submitError && <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700 mt-4">{submitError}</div>}
-
-            <button
-              onClick={submit}
-              disabled={submitting}
-              className="gold-pulse-ring mt-4 w-full bg-amber-500 text-slate-900 font-bold px-5 py-3 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50"
-            >
-              {submitting ? "Sending…" : "Submit Answer"}
-            </button>
-          </>
-        )}
-      </div>
+          <button
+            onClick={submit}
+            disabled={submitting}
+            className="gold-pulse-ring w-full bg-amber-500 text-slate-900 font-bold px-5 py-3 rounded-lg text-sm hover:bg-amber-400 disabled:opacity-50"
+          >
+            {submitting ? "Sending…" : "Submit Answers"}
+          </button>
+        </div>
+      )}
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
-        <p className="text-sm font-bold text-slate-900 mb-3 text-center">🏆 Today's Fastest</p>
-        {leaderboardError ? (
-          <p className="text-sm text-rose-500 text-center">Couldn't load the leaderboard right now.</p>
-        ) : !leaderboard ? (
+        <p className="text-sm font-bold text-slate-900 mb-3 text-center">🏆 Today's Winners</p>
+        {winnersError ? (
+          <p className="text-sm text-rose-500 text-center">Couldn't load the board right now.</p>
+        ) : !winners ? (
           <p className="text-sm text-slate-400 text-center">Loading…</p>
-        ) : leaderboard.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center">No correct answers yet today — be the first!</p>
+        ) : winners.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center">No submissions marked correct yet today — check back soon.</p>
         ) : (
           <div className="space-y-2">
-            {leaderboard.map((e, i) => (
+            {winners.map((e, i) => (
               <div key={i} className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg ${i === 0 ? "bg-amber-50" : ""}`}>
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-xs font-bold text-slate-400 w-5 shrink-0">{i + 1}</span>
+                  {i < 5 && (e.photoUrl || e.logoUrl) && (
+                    <span className="flex items-center -space-x-1 shrink-0">
+                      {e.photoUrl && <img src={e.photoUrl} alt={e.name} className="w-8 h-8 rounded-full object-cover border-2 border-white shadow" />}
+                      {e.logoUrl && <img src={e.logoUrl} alt={e.company} className="w-8 h-8 rounded object-cover border-2 border-white shadow" />}
+                    </span>
+                  )}
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">{e.name}</p>
                     <p className="text-xs text-slate-500 truncate">{[e.role, e.company].filter(Boolean).join(" · ")}</p>

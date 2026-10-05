@@ -152,3 +152,29 @@ create index if not exists idx_quiz_entries_date on strata_quiz_entries(quiz_dat
 -- Admin attaches a photo to a top finisher by hand (behind the scenes —
 -- not shown on the public quiz tab).
 alter table strata_quiz_entries add column if not exists photo_url text;
+
+-- Strata Daily Drill — replaces the old multiple-choice quiz above.
+-- Ten practical, scenario-based tasks a day (drawn in order from
+-- public/Daily Drill/tasks.json), answered freeform in writing. There's
+-- no auto-marking: every submission is judged by hand by an admin against
+-- the task bank's model answer, so is_correct starts out null (pending)
+-- and is set true/false from the Daily Drill admin tab. One entry per
+-- person per day (same name + company on the same drill_date is rejected
+-- as a duplicate play). Ranked for the public board by elapsed_seconds —
+-- time from when that day's set went live to when they submitted — but
+-- only once marked correct.
+create table if not exists strata_drill_entries (
+  id uuid primary key default gen_random_uuid(),
+  drill_date date not null,
+  name text not null,
+  role text,
+  company text not null,
+  answers jsonb not null,       -- [{ "taskId": 1, "text": "..." }, ...] — 10 entries
+  is_correct boolean,           -- null = pending admin review
+  elapsed_seconds int not null,
+  submitted_at timestamptz default now(),
+  photo_url text,                -- admin-attached, top finishers only
+  logo_url text,                 -- admin-attached company logo, top finishers only
+  unique (drill_date, name, company)
+);
+create index if not exists idx_drill_entries_date on strata_drill_entries(drill_date, is_correct, elapsed_seconds);

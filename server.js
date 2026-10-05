@@ -7,10 +7,10 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 app.use(express.json({ limit: '5mb' })); // logo uploads come through as base64 data URLs
 
-// The quiz question bank lives in public/Quiz Questions/ so Rod can find
-// and edit it like any other site file, but it holds the correct answers
+// The Daily Drill task bank lives in public/Daily Drill/ so Rod can find
+// and edit it like any other site file, but it holds the model answers
 // — never serve it as a static file, or anyone could view-source today's
-// answer before playing. Only the /api/quiz/* routes below read it.
+// answers before playing. Only the /api/drill/* routes below read it.
 app.use((req, res, next) => {
   let decoded;
   try {
@@ -18,7 +18,7 @@ app.use((req, res, next) => {
   } catch {
     return res.status(400).end();
   }
-  if (decoded.startsWith('/Quiz Questions/')) return res.status(404).end();
+  if (decoded.startsWith('/Daily Drill/')) return res.status(404).end();
   next();
 });
 app.use(express.static('public'));
@@ -647,24 +647,32 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
   res.json({ deleted: true });
 });
 
-// --- daily strata quiz ---------------------------------------------------
+// --- strata daily drill ---------------------------------------------------
 //
 // A hook to get people checking the site daily, and into the habit of
-// coming back — from there they're one tap from The Scoop. One multiple-
-// choice question a day, pulled in rotation from the 100-question bank in
-// public/Quiz Questions/questions.json. Anyone can play; they just have
-// to say who they are and what strata company they're with (honour
-// system — not verified against anything). Ranked by how fast they
-// answered correctly, timed from when that day's question went live
-// (Brisbane midnight) to when the server received their answer.
+// coming back — from there they're one tap from The Scoop. Ten practical,
+// scenario-based tasks a day, pulled in order from the 100-task bank in
+// public/Daily Drill/tasks.json (day 1 = tasks 1-10, day 2 = tasks 11-20,
+// wrapping after 10 days). Anyone can play; they write a freeform answer
+// to each task and say who they are and what strata company they're with
+// (honour system — not verified against anything).
+//
+// There's no auto-marking a freeform answer, so every submission starts
+// as "pending" (is_correct = null) until Rod reads it against the task
+// bank's model answer and marking guide from the Daily Drill admin tab
+// and marks it correct or incorrect by hand. Only submissions marked
+// correct ever appear on the public board, ranked by how fast they
+// answered — timed from when that day's set went live (Brisbane
+// midnight) to when the server received their submission.
 
-const QUIZ_QUESTIONS_PATH = path.join(__dirname, 'public', 'Quiz Questions', 'questions.json');
-let QUIZ_QUESTIONS = [];
+const DRILL_TASKS_PATH = path.join(__dirname, 'public', 'Daily Drill', 'tasks.json');
+let DRILL_TASKS = [];
 try {
-  QUIZ_QUESTIONS = JSON.parse(fs.readFileSync(QUIZ_QUESTIONS_PATH, 'utf8'));
+  DRILL_TASKS = JSON.parse(fs.readFileSync(DRILL_TASKS_PATH, 'utf8'));
 } catch (err) {
-  console.error('Could not load quiz questions from', QUIZ_QUESTIONS_PATH, err.message);
+  console.error('Could not load Daily Drill tasks from', DRILL_TASKS_PATH, err.message);
 }
+const DRILL_SET_SIZE = 10;
 
 // Queensland doesn't observe daylight saving, so Brisbane is always a
 // fixed UTC+10 — no timezone-DB lookup needed.
@@ -674,127 +682,175 @@ function brisbaneDateStr(d = new Date()) {
 function brisbaneDayStart(dateStr) {
   return new Date(`${dateStr}T00:00:00+10:00`);
 }
-const QUIZ_EPOCH = '2026-10-05'; // day 0 — first question in the bank
-function questionForDate(dateStr) {
-  if (QUIZ_QUESTIONS.length === 0) return null;
-  const daysSince = Math.floor((brisbaneDayStart(dateStr) - brisbaneDayStart(QUIZ_EPOCH)) / 86400000);
-  const idx = ((daysSince % QUIZ_QUESTIONS.length) + QUIZ_QUESTIONS.length) % QUIZ_QUESTIONS.length;
-  return QUIZ_QUESTIONS[idx];
+const DRILL_EPOCH = '2026-10-05'; // day 0 — first set in the bank
+function tasksForDate(dateStr) {
+  const setCount = Math.floor(DRILL_TASKS.length / DRILL_SET_SIZE);
+  if (setCount === 0) return [];
+  const daysSince = Math.floor((brisbaneDayStart(dateStr) - brisbaneDayStart(DRILL_EPOCH)) / 86400000);
+  const setIdx = ((daysSince % setCount) + setCount) % setCount;
+  return DRILL_TASKS.slice(setIdx * DRILL_SET_SIZE, setIdx * DRILL_SET_SIZE + DRILL_SET_SIZE);
 }
 
-// Today's question — never includes the correct answer.
-app.get('/api/quiz/today', (req, res) => {
-  const quizDate = brisbaneDateStr();
-  const q = questionForDate(quizDate);
-  if (!q) return res.status(500).json({ error: 'No quiz questions loaded.' });
+// Today's set of tasks — scenario and instructions only, never the model
+// answer or marking guide.
+app.get('/api/drill/today', (req, res) => {
+  const drillDate = brisbaneDateStr();
+  const tasks = tasksForDate(drillDate);
+  if (tasks.length === 0) return res.status(500).json({ error: 'No Daily Drill tasks loaded.' });
   res.json({
-    quizDate,
-    questionId: q.id,
-    section: q.section,
-    question: q.question,
-    options: q.options,
-    postedAt: brisbaneDayStart(quizDate).toISOString(),
+    drillDate,
+    postedAt: brisbaneDayStart(drillDate).toISOString(),
+    tasks: tasks.map((t) => ({ id: t.id, section: t.section, title: t.title, scenario: t.scenario, instructions: t.instructions })),
   });
 });
 
-// Submit today's answer. Correctness and elapsed time are both computed
-// here, server-side, from the question bank and the server clock — never
-// trust a client-supplied answer or timestamp for either.
-app.post('/api/quiz/answer', async (req, res) => {
-  const { name, role, company, selectedOption } = req.body;
+// Submit today's set of answers in one go. Elapsed time is computed here,
+// server-side, from the server clock — never trust a client-supplied
+// timestamp. Correctness is left null (pending) — an admin judges it.
+app.post('/api/drill/submit', async (req, res) => {
+  const { name, role, company, answers } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required.' });
   if (!company || !company.trim()) return res.status(400).json({ error: 'Strata company is required.' });
-  if (!['A', 'B', 'C', 'D'].includes(selectedOption)) return res.status(400).json({ error: 'Pick an answer.' });
 
-  const quizDate = brisbaneDateStr();
-  const q = questionForDate(quizDate);
-  if (!q) return res.status(500).json({ error: 'No quiz questions loaded.' });
+  const drillDate = brisbaneDateStr();
+  const tasks = tasksForDate(drillDate);
+  if (tasks.length === 0) return res.status(500).json({ error: 'No Daily Drill tasks loaded.' });
 
-  const postedAt = brisbaneDayStart(quizDate);
+  if (!Array.isArray(answers) || answers.length !== tasks.length) {
+    return res.status(400).json({ error: `Please answer all ${tasks.length} tasks.` });
+  }
+  const taskIds = new Set(tasks.map((t) => t.id));
+  const cleanAnswers = [];
+  for (const a of answers) {
+    const text = (a && a.text || '').trim();
+    if (!taskIds.has(a && a.taskId) || !text) {
+      return res.status(400).json({ error: `Please answer all ${tasks.length} tasks.` });
+    }
+    cleanAnswers.push({ taskId: a.taskId, text });
+  }
+
+  const postedAt = brisbaneDayStart(drillDate);
   const now = new Date();
   const elapsedSeconds = Math.max(0, Math.round((now - postedAt) / 1000));
-  const isCorrect = selectedOption === q.correctOption;
 
-  const { error } = await supabase.from('strata_quiz_entries').insert({
-    quiz_date: quizDate,
-    question_id: q.id,
+  const { error } = await supabase.from('strata_drill_entries').insert({
+    drill_date: drillDate,
     name: name.trim(),
     role: (role || '').trim() || null,
     company: company.trim(),
-    selected_option: selectedOption,
-    is_correct: isCorrect,
+    answers: cleanAnswers,
+    is_correct: null,
     elapsed_seconds: elapsedSeconds,
   });
   if (error) {
     if (error.code === '23505') {
-      return res.status(409).json({ error: "Looks like you've already played today's quiz." });
+      return res.status(409).json({ error: "Looks like you've already played today's drill." });
     }
     return res.status(500).json({ error: error.message });
   }
 
-  res.json({ quizDate, isCorrect, correctOption: q.correctOption, elapsedSeconds });
+  res.json({ drillDate, elapsedSeconds });
 });
 
-// Today's (or a given day's) correct answers, fastest first.
-app.get('/api/quiz/leaderboard', async (req, res) => {
-  const quizDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : brisbaneDateStr();
+// Today's (or a given day's) submissions marked correct, fastest first.
+// The first five get their photo/logo (if the admin's attached one).
+app.get('/api/drill/winners', async (req, res) => {
+  const drillDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : brisbaneDateStr();
   const { data, error } = await supabase
-    .from('strata_quiz_entries')
-    .select('name, role, company, elapsed_seconds')
-    .eq('quiz_date', quizDate)
+    .from('strata_drill_entries')
+    .select('name, role, company, elapsed_seconds, photo_url, logo_url')
+    .eq('drill_date', drillDate)
     .eq('is_correct', true)
     .order('elapsed_seconds', { ascending: true })
     .limit(50);
   if (error) return res.status(500).json({ error: error.message });
   res.json({
-    quizDate,
-    entries: data.map((e) => ({ name: e.name, role: e.role, company: e.company, elapsedSeconds: e.elapsed_seconds })),
+    drillDate,
+    entries: data.map((e, i) => ({
+      name: e.name,
+      role: e.role,
+      company: e.company,
+      elapsedSeconds: e.elapsed_seconds,
+      photoUrl: i < 5 ? (e.photo_url || '') : '',
+      logoUrl: i < 5 ? (e.logo_url || '') : '',
+    })),
   });
 });
 
-// Admin: every entry for a day (correct and incorrect alike) — so Rod can
-// see who actually played, not just who's on the public leaderboard, and
-// attach a photo to a top finisher by hand. Includes that day's question
-// for context, since the question bank itself isn't visible from the UI.
-app.get('/api/admin/quiz', async (req, res) => {
-  const quizDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : brisbaneDateStr();
-  const q = questionForDate(quizDate);
+// Admin: every submission for a day (pending, correct and incorrect
+// alike), plus that day's full task set including model answers and
+// marking guides, so Rod can judge each written answer against them.
+app.get('/api/admin/drill', async (req, res) => {
+  const drillDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : brisbaneDateStr();
+  const tasks = tasksForDate(drillDate);
   const { data, error } = await supabase
-    .from('strata_quiz_entries')
+    .from('strata_drill_entries')
     .select('*')
-    .eq('quiz_date', quizDate)
-    .order('is_correct', { ascending: false })
+    .eq('drill_date', drillDate)
     .order('elapsed_seconds', { ascending: true });
   if (error) return res.status(500).json({ error: error.message });
   res.json({
-    quizDate,
-    question: q ? { id: q.id, section: q.section, question: q.question, correctOption: q.correctOption } : null,
+    drillDate,
+    tasks: tasks.map((t) => ({
+      id: t.id,
+      section: t.section,
+      title: t.title,
+      scenario: t.scenario,
+      instructions: t.instructions,
+      modelAnswer: t.modelAnswer,
+      markingGuide: t.markingGuide,
+    })),
     entries: data.map((e) => ({
       id: e.id,
       name: e.name,
       role: e.role || '',
       company: e.company,
-      selectedOption: e.selected_option,
+      answers: e.answers,
       isCorrect: e.is_correct,
       elapsedSeconds: e.elapsed_seconds,
       photoUrl: e.photo_url || '',
+      logoUrl: e.logo_url || '',
       submittedAt: e.submitted_at,
     })),
   });
 });
 
-// Admin: attach (or clear) a photo on a quiz entry — behind the scenes
-// only, never shown on the public quiz tab.
-app.patch('/api/admin/quiz/:id', async (req, res) => {
+// Admin: judge a submission correct / incorrect / back to pending.
+app.patch('/api/admin/drill/:id', async (req, res) => {
+  const { isCorrect } = req.body;
+  const { data, error } = await supabase
+    .from('strata_drill_entries')
+    .update({ is_correct: isCorrect === null ? null : !!isCorrect })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ id: data.id, isCorrect: data.is_correct });
+});
+
+// Admin: attach (or clear) a photo / company logo on a submission —
+// shown on the public board only for that day's top five.
+app.patch('/api/admin/drill/:id/photo', async (req, res) => {
   const { photoUrl } = req.body;
   const { data, error } = await supabase
-    .from('strata_quiz_entries')
+    .from('strata_drill_entries')
     .update({ photo_url: photoUrl || null })
     .eq('id', req.params.id)
     .select()
     .single();
   if (error) return res.status(500).json({ error: error.message });
   res.json({ id: data.id, photoUrl: data.photo_url || '' });
+});
+app.patch('/api/admin/drill/:id/logo', async (req, res) => {
+  const { logoUrl } = req.body;
+  const { data, error } = await supabase
+    .from('strata_drill_entries')
+    .update({ logo_url: logoUrl || null })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ id: data.id, logoUrl: data.logo_url || '' });
 });
 
 const PORT = process.env.PORT || 3000;
