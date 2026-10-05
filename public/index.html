@@ -30,68 +30,14 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @keyframes drillBar { 0%,100% { height: 8px; } 50% { height: 100%; } }
-  .drill-bars { height: 44px; }
+  .drill-bars { height: 34px; }
   .drill-lab { font-size: 9px; }
-  .drill-ttl { font-size: 16px; }
   .drill-sub { font-size: 10px; }
-  @media (min-width: 640px) { .drill-bars { height: 52px; } .drill-lab { font-size: 11px; } .drill-ttl { font-size: 24px; } .drill-sub { font-size: 11px; } }
-  .drill-bar { display: block; width: 6px; height: 8px; border-radius: 3px; background: linear-gradient(#fbbf24, #b45309); }
+  .drill-bar { display: block; width: 5px; height: 8px; border-radius: 3px; background: linear-gradient(#fbbf24, #b45309); }
   .drill-bars.on .drill-bar { animation: drillBar 0.9s ease-in-out infinite; }
-  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
-  .font-serif { font-family: Georgia, "Times New Roman", serif; }
-
-  @keyframes claimPulseRing {
-    0%   { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.65), 0 0 0 0 rgba(217, 119, 6, 0.4); }
-    70%  { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0), 0 0 0 14px rgba(217, 119, 6, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0), 0 0 0 0 rgba(217, 119, 6, 0); }
-  }
-  @keyframes claimPulseRingPink {
-    0%   { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.65), 0 0 0 0 rgba(157, 23, 77, 0.4); }
-    70%  { box-shadow: 0 0 0 8px rgba(236, 72, 153, 0), 0 0 0 14px rgba(157, 23, 77, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0), 0 0 0 0 rgba(157, 23, 77, 0); }
-  }
-  @keyframes claimShimmer {
-    0%, 100% { background-position: 0% 50%; }
-    50%      { background-position: 100% 50%; }
-  }
-  .claim-tab {
-    background: linear-gradient(120deg, #fbcfe8, #ec4899, #f472b6, #be185d);
-    background-size: 300% 300%;
-    animation: claimPulseRingPink 2.2s ease-out infinite, claimShimmer 3s ease-in-out infinite;
-  }
-  .claim-tab-active {
-    animation: none;
-    background: linear-gradient(120deg, #ec4899, #9d174d);
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
-  }
-  @keyframes bluePulseRing {
-    0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6), 0 0 0 0 rgba(30, 64, 175, 0.4); }
-    70%  { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0), 0 0 0 14px rgba(30, 64, 175, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0), 0 0 0 0 rgba(30, 64, 175, 0); }
-  }
-  .blue-pulse {
-    animation: bluePulseRing 2.2s ease-out infinite;
-  }
-  .gold-pulse-ring {
-    animation: claimPulseRing 2.2s ease-out infinite;
-  }
-  @keyframes redPulseRing {
-    0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.65); }
-    70%  { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-  }
-  .red-pulse { animation: redPulseRing 1.6s ease-out infinite; }
-  @keyframes swGlow {
-    0%, 100% { filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.35)); }
-    50%      { filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.75)); }
-  }
-  .sw-running { animation: swGlow 2s ease-in-out infinite; }
-  .sw-stopped { filter: drop-shadow(0 0 14px rgba(13, 148, 136, 0.55)); }
-  @keyframes swCrown {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(2.5px); }
-  }
-  .sw-crown { animation: swCrown 1s steps(1, end) infinite; }
+  .drill-bars { gap: 3px; }
+  .drill-bar:nth-child(n+17) { display: none; }
+  @media (min-width: 640px) { .drill-bars { height: 52px; gap: 4px; } .drill-bar { width: 6px; } .drill-bar:nth-child(n+17) { display: block; } .drill-lab { font-size: 11px; } .drill-sub { font-size: 11px; } }
 </style>
 </head>
 <body>
@@ -1391,32 +1337,31 @@ function DrillAudioCloud() {
   ));
   const shapes = (
     <>
-      <ellipse cx="300" cy="190" rx="250" ry="105" /><circle cx="170" cy="125" r="80" /><circle cx="300" cy="95" r="95" />
-      <circle cx="430" cy="125" r="80" /><circle cx="90" cy="195" r="62" /><circle cx="510" cy="195" r="62" />
+      <ellipse cx="300" cy="228" rx="262" ry="128" /><circle cx="165" cy="150" r="88" /><circle cx="300" cy="112" r="108" />
+      <circle cx="435" cy="150" r="88" /><circle cx="78" cy="238" r="66" /><circle cx="522" cy="238" r="66" />
     </>
   );
 
   return (
     <div className="max-w-md mx-auto mb-4">
       <div className="relative w-full" style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.15))" }}>
-        <svg viewBox="-8 -12 616 388" className="w-full block" aria-hidden="true">
+        <svg viewBox="-8 -10 616 420" className="w-full block" aria-hidden="true">
           <g fill="#0f172a" stroke="#0f172a" strokeWidth="9">{shapes}</g>
           <g fill="#fff">{shapes}</g>
-          <circle cx="130" cy="320" r="14" fill="#fff" stroke="#0f172a" strokeWidth="4" />
-          <circle cx="95" cy="345" r="8" fill="#fff" stroke="#0f172a" strokeWidth="4" />
+          <circle cx="120" cy="372" r="14" fill="#fff" stroke="#0f172a" strokeWidth="4" />
+          <circle cx="86" cy="396" r="8" fill="#fff" stroke="#0f172a" strokeWidth="4" />
         </svg>
-        <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "14%", height: "62%" }}>
+        <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "30%", height: "46%" }}>
           <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's question</p>
-          <p className="drill-ttl font-serif font-semibold text-slate-900 leading-tight mb-1">Listen up</p>
-          <div className={`drill-bars flex items-center gap-1 ${playing ? "on" : ""}`}>{bars}</div>
+          <div className={`drill-bars flex items-center my-1.5 sm:my-2 ${playing ? "on" : ""}`}>{bars}</div>
           <button
             onClick={toggle}
-            className="gold-pulse-ring mt-1.5 sm:mt-3 bg-slate-900 text-amber-400 rounded-full px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2"
+            className="gold-pulse-ring bg-slate-900 text-amber-400 rounded-full px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2"
           >
             {playing ? "❚❚ Pause" : part === "done" ? "↻ Play again" : "▶ Play"}
           </button>
-          <p className="drill-sub font-semibold text-slate-700 mt-1">
-            {part === "idle" ? "Scenario, then question · replay anytime" : part === "done" ? "Replay anytime" : part === "scenario" ? "● ○ Scenario" : "○ ● Question"}
+          <p className="drill-sub font-semibold text-slate-700 mt-1.5">
+            {part === "idle" ? "Scenario, then question" : part === "done" ? "Replay anytime" : part === "scenario" ? "● ○ Scenario" : "○ ● Question"}
           </p>
         </div>
       </div>
