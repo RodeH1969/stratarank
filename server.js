@@ -7,7 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 app.use(express.json({ limit: '5mb' })); // logo uploads come through as base64 data URLs
 
-// The Daily Drill task bank lives in public/Daily Drill/ so Rod can find
+// The Daily Drill task bank lives in public/Daily Drill/ so QSR can find
 // and edit it like any other site file, but it holds the model answers
 // — never serve it as a static file, or anyone could view-source today's
 // answers before playing. Only the /api/drill/* routes below read it.
@@ -323,7 +323,7 @@ function buildSchemeLabel(scheme) {
 // source: 'public' marks a submission from the public nomination form,
 // where the core fields are mandatory. Admin's own "Record a win"
 // doesn't send this flag, so it isn't held to it. businessName is
-// admin-only now — Rod approaches tradies on site himself and adds
+// admin-only now — QSR approaches tradies on site himself and adds
 // them under the "All nominations" tab — so it's optional here.
 app.post('/api/events', async (req, res) => {
   try {
@@ -652,7 +652,7 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
 // A hook to get people checking the site daily, and into the habit of
 // coming back — from there they're one tap from The Scoop. One practical,
 // scenario-based task a day, chosen by hand from the 100-task bank in
-// public/Daily Drill/tasks.json. Each day Rod picks a task in the Daily
+// public/Daily Drill/tasks.json. Each day QSR picks a task in the Daily
 // Drill admin tab and hits Launch — that records a row in
 // strata_drill_launches and starts the clock. Until then, the public tab
 // shows a "goes live at 9am" holding card. Anyone can play; they write a
@@ -660,7 +660,7 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
 // with (honour system — not verified against anything).
 //
 // There's no auto-marking a freeform answer, so every submission starts
-// as "pending" (is_correct = null) until Rod reads it against the task
+// as "pending" (is_correct = null) until QSR reads it against the task
 // bank's model answer and marking guide from the Daily Drill admin tab
 // and marks it correct or incorrect by hand. Only submissions marked
 // correct ever appear on the public board, ranked by how fast they
@@ -695,7 +695,7 @@ async function getDrillLaunch(drillDate) {
 }
 
 // Today's task — scenario and instructions only, never the model answer
-// or marking guide. Locked (no tasks) until Rod hits Launch.
+// or marking guide. Locked (no tasks) until QSR hits Launch.
 app.get('/api/drill/today', async (req, res) => {
   const drillDate = brisbaneDateStr();
   try {
@@ -858,7 +858,7 @@ app.post('/api/admin/drill/launch', async (req, res) => {
 
 // Admin: every submission for a day (pending, correct and incorrect
 // alike), plus that day's launched question including its model answer
-// and marking guide, so Rod can judge each written answer against them.
+// and marking guide, so QSR can judge each written answer against them.
 app.get('/api/admin/drill', async (req, res) => {
   const drillDate = isDateStr(req.query.date) ? req.query.date : brisbaneDateStr();
   try {
