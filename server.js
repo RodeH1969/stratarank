@@ -662,8 +662,8 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
 // bank's model answer and marking guide from the Daily Drill admin tab
 // and marks it correct or incorrect by hand. Only submissions marked
 // correct ever appear on the public board, ranked by how fast they
-// answered — timed from when that day's task went live (Brisbane
-// midnight) to when the server received their submission.
+// answered — timed from when that day's task went live (9am
+// Brisbane time) to when the server received their submission.
 
 const DRILL_TASKS_PATH = path.join(__dirname, 'public', 'Daily Drill', 'tasks.json');
 let DRILL_TASKS = [];
@@ -682,6 +682,10 @@ function brisbaneDateStr(d = new Date()) {
 function brisbaneDayStart(dateStr) {
   return new Date(`${dateStr}T00:00:00+10:00`);
 }
+const DRILL_OPEN_HOUR = 9; // each day's task goes live at 9am Brisbane time
+function drillOpensAt(dateStr) {
+  return new Date(brisbaneDayStart(dateStr).getTime() + DRILL_OPEN_HOUR * 3600 * 1000);
+}
 const DRILL_EPOCH = '2026-10-05'; // day 0 — first set in the bank
 function tasksForDate(dateStr) {
   const setCount = Math.floor(DRILL_TASKS.length / DRILL_SET_SIZE);
@@ -697,10 +701,13 @@ app.get('/api/drill/today', (req, res) => {
   const drillDate = brisbaneDateStr();
   const tasks = tasksForDate(drillDate);
   if (tasks.length === 0) return res.status(500).json({ error: 'No Daily Drill tasks loaded.' });
+  const opensAt = drillOpensAt(drillDate);
+  const locked = new Date() < opensAt;
   res.json({
     drillDate,
-    postedAt: brisbaneDayStart(drillDate).toISOString(),
-    tasks: tasks.map((t) => ({ id: t.id, section: t.section, title: t.title, scenario: t.scenario, instructions: t.instructions })),
+    postedAt: opensAt.toISOString(),
+    locked,
+    tasks: locked ? [] : tasks.map((t) => ({ id: t.id, section: t.section, title: t.title, scenario: t.scenario, instructions: t.instructions })),
   });
 });
 
@@ -729,8 +736,9 @@ app.post('/api/drill/submit', async (req, res) => {
     cleanAnswers.push({ taskId: a.taskId, text });
   }
 
-  const postedAt = brisbaneDayStart(drillDate);
+  const postedAt = drillOpensAt(drillDate);
   const now = new Date();
+  if (now < postedAt) return res.status(403).json({ error: "Today's drill opens at 9am." });
   const elapsedSeconds = Math.max(0, Math.round((now - postedAt) / 1000));
 
   const { error } = await supabase.from('strata_drill_entries').insert({
