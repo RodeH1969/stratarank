@@ -587,28 +587,37 @@ function App() {
               Ranking ELITE strata managers across Qld
             </p>
           </div>
-          <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1">
-            {[
-              { id: "drill", label: "🧠 Daily Drill", shortLabel: "🧠 Drill" },
-              { id: "dotm", label: "Win of the Month", shortLabel: "Win of Month" },
-              { id: "log", label: "Every Win", shortLabel: "Every Win" },
-              { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
-              { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
-            ].map(({ id, label, shortLabel }) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                className={
-                  id === "report"
-                    ? `px-3 py-2.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap text-center text-slate-900 ${tab === id ? "claim-tab-active" : "claim-tab"}`
-                    : `px-3 py-2.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-medium whitespace-nowrap text-center transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`
-                }
-              >
-                <span className="sm:hidden">{shortLabel}</span>
-                <span className="hidden sm:inline">{label}</span>
-              </button>
-            ))}
-          </nav>
+          <div className="flex flex-wrap items-center justify-center sm:justify-between gap-2.5">
+            <button
+              onClick={() => setTab("drill")}
+              className={`gold-pulse-ring w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-extrabold whitespace-nowrap text-center text-slate-900 border-2 transition-colors ${
+                tab === "drill" ? "bg-amber-400 border-slate-900 shadow-md" : "bg-gradient-to-br from-amber-300 to-amber-500 border-amber-600 hover:from-amber-200 hover:to-amber-400"
+              }`}
+            >
+              🧠 Daily Drill
+            </button>
+            <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1 w-full sm:w-auto">
+              {[
+                { id: "dotm", label: "Win of the Month", shortLabel: "Win of Month" },
+                { id: "log", label: "Every Win", shortLabel: "Every Win" },
+                { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
+                { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
+              ].map(({ id, label, shortLabel }) => (
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  className={
+                    id === "report"
+                      ? `px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap text-center text-slate-900 ${tab === id ? "claim-tab-active" : "claim-tab"}`
+                      : `px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-medium whitespace-nowrap text-center transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`
+                  }
+                >
+                  <span className="sm:hidden">{shortLabel}</span>
+                  <span className="hidden sm:inline">{label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
           {tab !== "drill" && <MetricInfoButton />}
         </header>
 
