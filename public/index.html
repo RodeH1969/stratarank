@@ -1346,6 +1346,7 @@ function DailyDrill() {
   const [result, setResult] = useState(null);
   const [winners, setWinners] = useState(null);
   const [winnersError, setWinnersError] = useState(null);
+  const [winnersDate, setWinnersDate] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -1383,13 +1384,18 @@ function DailyDrill() {
 
   // Winners are judged by hand and can land any time, so keep polling —
   // not just a once-off load like the old auto-marked leaderboard.
+  const drillDay = drill ? drill.drillDate : null;
+  const drillLocked = drill ? drill.locked : null;
   useEffect(() => {
-    if (!drill) return;
+    if (!drillDay) return;
     let cancelled = false;
     const load = async () => {
       try {
-        const r = await api(`/api/drill/winners?date=${drill.drillDate}`);
-        if (!cancelled) setWinners(r.entries);
+        // No date: the server sends today's winners once today's task is
+        // live, otherwise the last drill's — so they stay up until the
+        // next task goes live.
+        const r = await api("/api/drill/winners");
+        if (!cancelled) { setWinners(r.entries); setWinnersDate(r.drillDate); }
       } catch (e) {
         if (!cancelled) setWinnersError(e.message);
       }
@@ -1397,7 +1403,7 @@ function DailyDrill() {
     load();
     const id = setInterval(load, 20000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [drill]);
+  }, [drillDay, drillLocked]);
 
   const setAnswer = (taskId, text) => setDrillAnswers((a) => ({ ...a, [taskId]: text }));
 
@@ -1438,6 +1444,8 @@ function DailyDrill() {
 
   const dp = drillDateParts(drill.drillDate);
   const isWeekend = dp.dow === 0 || dp.dow === 6;
+  const wp = drillDateParts(winnersDate || drill.drillDate);
+  const winnersAreToday = !winnersDate || winnersDate === drill.drillDate;
   const shareText = `🧠 Strata Daily Drill\n📅 ${DRILL_DAYS_SHORT[dp.dow]} ${dp.d} ${DRILL_MONTHS_SHORT[dp.m]}\n⏱ Answered in ${result ? elapsedLabel(result.elapsedSeconds) : ""}\nThink you can beat me?`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
@@ -1534,13 +1542,23 @@ function DailyDrill() {
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
-        <p className="font-serif text-xl font-bold text-slate-900 mb-3 text-center">🏆 Today's Winners</p>
+        <p className="font-serif text-xl font-bold text-slate-900 text-center">🏆 Winners</p>
+        {winnersDate && (
+          <>
+            <p className="font-serif text-lg font-bold text-amber-800 text-center leading-tight">
+              {DRILL_DAYS_LONG[wp.dow]} {wp.d} {DRILL_MONTHS_LONG[wp.m]}
+            </p>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-900 text-center mb-3">
+              {winnersAreToday ? "Today's drill" : "From the last drill — stays up until the next task goes live"}
+            </p>
+          </>
+        )}
         {winnersError ? (
           <p className="text-sm text-rose-600 text-center">Couldn't load the board right now.</p>
         ) : !winners ? (
           <p className="text-sm text-slate-900 text-center">Loading…</p>
         ) : winners.length === 0 ? (
-          <p className="text-sm text-slate-900 text-center">Winners announced at 11:30am daily</p>
+          <p className="text-sm text-slate-900 text-center">{winnersAreToday || !winnersDate ? "Winners announced at 11:30am daily" : `No winners were named for ${DRILL_DAYS_LONG[wp.dow]} ${wp.d} ${DRILL_MONTHS_LONG[wp.m]}.`}</p>
         ) : (
           <>
             <div className="space-y-3">

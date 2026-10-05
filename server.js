@@ -757,10 +757,26 @@ app.post('/api/drill/submit', async (req, res) => {
   res.json({ drillDate, elapsedSeconds });
 });
 
-// Today's (or a given day's) submissions marked correct, fastest first.
-// The first five get their photo/logo (if the admin's attached one).
+// Winners for a day — submissions marked correct, fastest first. The first
+// five get their photo/logo (if the admin's attached one). With no date
+// given: today's winners if today's task has been launched, otherwise the
+// most recent launched day's, so the last winners stay up until the next
+// task goes live.
 app.get('/api/drill/winners', async (req, res) => {
-  const drillDate = isDateStr(req.query.date) ? req.query.date : brisbaneDateStr();
+  let drillDate;
+  if (isDateStr(req.query.date)) {
+    drillDate = req.query.date;
+  } else {
+    const today = brisbaneDateStr();
+    const { data: recent, error: rErr } = await supabase
+      .from('strata_drill_launches')
+      .select('drill_date')
+      .lte('drill_date', today)
+      .order('drill_date', { ascending: false })
+      .limit(1);
+    if (rErr) return res.status(500).json({ error: rErr.message });
+    drillDate = recent && recent[0] ? recent[0].drill_date : today;
+  }
   const { data, error } = await supabase
     .from('strata_drill_entries')
     .select('name, role, company, elapsed_seconds, photo_url, logo_url')
