@@ -1,10 +1,10 @@
 # Strata Daily Drill question bank
 
 `tasks.json` holds the pool the Daily Drill draws from — 100 practical,
-scenario-based tasks. Each day's drill is one task, in order
-(day 1 → task 1, day 2 → task 2, …), wrapping back to task 1
-after 100 days. To change how many a day, set `DRILL_SET_SIZE` in
-`server.js`.
+scenario-based tasks. There's no automatic rotation: each day an admin
+picks one from the Daily Drill admin tab (it lists the whole bank) and
+hits **Launch**, which starts the public clock. Until then the public
+tab shows "goes live at 9am".
 
 This file is never sent to visitors' browsers directly (the server
 blocks it, since it holds the model answers) — only read by the server

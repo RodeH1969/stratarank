@@ -178,3 +178,12 @@ create table if not exists strata_drill_entries (
   unique (drill_date, name, company)
 );
 create index if not exists idx_drill_entries_date on strata_drill_entries(drill_date, is_correct, elapsed_seconds);
+
+-- Daily Drill launches. Each day an admin picks a question from the task
+-- bank and hits Launch; this records which one, and when (the public clock
+-- starts from launched_at). No row for a day = not launched yet.
+create table if not exists strata_drill_launches (
+  drill_date date primary key,
+  task_id int not null,
+  launched_at timestamptz not null default now()
+);

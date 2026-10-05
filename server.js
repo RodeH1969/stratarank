@@ -651,19 +651,21 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
 //
 // A hook to get people checking the site daily, and into the habit of
 // coming back — from there they're one tap from The Scoop. One practical,
-// scenario-based task a day, pulled in order from the 100-task bank in
-// public/Daily Drill/tasks.json (day 1 = task 1, day 2 = task 2, wrapping
-// after 100 days). Anyone can play; they write a freeform answer
-// and say who they are and what strata company they're with
-// (honour system — not verified against anything).
+// scenario-based task a day, chosen by hand from the 100-task bank in
+// public/Daily Drill/tasks.json. Each day Rod picks a task in the Daily
+// Drill admin tab and hits Launch — that records a row in
+// strata_drill_launches and starts the clock. Until then, the public tab
+// shows a "goes live at 9am" holding card. Anyone can play; they write a
+// freeform answer and say who they are and what strata company they're
+// with (honour system — not verified against anything).
 //
 // There's no auto-marking a freeform answer, so every submission starts
 // as "pending" (is_correct = null) until Rod reads it against the task
 // bank's model answer and marking guide from the Daily Drill admin tab
 // and marks it correct or incorrect by hand. Only submissions marked
 // correct ever appear on the public board, ranked by how fast they
-// answered — timed from when that day's task went live (9am
-// Brisbane time) to when the server received their submission.
+// answered — timed from the moment the day's task was launched to when
+// the server received their submission.
 
 const DRILL_TASKS_PATH = path.join(__dirname, 'public', 'Daily Drill', 'tasks.json');
 let DRILL_TASKS = [];
@@ -672,47 +674,47 @@ try {
 } catch (err) {
   console.error('Could not load Daily Drill tasks from', DRILL_TASKS_PATH, err.message);
 }
-const DRILL_SET_SIZE = 1;
+const drillTaskById = (id) => DRILL_TASKS.find((t) => t.id === id) || null;
 
 // Queensland doesn't observe daylight saving, so Brisbane is always a
 // fixed UTC+10 — no timezone-DB lookup needed.
 function brisbaneDateStr(d = new Date()) {
   return new Date(d.getTime() + 10 * 3600 * 1000).toISOString().slice(0, 10);
 }
-function brisbaneDayStart(dateStr) {
-  return new Date(`${dateStr}T00:00:00+10:00`);
-}
-const DRILL_OPEN_HOUR = 9; // each day's task goes live at 9am Brisbane time
-function drillOpensAt(dateStr) {
-  return new Date(brisbaneDayStart(dateStr).getTime() + DRILL_OPEN_HOUR * 3600 * 1000);
-}
-const DRILL_EPOCH = '2026-10-05'; // day 0 — first set in the bank
-function tasksForDate(dateStr) {
-  const setCount = Math.floor(DRILL_TASKS.length / DRILL_SET_SIZE);
-  if (setCount === 0) return [];
-  const daysSince = Math.floor((brisbaneDayStart(dateStr) - brisbaneDayStart(DRILL_EPOCH)) / 86400000);
-  const setIdx = ((daysSince % setCount) + setCount) % setCount;
-  return DRILL_TASKS.slice(setIdx * DRILL_SET_SIZE, setIdx * DRILL_SET_SIZE + DRILL_SET_SIZE);
+const isDateStr = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+// The launch row for a day (which task, and when it went live), or null.
+async function getDrillLaunch(drillDate) {
+  const { data, error } = await supabase
+    .from('strata_drill_launches')
+    .select('task_id, launched_at')
+    .eq('drill_date', drillDate)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data || null;
 }
 
-// Today's task(s) — scenario and instructions only, never the model
-// answer or marking guide.
-app.get('/api/drill/today', (req, res) => {
+// Today's task — scenario and instructions only, never the model answer
+// or marking guide. Locked (no tasks) until Rod hits Launch.
+app.get('/api/drill/today', async (req, res) => {
   const drillDate = brisbaneDateStr();
-  const tasks = tasksForDate(drillDate);
-  if (tasks.length === 0) return res.status(500).json({ error: 'No Daily Drill tasks loaded.' });
-  const opensAt = drillOpensAt(drillDate);
-  const locked = new Date() < opensAt;
-  res.json({
-    drillDate,
-    postedAt: opensAt.toISOString(),
-    locked,
-    tasks: locked ? [] : tasks.map((t) => ({ id: t.id, section: t.section, title: t.title, scenario: t.scenario, instructions: t.instructions })),
-  });
+  try {
+    const launch = await getDrillLaunch(drillDate);
+    const task = launch ? drillTaskById(launch.task_id) : null;
+    if (!launch || !task) return res.json({ drillDate, postedAt: null, locked: true, tasks: [] });
+    res.json({
+      drillDate,
+      postedAt: new Date(launch.launched_at).toISOString(),
+      locked: false,
+      tasks: [{ id: task.id, section: task.section, title: task.title, scenario: task.scenario, instructions: task.instructions }],
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Submit today's answer(s) in one go. Elapsed time is computed here,
-// server-side, from the server clock — never trust a client-supplied
+// Submit today's answer. Elapsed time is computed here, server-side, from
+// the server clock and the launch time — never trust a client-supplied
 // timestamp. Correctness is left null (pending) — an admin judges it.
 app.post('/api/drill/submit', async (req, res) => {
   const { name, role, company, answers } = req.body;
@@ -720,33 +722,28 @@ app.post('/api/drill/submit', async (req, res) => {
   if (!company || !company.trim()) return res.status(400).json({ error: 'Strata company is required.' });
 
   const drillDate = brisbaneDateStr();
-  const tasks = tasksForDate(drillDate);
-  if (tasks.length === 0) return res.status(500).json({ error: 'No Daily Drill tasks loaded.' });
-
-  if (!Array.isArray(answers) || answers.length !== tasks.length) {
-    return res.status(400).json({ error: `Please answer all ${tasks.length} tasks.` });
+  let launch;
+  try {
+    launch = await getDrillLaunch(drillDate);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
   }
-  const taskIds = new Set(tasks.map((t) => t.id));
-  const cleanAnswers = [];
-  for (const a of answers) {
-    const text = (a && a.text || '').trim();
-    if (!taskIds.has(a && a.taskId) || !text) {
-      return res.status(400).json({ error: `Please answer all ${tasks.length} tasks.` });
-    }
-    cleanAnswers.push({ taskId: a.taskId, text });
-  }
+  const task = launch ? drillTaskById(launch.task_id) : null;
+  if (!launch || !task) return res.status(403).json({ error: "Today's drill hasn't started yet." });
 
-  const postedAt = drillOpensAt(drillDate);
-  const now = new Date();
-  if (now < postedAt) return res.status(403).json({ error: "Today's drill opens at 9am." });
-  const elapsedSeconds = Math.max(0, Math.round((now - postedAt) / 1000));
+  const text = Array.isArray(answers) && answers.length === 1 && answers[0] && answers[0].taskId === task.id
+    ? String(answers[0].text || '').trim()
+    : '';
+  if (!text) return res.status(400).json({ error: 'Please write your answer.' });
+
+  const elapsedSeconds = Math.max(0, Math.round((Date.now() - new Date(launch.launched_at).getTime()) / 1000));
 
   const { error } = await supabase.from('strata_drill_entries').insert({
     drill_date: drillDate,
     name: name.trim(),
     role: (role || '').trim() || null,
     company: company.trim(),
-    answers: cleanAnswers,
+    answers: [{ taskId: task.id, text }],
     is_correct: null,
     elapsed_seconds: elapsedSeconds,
   });
@@ -763,7 +760,7 @@ app.post('/api/drill/submit', async (req, res) => {
 // Today's (or a given day's) submissions marked correct, fastest first.
 // The first five get their photo/logo (if the admin's attached one).
 app.get('/api/drill/winners', async (req, res) => {
-  const drillDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : brisbaneDateStr();
+  const drillDate = isDateStr(req.query.date) ? req.query.date : brisbaneDateStr();
   const { data, error } = await supabase
     .from('strata_drill_entries')
     .select('name, role, company, elapsed_seconds, photo_url, logo_url')
@@ -785,42 +782,102 @@ app.get('/api/drill/winners', async (req, res) => {
   });
 });
 
-// Admin: every submission for a day (pending, correct and incorrect
-// alike), plus that day's full task set including model answers and
-// marking guides, so Rod can judge each written answer against them.
-app.get('/api/admin/drill', async (req, res) => {
-  const drillDate = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : brisbaneDateStr();
-  const tasks = tasksForDate(drillDate);
+const drillTaskFull = (t) => ({
+  id: t.id,
+  section: t.section,
+  title: t.title,
+  scenario: t.scenario,
+  instructions: t.instructions,
+  modelAnswer: t.modelAnswer,
+  markingGuide: t.markingGuide,
+});
+
+// Admin: the whole question bank, with every date each task has been
+// launched on, plus today's launch (if any) — for the "pick today's
+// question" list.
+app.get('/api/admin/drill/tasks', async (req, res) => {
   const { data, error } = await supabase
-    .from('strata_drill_entries')
-    .select('*')
-    .eq('drill_date', drillDate)
-    .order('elapsed_seconds', { ascending: true });
+    .from('strata_drill_launches')
+    .select('drill_date, task_id, launched_at')
+    .order('drill_date', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
+  const usedOn = {};
+  for (const l of data) (usedOn[l.task_id] = usedOn[l.task_id] || []).push(l.drill_date);
+  const today = brisbaneDateStr();
+  const todays = data.find((l) => l.drill_date === today);
   res.json({
-    drillDate,
-    tasks: tasks.map((t) => ({
-      id: t.id,
-      section: t.section,
-      title: t.title,
-      scenario: t.scenario,
-      instructions: t.instructions,
-      modelAnswer: t.modelAnswer,
-      markingGuide: t.markingGuide,
-    })),
-    entries: data.map((e) => ({
-      id: e.id,
-      name: e.name,
-      role: e.role || '',
-      company: e.company,
-      answers: e.answers,
-      isCorrect: e.is_correct,
-      elapsedSeconds: e.elapsed_seconds,
-      photoUrl: e.photo_url || '',
-      logoUrl: e.logo_url || '',
-      submittedAt: e.submitted_at,
-    })),
+    today,
+    launch: todays ? { taskId: todays.task_id, launchedAt: todays.launched_at } : null,
+    tasks: DRILL_TASKS.map((t) => ({ ...drillTaskFull(t), usedOn: usedOn[t.id] || [] })),
   });
+});
+
+// Admin: launch today's question — records the pick and starts the clock.
+// Can be switched to a different question only while nobody's submitted
+// yet (otherwise their answers would belong to a different question).
+app.post('/api/admin/drill/launch', async (req, res) => {
+  const taskId = Number(req.body && req.body.taskId);
+  if (!drillTaskById(taskId)) return res.status(400).json({ error: 'Unknown question.' });
+  const drillDate = brisbaneDateStr();
+  try {
+    const existing = await getDrillLaunch(drillDate);
+    if (existing) {
+      const { count, error: cErr } = await supabase
+        .from('strata_drill_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('drill_date', drillDate);
+      if (cErr) return res.status(500).json({ error: cErr.message });
+      if (count > 0) return res.status(409).json({ error: "Today's drill already has submissions, so the question can't be changed." });
+    }
+    const launchedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('strata_drill_launches')
+      .upsert({ drill_date: drillDate, task_id: taskId, launched_at: launchedAt }, { onConflict: 'drill_date' });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ drillDate, launch: { taskId, launchedAt } });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: every submission for a day (pending, correct and incorrect
+// alike), plus that day's launched question including its model answer
+// and marking guide, so Rod can judge each written answer against them.
+app.get('/api/admin/drill', async (req, res) => {
+  const drillDate = isDateStr(req.query.date) ? req.query.date : brisbaneDateStr();
+  try {
+    const launch = await getDrillLaunch(drillDate);
+    const { data, error } = await supabase
+      .from('strata_drill_entries')
+      .select('*')
+      .eq('drill_date', drillDate)
+      .order('elapsed_seconds', { ascending: true });
+    if (error) return res.status(500).json({ error: error.message });
+    // Entries remember which task they answered, so judge against that
+    // (covers older days from before the launch table existed too).
+    const ids = new Set(data.flatMap((e) => (e.answers || []).map((a) => a.taskId)));
+    if (launch) ids.add(launch.task_id);
+    const tasks = [...ids].map(drillTaskById).filter(Boolean).map(drillTaskFull);
+    res.json({
+      drillDate,
+      launch: launch ? { taskId: launch.task_id, launchedAt: launch.launched_at } : null,
+      tasks,
+      entries: data.map((e) => ({
+        id: e.id,
+        name: e.name,
+        role: e.role || '',
+        company: e.company,
+        answers: e.answers,
+        isCorrect: e.is_correct,
+        elapsedSeconds: e.elapsed_seconds,
+        photoUrl: e.photo_url || '',
+        logoUrl: e.logo_url || '',
+        submittedAt: e.submitted_at,
+      })),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Admin: judge a submission correct / incorrect / back to pending.

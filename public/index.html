@@ -1325,10 +1325,13 @@ function DailyDrill() {
     return () => { cancelled = true; };
   }, [reloadKey]);
 
-  // Page was opened before 9am: unlock by itself when the task goes live.
+  // Task not launched yet: keep checking, so the page unlocks by itself
+  // the moment it goes live.
   useEffect(() => {
-    if (drill && drill.locked && now >= new Date(drill.postedAt).getTime()) setReloadKey((k) => k + 1);
-  }, [now, drill]);
+    if (!drill || !drill.locked) return;
+    const id = setInterval(() => setReloadKey((k) => k + 1), 10000);
+    return () => clearInterval(id);
+  }, [drill]);
 
   useEffect(() => {
     if (result) return; // stop the clock once submitted
@@ -1391,7 +1394,7 @@ function DailyDrill() {
     return <div className="text-center text-slate-900 py-16">Loading today's drill…</div>;
   }
 
-  const liveElapsed = Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000));
+  const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
   return (
     <div className="max-w-xl mx-auto space-y-5">

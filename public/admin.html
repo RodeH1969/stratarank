@@ -1665,33 +1665,143 @@ function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved }) {
   );
 }
 
+const brisbaneTime = (iso) => new Date(iso).toLocaleTimeString("en-AU", { timeZone: "Australia/Brisbane", hour: "numeric", minute: "2-digit" });
+
+function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId }) {
+  const [query, setQuery] = useState("");
+  const [openId, setOpenId] = useState(null);
+  const q = query.trim().toLowerCase();
+  const rows = library.filter((t) => !q || `${t.id} ${t.title} ${t.section} ${t.scenario}`.toLowerCase().includes(q));
+  const locked = !!launch && hasSubmissions;
+
+  return (
+    <div className="mb-8">
+      <h3 className="font-semibold text-slate-900 mb-1">Question bank ({library.length})</h3>
+      <p className="text-xs text-slate-500 mb-3">
+        {launch
+          ? locked
+            ? "Today's question is live and already has submissions, so it can't be switched."
+            : "Today's question is live. Nobody's answered yet, so you can still switch it."
+          : "Pick today's question and hit Launch — the clock starts the moment you do."}
+      </p>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search questions…"
+        className="w-full border border-slate-300 rounded px-3 py-2 text-sm mb-3"
+      />
+      <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-[32rem] overflow-y-auto">
+        {rows.length === 0 && <p className="text-sm text-slate-400 p-4">No questions match.</p>}
+        {rows.map((t) => {
+          const isLive = launch && launch.taskId === t.id;
+          const open = openId === t.id;
+          return (
+            <div key={t.id} className={isLive ? "bg-teal-50" : "bg-white"}>
+              <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                <button onClick={() => setOpenId(open ? null : t.id)} className="text-slate-400 hover:text-slate-700 text-sm shrink-0" title="Read it">{open ? "▾" : "▸"}</button>
+                <span className="w-7 text-xs font-bold text-slate-400 shrink-0">{t.id}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-900">{t.title}</p>
+                  <p className="text-xs text-slate-500">{t.section}</p>
+                </div>
+                {t.usedOn.length > 0 && (
+                  <span className="text-xs text-slate-500 shrink-0" title={t.usedOn.join(", ")}>Used {t.usedOn[0]}{t.usedOn.length > 1 ? ` +${t.usedOn.length - 1}` : ""}</span>
+                )}
+                {isLive ? (
+                  <span className="text-xs font-bold px-2 py-1 rounded-full bg-teal-600 text-white shrink-0">LIVE TODAY</span>
+                ) : (
+                  <button
+                    onClick={() => onLaunch(t)}
+                    disabled={locked || busyId !== null}
+                    className="text-xs font-extrabold uppercase tracking-wide px-3 py-1.5 rounded-full bg-red-600 text-white hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                  >
+                    {busyId === t.id ? "…" : launch ? "Switch to this" : "Launch"}
+                  </button>
+                )}
+              </div>
+              {open && (
+                <div className="px-4 pb-4 text-sm text-slate-700 space-y-2">
+                  <p className="whitespace-pre-wrap">{t.scenario}</p>
+                  <p className="whitespace-pre-wrap">{t.instructions}</p>
+                  <details className="text-xs text-slate-500">
+                    <summary className="cursor-pointer text-teal-700 hover:underline">Model answer &amp; marking guide</summary>
+                    <p className="whitespace-pre-wrap mt-1"><span className="font-semibold">Model answer:</span> {t.modelAnswer}</p>
+                    <p className="whitespace-pre-wrap mt-2"><span className="font-semibold">Marking guide:</span> {t.markingGuide}</p>
+                  </details>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function DrillAdmin() {
   const [date, setDate] = useState(brisbaneToday());
   const [payload, setPayload] = useState(null);
+  const [library, setLibrary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tasksOpen, setTasksOpen] = useState(false);
+  const [busyId, setBusyId] = useState(null);
+  const isToday = date === brisbaneToday();
 
-  const load = async (d) => {
-    setLoading(true);
-    setError(null);
+  const load = async (d, silent) => {
+    if (!silent) setLoading(true);
+    if (!silent) setError(null);
     try {
       const r = await api(`/api/admin/drill?date=${d}`);
       setPayload(r);
     } catch (e) {
-      setError(e.message);
+      if (!silent) setError(e.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+    }
+  };
+
+  const loadLibrary = async () => {
+    try {
+      setLibrary(await api("/api/admin/drill/tasks"));
+    } catch (e) {
+      setError(e.message);
     }
   };
 
   useEffect(() => { load(date); }, [date]);
+  useEffect(() => { if (isToday && !library) loadLibrary(); }, [isToday]);
+
+  // Submissions arrive through the day — keep today's list fresh.
+  useEffect(() => {
+    if (!isToday) return;
+    const id = setInterval(() => load(date, true), 20000);
+    return () => clearInterval(id);
+  }, [date, isToday]);
 
   const shiftDate = (days) => {
     const [y, m, d] = date.split("-").map(Number);
     const dt = new Date(Date.UTC(y, m - 1, d));
     dt.setUTCDate(dt.getUTCDate() + days);
     setDate(dt.toISOString().slice(0, 10));
+  };
+
+  const launchTask = async (t) => {
+    const switching = !!(payload && payload.launch);
+    const msg = switching
+      ? `Switch today's question to "${t.title}"? Nobody has answered yet.`
+      : `Launch "${t.title}" now? The public clock starts immediately.`;
+    if (!window.confirm(msg)) return;
+    setBusyId(t.id);
+    setError(null);
+    try {
+      await api("/api/admin/drill/launch", { method: "POST", body: JSON.stringify({ taskId: t.id }) });
+      await Promise.all([load(date, true), loadLibrary()]);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const onVerdict = async (entryId, isCorrect) => {
@@ -1712,6 +1822,7 @@ function DrillAdmin() {
 
   const pending = payload ? payload.entries.filter((e) => e.isCorrect === null) : [];
   const judged = payload ? payload.entries.filter((e) => e.isCorrect !== null) : [];
+  const liveTask = payload && payload.launch ? payload.tasks.find((t) => t.id === payload.launch.taskId) : null;
 
   return (
     <section className="mb-10">
@@ -1721,7 +1832,7 @@ function DrillAdmin() {
         <button onClick={() => shiftDate(-1)} className="px-2 py-1 rounded border border-slate-300 text-sm hover:bg-slate-50">&larr;</button>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={brisbaneToday()} className="border border-slate-300 rounded px-2 py-1 text-sm" />
         <button onClick={() => shiftDate(1)} disabled={date >= brisbaneToday()} className="px-2 py-1 rounded border border-slate-300 text-sm hover:bg-slate-50 disabled:opacity-40">&rarr;</button>
-        {date !== brisbaneToday() && (
+        {!isToday && (
           <button onClick={() => setDate(brisbaneToday())} className="text-xs text-teal-700 hover:underline">Today</button>
         )}
       </div>
@@ -1730,23 +1841,51 @@ function DrillAdmin() {
 
       {payload && (
         <>
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
-            <button onClick={() => setTasksOpen((o) => !o)} className="text-xs font-bold uppercase tracking-wide text-amber-700">
-              {tasksOpen ? "▾" : "▸"} {payload.tasks.length === 1 ? "Today's task" : `Today's ${payload.tasks.length} tasks`}
-            </button>
-            {tasksOpen && (
-              <div className="mt-3 space-y-3">
-                {payload.tasks.map((t, i) => (
-                  <div key={t.id} className="border-t border-slate-200 pt-2">
-                    <p className="text-sm font-semibold text-slate-900">{i + 1}. {t.title}</p>
-                    <p className="text-xs text-slate-500 mb-1">{t.section}</p>
-                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{t.scenario}</p>
-                    <p className="text-sm text-slate-700 whitespace-pre-wrap mt-1">{t.instructions}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {isToday && (
+            <div className={`rounded-xl p-4 mb-6 border-2 ${payload.launch ? "bg-teal-50 border-teal-300" : "bg-amber-50 border-amber-300"}`}>
+              {payload.launch ? (
+                <>
+                  <p className="text-xs font-bold uppercase tracking-wide text-teal-800">Live now — launched {brisbaneTime(payload.launch.launchedAt)}</p>
+                  <p className="text-sm font-semibold text-slate-900 mt-1">{liveTask ? liveTask.title : `Question ${payload.launch.taskId}`}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Not launched yet</p>
+                  <p className="text-sm text-slate-900 mt-1">The public page is showing "goes live at 9am". Pick a question below and hit Launch.</p>
+                </>
+              )}
+            </div>
+          )}
+
+          {isToday && library && (
+            <DrillQuestionBank
+              library={library.tasks}
+              launch={payload.launch}
+              hasSubmissions={payload.entries.length > 0}
+              onLaunch={launchTask}
+              busyId={busyId}
+            />
+          )}
+
+          {payload.tasks.length > 0 && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
+              <button onClick={() => setTasksOpen((o) => !o)} className="text-xs font-bold uppercase tracking-wide text-amber-700">
+                {tasksOpen ? "▾" : "▸"} {isToday ? "Today's question" : "That day's question"}
+              </button>
+              {tasksOpen && (
+                <div className="mt-3 space-y-3">
+                  {payload.tasks.map((t) => (
+                    <div key={t.id} className="border-t border-slate-200 pt-2">
+                      <p className="text-sm font-semibold text-slate-900">{t.title}</p>
+                      <p className="text-xs text-slate-500 mb-1">{t.section}</p>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{t.scenario}</p>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap mt-1">{t.instructions}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <h3 className="font-semibold text-slate-900 mb-2">Pending review ({pending.length})</h3>
           {pending.length === 0 ? (
