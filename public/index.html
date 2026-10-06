@@ -38,6 +38,61 @@
   .drill-bars { gap: 3px; }
   .drill-bar:nth-child(n+17) { display: none; }
   @media (min-width: 640px) { .drill-bars { height: 52px; gap: 4px; } .drill-bar { width: 6px; } .drill-bar:nth-child(n+17) { display: block; } .drill-lab { font-size: 11px; } .drill-sub { font-size: 11px; } }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .font-serif { font-family: Georgia, "Times New Roman", serif; }
+
+  @keyframes claimPulseRing {
+    0%   { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.65), 0 0 0 0 rgba(217, 119, 6, 0.4); }
+    70%  { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0), 0 0 0 14px rgba(217, 119, 6, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0), 0 0 0 0 rgba(217, 119, 6, 0); }
+  }
+  @keyframes claimPulseRingPink {
+    0%   { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.65), 0 0 0 0 rgba(157, 23, 77, 0.4); }
+    70%  { box-shadow: 0 0 0 8px rgba(236, 72, 153, 0), 0 0 0 14px rgba(157, 23, 77, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0), 0 0 0 0 rgba(157, 23, 77, 0); }
+  }
+  @keyframes claimShimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+  .claim-tab {
+    background: linear-gradient(120deg, #fbcfe8, #ec4899, #f472b6, #be185d);
+    background-size: 300% 300%;
+    animation: claimPulseRingPink 2.2s ease-out infinite, claimShimmer 3s ease-in-out infinite;
+  }
+  .claim-tab-active {
+    animation: none;
+    background: linear-gradient(120deg, #ec4899, #9d174d);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
+  }
+  @keyframes bluePulseRing {
+    0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6), 0 0 0 0 rgba(30, 64, 175, 0.4); }
+    70%  { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0), 0 0 0 14px rgba(30, 64, 175, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0), 0 0 0 0 rgba(30, 64, 175, 0); }
+  }
+  .blue-pulse {
+    animation: bluePulseRing 2.2s ease-out infinite;
+  }
+  .gold-pulse-ring {
+    animation: claimPulseRing 2.2s ease-out infinite;
+  }
+  @keyframes redPulseRing {
+    0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.65); }
+    70%  { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  }
+  .red-pulse { animation: redPulseRing 1.6s ease-out infinite; }
+  @keyframes swGlow {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.35)); }
+    50%      { filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.75)); }
+  }
+  .sw-running { animation: swGlow 2s ease-in-out infinite; }
+  .sw-stopped { filter: drop-shadow(0 0 14px rgba(13, 148, 136, 0.55)); }
+  @keyframes swCrown {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(2.5px); }
+  }
+  .sw-crown { animation: swCrown 1s steps(1, end) infinite; }
 </style>
 </head>
 <body>
