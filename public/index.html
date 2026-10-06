@@ -606,7 +606,7 @@ function App() {
                 tab === "drill" ? "bg-amber-400 border-slate-900 shadow-md" : "bg-gradient-to-br from-amber-300 to-amber-500 border-amber-600 hover:from-amber-200 hover:to-amber-400"
               }`}
             >
-              🧠 Daily Drill
+              🧠 QLD Strata Brainiac
             </button>
             <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1 w-full sm:w-auto">
               {[
@@ -1310,24 +1310,24 @@ function DrillInfoButton() {
         className="red-pulse bg-red-600 hover:bg-red-700 text-white font-extrabold uppercase tracking-wide text-xs sm:text-sm px-4 py-2 rounded-full inline-flex items-center gap-2 shadow-md"
       >
         <span className="w-5 h-5 rounded-full bg-white text-red-600 text-xs font-black flex items-center justify-center shrink-0">?</span>
-        What's the Daily Drill?
+        How it works
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden text-left" onClick={(e) => e.stopPropagation()}>
             <div className="bg-red-600 text-white px-6 py-4 flex items-start justify-between">
-              <h3 className="font-serif text-2xl font-bold">🧠 The Daily Drill</h3>
+              <h3 className="font-serif text-2xl font-bold">🧠 QLD Strata Brainiac</h3>
               <button onClick={() => setOpen(false)} aria-label="Close" className="text-white/80 hover:text-white text-2xl leading-none shrink-0 ml-3">×</button>
             </div>
             <div className="p-6">
               <p className="font-serif text-xl text-slate-900 font-bold leading-snug">
-                Queensland's smartest strata managers battle it out daily — who's the smartest and the quickest?
+                One real task. Every day. Who's Queensland's smartest strata manager? The winner takes the crown — and their company takes the bragging rights.
               </p>
               <ul className="mt-4 space-y-2 text-base text-slate-900 font-medium">
                 <li>⏰ A fresh real-world task drops every day at 9am.</li>
                 <li>✍️ Write your answer. Hit submit. Beat the clock.</li>
                 <li>✅ Get it right and you're on the board.</li>
-                <li>⚡ Fastest correct answer wins the day.</li>
+                <li>⚡ Fastest correct answer is crowned Brainiac of the day.</li>
               </ul>
               <p className="mt-4 text-base text-slate-900 font-extrabold">Win it for the bragging rights — and a $20 Dan Murphy's voucher.</p>
               <button
@@ -1539,13 +1539,13 @@ function DailyDrill() {
   const isWeekend = dp.dow === 0 || dp.dow === 6;
   const wp = drillDateParts(winnersDate || drill.drillDate);
   const winnersAreToday = !winnersDate || winnersDate === drill.drillDate;
-  const shareText = `🧠 Strata Daily Drill\n📅 ${DRILL_DAYS_SHORT[dp.dow]} ${dp.d} ${DRILL_MONTHS_SHORT[dp.m]}\n⏱ Answered in ${result ? elapsedLabel(result.elapsedSeconds) : ""}\nThink you can beat me?`;
+  const shareText = `🧠 QLD Strata Brainiac\n📅 ${DRILL_DAYS_SHORT[dp.dow]} ${dp.d} ${DRILL_MONTHS_SHORT[dp.m]}\n⏱ Answered in ${result ? elapsedLabel(result.elapsedSeconds) : ""}\nThink you can beat me?`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
       <div className="text-center">
-        <h2 className="font-serif text-2xl mb-1">🧠 Strata Daily Drill</h2>
+        <h2 className="font-serif text-3xl font-bold mb-1">🧠 QLD Strata Brainiac</h2>
         <p className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">
           {DRILL_DAYS_LONG[dp.dow]} {dp.d} {DRILL_MONTHS_LONG[dp.m]}
         </p>
@@ -1584,7 +1584,7 @@ function DailyDrill() {
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
-          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR judges the best — the winner is announced below at 11:30am.</p>
+          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR crowns the Brainiac at 11:30am — shown below.</p>
           <p className="text-sm text-slate-900 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
           <DrillShareButton text={shareText} />
         </div>
@@ -1632,14 +1632,14 @@ function DailyDrill() {
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
-        <p className="font-serif text-xl font-bold text-slate-900 text-center">🏆 Winner</p>
+        <p className="font-serif text-xl font-bold text-slate-900 text-center">🏆 Today's Brainiac</p>
         {winnersDate && (
           <>
             <p className="font-serif text-lg font-bold text-amber-800 text-center leading-tight">
               {DRILL_DAYS_LONG[wp.dow]} {wp.d} {DRILL_MONTHS_LONG[wp.m]}
             </p>
             <p className="text-xs font-extrabold uppercase tracking-wide text-slate-900 text-center mb-3">
-              {winnersAreToday ? "Today's drill" : "From the last drill — stays up until the next task goes live"}
+              {winnersAreToday ? "Today's challenge" : "From the last challenge — stays up until the next task goes live"}
             </p>
           </>
         )}
@@ -1670,7 +1670,8 @@ function DailyDrill() {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-base font-extrabold text-slate-900 truncate">{e.name}</p>
-                      <p className="text-sm text-slate-900 break-words">{[e.role, e.company].filter(Boolean).join(" · ")}</p>
+                      {e.role && <p className="text-sm text-slate-900 break-words">{e.role}</p>}
+                      <p className="text-sm font-bold text-slate-900 break-words">Flying the flag for {e.company}</p>
                       <p className="text-sm font-extrabold text-amber-800">{elapsedLabel(e.elapsedSeconds)}</p>
                     </div>
                     {e.logoUrl && <img src={e.logoUrl} alt={e.company} className="h-12 max-w-[5rem] object-contain shrink-0" />}
