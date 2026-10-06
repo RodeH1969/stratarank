@@ -1413,11 +1413,11 @@ function DrillAudioCloud() {
           <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's daily drill</p>
           <div className={`drill-bars flex items-center my-1.5 sm:my-2 ${playing ? "on" : ""}`}>{bars}</div>
           <div className="flex items-center justify-center gap-2">
-            {btn("scenario", "Listen 1st")}
-            {btn("question", "Listen 2nd")}
+            {btn("scenario", "Facts")}
+            {btn("question", "Question")}
           </div>
           <p className="drill-sub font-semibold text-slate-700 mt-1.5">
-            {playing ? (current === "scenario" ? "Playing: scenario" : "Playing: question") : heard.scenario && heard.question ? "Replay anytime" : "Scenario first, then question"}
+            {playing ? (current === "scenario" ? "Playing: facts" : "Playing: question") : heard.scenario && heard.question ? "Replay anytime" : "Facts first, then question"}
           </p>
         </div>
       </div>
