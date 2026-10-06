@@ -381,7 +381,7 @@ function ManagerPhotoManager({ data, refresh }) {
     <section className="mb-10">
       <h2 className="font-serif text-2xl">Manager Photos</h2>
       <p className="text-sm text-slate-500 mt-1 mb-4">
-        Upload a photo and LinkedIn link for each manager — shown in a popup when their name is clicked on Rankings and Recent wins.
+        Upload a photo and LinkedIn link for each manager — shown in a popup when their name is clicked on Rankings and Recent deals.
         The public tip-off form no longer lets people pick an existing manager, so the same person can land here twice under slightly
         different spellings — use "Merge into…" below to combine duplicates and keep their points on one profile.
       </p>
@@ -495,9 +495,9 @@ function SponsorInvites({ data, refresh }) {
   const buildMessage = (invite) => {
     const winPhrase = invite.eventType === "renewal"
       ? `renewed ${invite.schemeName} to a ${invite.newTerm}-year term`
-      : `just won ${invite.schemeName} on a ${invite.newTerm}-year term`;
+      : `just landed ${invite.schemeName} on a ${invite.newTerm}-year term`;
     const subject = `${invite.nominatedBy} just moved up the QLD Strata Rankings — want in?`;
-    const body = `Hi,\n\n${invite.nominatedBy}${invite.nominatedByAgency ? ` at ${invite.nominatedByAgency}` : ""} ${winPhrase} on the QLD Strata Rankings — a live leaderboard tracking strata manager performance across Queensland.\n\n${invite.nominatedBy} thought ${invite.businessName} would be a great fit to sponsor this win. For $${SPONSORSHIP_PRICE}, your logo and a short tagline about your business get featured right next to this win on the rankings page, seen by strata managers and body corporates across QLD.\n\nInterested? Just reply here and we'll get you set up.\n\n— QLD Strata Rankings`;
+    const body = `Hi,\n\n${invite.nominatedBy}${invite.nominatedByAgency ? ` at ${invite.nominatedByAgency}` : ""} ${winPhrase} on the QLD Strata Rankings — a live leaderboard tracking strata manager performance across Queensland.\n\n${invite.nominatedBy} thought ${invite.businessName} would be a great fit to sponsor this deal. For $${SPONSORSHIP_PRICE}, your logo and a short tagline about your business get featured right next to this deal on the rankings page, seen by strata managers and body corporates across QLD.\n\nInterested? Just reply here and we'll get you set up.\n\n— QLD Strata Rankings`;
     return { subject, body };
   };
 
@@ -559,7 +559,7 @@ function SponsorInvites({ data, refresh }) {
     <section className="mb-10">
       <h2 className="font-serif text-2xl">Sponsor invites</h2>
       <p className="text-sm text-slate-500 mt-1 mb-3">
-        Tradies/contractors nominated by managers on a specific win. Accepting attaches their logo and tagline to that win on Recent wins — this is separate from the site-wide Sponsors strip.
+        Tradies/contractors nominated by managers on a specific deal. Accepting attaches their logo and tagline to that deal on Recent deals — this is separate from the site-wide Sponsors strip.
       </p>
       {error && <div className="mb-3 bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-700">{error}</div>}
       <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -634,7 +634,7 @@ function SponsorInvites({ data, refresh }) {
                       <img src={acceptForm.logoData} alt="preview" className="max-h-10 max-w-32 object-contain" />
                     </div>
                   )}
-                  <Field label="Tagline (shown next to the logo on this win)">
+                  <Field label="Tagline (shown next to the logo on this deal)">
                     <input
                       value={acceptForm.tagline}
                       onChange={(e) => setAcceptForm((f) => ({ ...f, tagline: e.target.value }))}
@@ -848,7 +848,7 @@ function RecordWin({ data, refresh }) {
 
   return (
     <section className="mb-10 max-w-lg">
-      <h2 className="font-serif text-2xl mb-4">Record a win</h2>
+      <h2 className="font-serif text-2xl mb-4">Record a deal</h2>
       <div className="space-y-3">
         <Field label="How was this scheme secured?">
           <select value={winType} onChange={(e) => { setWinType(e.target.value); setPrevTerm(""); }} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
@@ -929,14 +929,14 @@ function RecordWin({ data, refresh }) {
             <div>
               <label className="block text-sm text-slate-600 mb-1 flex items-center">
                 Scheme name
-                <InfoTooltip text="Never published — kept privately to verify the win is genuine." />
+                <InfoTooltip text="Never published — kept privately to verify the deal is genuine." />
               </label>
               <input value={schemeName} onChange={(e) => setSchemeName(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm text-slate-600 mb-1 flex items-center">
                 CTS number
-                <InfoTooltip text="Never published — kept privately to verify the win is genuine." />
+                <InfoTooltip text="Never published — kept privately to verify the deal is genuine." />
               </label>
               <input value={cts} onChange={(e) => setCts(e.target.value)} className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" />
             </div>
@@ -1370,14 +1370,14 @@ function NominationRow({ ev, manager, scheme, sponsorInvites, agencyLogos, refre
         <div>
           <label className="block text-sm text-slate-600 mb-1 flex items-center">
             Scheme name
-            <InfoTooltip text="Never published — kept privately to verify the win is genuine." />
+            <InfoTooltip text="Never published — kept privately to verify the deal is genuine." />
           </label>
           <input value={form.schemeName} onChange={(e) => setForm({ ...form, schemeName: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="block text-sm text-slate-600 mb-1 flex items-center">
             CTS number
-            <InfoTooltip text="Never published — kept privately to verify the win is genuine." />
+            <InfoTooltip text="Never published — kept privately to verify the deal is genuine." />
           </label>
           <input value={form.cts} onChange={(e) => setForm({ ...form, cts: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
         </div>
@@ -1532,7 +1532,7 @@ function AdminPanel({ data, refresh }) {
           { id: "agencies", label: "Agency Logos" },
           { id: "manager-photos", label: "Manager Photos" },
           { id: "sponsors", label: "Sponsors" },
-          { id: "record", label: "Record a win" },
+          { id: "record", label: "Record a deal" },
           { id: "nominations", label: "All nominations" },
           { id: "drill", label: "Daily Drill" },
         ].map(({ id, label }) => (
