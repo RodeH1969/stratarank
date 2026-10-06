@@ -1346,8 +1346,9 @@ function DrillInfoButton() {
 }
 
 function DrillAudioCloud() {
-  const [part, setPart] = useState("idle"); // idle | scenario | question | done
+  const [current, setCurrent] = useState(null); // scenario | question | null
   const [playing, setPlaying] = useState(false);
+  const [heard, setHeard] = useState({ scenario: false, question: false });
   const [audioError, setAudioError] = useState(null);
   const clips = useRef({});
 
@@ -1355,6 +1356,8 @@ function DrillAudioCloud() {
     if (!clips.current[name]) {
       const a = new Audio(`/api/drill/audio/${name}`);
       a.preload = "auto";
+      a.onended = () => { setPlaying(false); setHeard((h) => ({ ...h, [name]: true })); };
+      a.onerror = () => { setPlaying(false); setAudioError("Couldn't load the audio. Try again."); };
       clips.current[name] = a;
     }
     return clips.current[name];
@@ -1364,27 +1367,27 @@ function DrillAudioCloud() {
     Object.values(clips.current).forEach((a) => { a.pause(); a.src = ""; });
   }, []);
 
-  const start = (name) => {
+  // One button per clip: tap to play (restarts if it had finished), tap again to pause.
+  const toggle = (name) => {
     const a = clip(name);
-    a.onended = () => {
-      if (name === "scenario") start("question");
-      else { setPlaying(false); setPart("done"); }
-    };
-    a.onerror = () => { setPlaying(false); setAudioError("Couldn't load the audio. Try again."); };
-    setPart(name);
+    if (current === name && playing) { a.pause(); setPlaying(false); return; }
+    Object.entries(clips.current).forEach(([k, x]) => { if (k !== name) x.pause(); });
+    if (current !== name || a.ended) a.currentTime = 0;
+    setCurrent(name);
     setAudioError(null);
-    a.currentTime = 0;
-    a.play().then(() => setPlaying(true)).catch(() => { setPlaying(false); setAudioError("Tap Play to start the audio."); });
+    a.play().then(() => setPlaying(true)).catch(() => { setPlaying(false); setAudioError("Tap again to start the audio."); });
   };
 
-  const toggle = () => {
-    if (part === "idle" || part === "done") {
-      Object.values(clips.current).forEach((a) => a.pause());
-      return start("scenario");
-    }
-    const a = clip(part);
-    if (playing) { a.pause(); setPlaying(false); }
-    else a.play().then(() => setPlaying(true)).catch(() => {});
+  const btn = (name, label) => {
+    const on = current === name && playing;
+    return (
+      <button
+        onClick={() => toggle(name)}
+        className={`rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 border-2 ${on ? "bg-amber-400 text-slate-900 border-slate-900" : "bg-slate-900 text-amber-400 border-slate-900"} ${current === null && name === "scenario" ? "gold-pulse-ring" : ""}`}
+      >
+        {on ? "❚❚" : heard[name] ? "↻" : "▶"} {label}
+      </button>
+    );
   };
 
   const bars = Array.from({ length: 22 }, (_, i) => (
@@ -1409,14 +1412,12 @@ function DrillAudioCloud() {
         <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "30%", height: "46%" }}>
           <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's question</p>
           <div className={`drill-bars flex items-center my-1.5 sm:my-2 ${playing ? "on" : ""}`}>{bars}</div>
-          <button
-            onClick={toggle}
-            className="gold-pulse-ring bg-slate-900 text-amber-400 rounded-full px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2"
-          >
-            {playing ? "❚❚ Pause" : part === "done" ? "↻ Play again" : "▶ Play"}
-          </button>
+          <div className="flex items-center justify-center gap-2">
+            {btn("scenario", "Listen 1st")}
+            {btn("question", "Listen 2nd")}
+          </div>
           <p className="drill-sub font-semibold text-slate-700 mt-1.5">
-            {part === "idle" ? "Scenario, then question" : part === "done" ? "Replay anytime" : part === "scenario" ? "● ○ Scenario" : "○ ● Question"}
+            {playing ? (current === "scenario" ? "Playing: scenario" : "Playing: question") : heard.scenario && heard.question ? "Replay anytime" : "Scenario first, then question"}
           </p>
         </div>
       </div>
