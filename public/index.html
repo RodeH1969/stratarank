@@ -1657,30 +1657,30 @@ function DailyDrill() {
           <p className="text-sm text-slate-900 text-center">{winnersAreToday || !winnersDate ? "Winner announced at 11:30am daily" : `No winner was named for ${DRILL_DAYS_LONG[wp.dow]} ${wp.d} ${DRILL_MONTHS_LONG[wp.m]}.`}</p>
         ) : (
           <>
-            <div className="space-y-3">
+            <div>
               {winners.slice(0, 1).map((e, i) => {
-                const medal = ["🥇", "🥈", "🥉"][i] || null;
                 const initials = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
                 return (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 border-2 shadow-sm ${
-                      i === 0 ? "bg-gradient-to-br from-amber-100 to-amber-200 border-amber-500" : i < 3 ? "bg-amber-50 border-amber-300" : "bg-stone-50 border-amber-200"
-                    }`}
-                  >
-                    <span className="w-8 text-center text-2xl shrink-0 font-extrabold text-amber-800">{medal || i + 1}</span>
-                    {e.photoUrl ? (
-                      <img src={e.photoUrl} alt={e.name} className="w-14 h-14 rounded-full object-cover border-2 border-white shadow shrink-0" />
-                    ) : (
-                      <span className="w-14 h-14 rounded-full bg-amber-500 text-white font-extrabold text-lg flex items-center justify-center border-2 border-white shadow shrink-0">{initials}</span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-base font-extrabold text-slate-900 truncate">{e.name}</p>
-                      {e.role && <p className="text-sm text-slate-900 break-words">{e.role}</p>}
-                      <p className="text-sm font-bold text-slate-900 break-words">Flying the flag for {e.company}</p>
-                      <p className="text-sm font-extrabold text-amber-800">{elapsedLabel(e.elapsedSeconds)}</p>
+                  <div key={i} className="rounded-3xl overflow-hidden border-4 border-amber-400 shadow-lg bg-gradient-to-b from-amber-100 to-amber-200">
+                    <div className="relative">
+                      {e.photoUrl ? (
+                        <img src={e.photoUrl} alt={e.name} className="w-full aspect-square object-cover object-top block" />
+                      ) : (
+                        <div className="w-full aspect-square bg-amber-500 text-white font-extrabold flex items-center justify-center" style={{ fontSize: "5rem" }}>{initials}</div>
+                      )}
+                      <span className="absolute top-3 left-3 bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow">🥇 Brainiac</span>
+                      <span className="absolute top-3 right-3 bg-slate-900 text-amber-400 font-extrabold text-sm px-3 py-1.5 rounded-full shadow">{elapsedLabel(e.elapsedSeconds)}</span>
                     </div>
-                    {e.logoUrl && <img src={e.logoUrl} alt={e.company} className="h-12 max-w-[5rem] object-contain shrink-0" />}
+                    <div className="px-5 pt-4 pb-5 text-center">
+                      <p className="font-serif text-3xl font-bold text-slate-900 leading-tight break-words">{e.name}</p>
+                      {e.role && <p className="text-base font-semibold text-slate-800 mt-1 break-words">{e.role}</p>}
+                      {e.logoUrl && (
+                        <div className="bg-white rounded-2xl mt-4 px-4 py-3 flex items-center justify-center">
+                          <img src={e.logoUrl} alt={e.company} className="h-20 sm:h-24 max-w-full object-contain" />
+                        </div>
+                      )}
+                      <p className="text-base font-extrabold text-amber-900 mt-3 break-words">Flying the flag for {e.company}</p>
+                    </div>
                   </div>
                 );
               })}
