@@ -37,3 +37,14 @@ judging screen only.
 To add, remove or edit tasks: just edit this file and push like any
 other change. `id` doesn't need to be unique or sequential — the
 day's set of 10 is picked by position in the list, not by `id`.
+
+## Set 2
+
+`tasks-set2.json` is a second bank (65 questions, ids 101-165) in the same
+format, plus `set`, `num`, `difficulty` and `topic`. Admin has a Set 1 / Set 2
+switch on the question bank; launch from either. Set 2 has no model answers
+yet (`modelAnswer` and `markingGuide` are empty).
+
+Audio file names: Set 1 is `Scenario 1.mp3` / `Question 1.mp3`; Set 2 is
+`Set 2 Scenario 1.mp3` / `Set 2 Question 1.mp3`. The number is the question's
+number within its set, shown in admin.

@@ -674,6 +674,14 @@ try {
 } catch (err) {
   console.error('Could not load Daily Drill tasks from', DRILL_TASKS_PATH, err.message);
 }
+// Set 2 — a second bank, ids 101+ (so audio names stay unambiguous). No
+// model answers yet; judging for these is from the scenario and topic alone.
+try {
+  const set2 = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'Daily Drill', 'tasks-set2.json'), 'utf8'));
+  DRILL_TASKS = DRILL_TASKS.concat(set2);
+} catch (err) {
+  console.error('Could not load Daily Drill set 2:', err.message);
+}
 const drillTaskById = (id) => DRILL_TASKS.find((t) => t.id === id) || null;
 
 // Queensland doesn't observe daylight saving, so Brisbane is always a
@@ -836,6 +844,10 @@ app.get('/api/drill/winners', async (req, res) => {
 
 const drillTaskFull = (t) => ({
   id: t.id,
+  set: t.set || 1,
+  num: t.num || t.id,
+  difficulty: t.difficulty || null,
+  topic: t.topic || null,
   section: t.section,
   title: t.title,
   scenario: t.scenario,

@@ -1653,8 +1653,8 @@ function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved }) {
                 {t && (
                   <details className="text-xs text-slate-500">
                     <summary className="cursor-pointer text-teal-700 hover:underline">Model answer &amp; marking guide</summary>
-                    <p className="whitespace-pre-wrap mt-1"><span className="font-semibold">Model answer:</span> {t.modelAnswer}</p>
-                    <p className="whitespace-pre-wrap mt-2"><span className="font-semibold">Marking guide:</span> {t.markingGuide}</p>
+                    <p className="whitespace-pre-wrap mt-1"><span className="font-semibold">Model answer:</span> {t.modelAnswer || "None yet for this question."}</p>
+                    <p className="whitespace-pre-wrap mt-2"><span className="font-semibold">Marking guide:</span> {t.markingGuide || "None yet."}</p>
                   </details>
                 )}
               </div>
@@ -1687,11 +1687,12 @@ function DrillAudioUploader({ library, onDone }) {
     setLog([]);
     const out = [];
     for (const f of files) {
-      const m = /^(scenario|question)[\s_-]*(\d+)/i.exec(f.name);
-      if (!m) { out.push({ name: f.name, ok: false, msg: "Name must be like Scenario 12.mp3 or Question 12.mp3" }); setLog([...out]); continue; }
+      const m = /^(?:set\s*([12])[\s_-]*)?(scenario|question)[\s_-]*(\d+)/i.exec(f.name);
+      if (!m) { out.push({ name: f.name, ok: false, msg: "Name must be like Scenario 12.mp3 or Set 2 Question 12.mp3" }); setLog([...out]); continue; }
+      const taskId = (m[1] === "2" ? 100 : 0) + Number(m[3]);
       try {
         const data = await readB64(f);
-        await api("/api/admin/drill/audio", { method: "POST", body: JSON.stringify({ taskId: Number(m[2]), part: m[1].toLowerCase(), data }) });
+        await api("/api/admin/drill/audio", { method: "POST", body: JSON.stringify({ taskId, part: m[2].toLowerCase(), data }) });
         out.push({ name: f.name, ok: true });
       } catch (e) {
         out.push({ name: f.name, ok: false, msg: e.message });
@@ -1709,7 +1710,7 @@ function DrillAudioUploader({ library, onDone }) {
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
       <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Audio ({complete} of {library.length} questions ready)</p>
-      <p className="text-xs text-slate-500 mt-1 mb-3">Pick as many MP3s as you like. Name them <span className="font-semibold">Scenario 1.mp3</span> and <span className="font-semibold">Question 1.mp3</span> (the number is the question number). Re-uploading replaces the old clip.</p>
+      <p className="text-xs text-slate-500 mt-1 mb-3">Pick as many MP3s as you like. Set 1: <span className="font-semibold">Scenario 1.mp3</span> and <span className="font-semibold">Question 1.mp3</span>. Set 2: <span className="font-semibold">Set 2 Scenario 1.mp3</span> and <span className="font-semibold">Set 2 Question 1.mp3</span>. Each row below shows the exact names it needs. Re-uploading replaces the old clip.</p>
       <input ref={inputRef} type="file" accept="audio/*,.mp3" multiple disabled={busy} onChange={(e) => upload(e.target.files)} className="text-sm" />
       {busy && <p className="text-xs text-slate-600 mt-2">Uploading… {log.length}</p>}
       {!busy && log.length > 0 && (
@@ -1725,13 +1726,23 @@ function DrillAudioUploader({ library, onDone }) {
 function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId }) {
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState(null);
+  const [setNo, setSetNo] = useState(1);
   const q = query.trim().toLowerCase();
-  const rows = library.filter((t) => !q || `${t.id} ${t.title} ${t.section} ${t.scenario}`.toLowerCase().includes(q));
+  const setCount = (n) => library.filter((t) => (t.set || 1) === n).length;
+  const rows = library.filter((t) => (t.set || 1) === setNo && (!q || `${t.num || t.id} ${t.title} ${t.section} ${t.scenario}`.toLowerCase().includes(q)));
+  const fileBase = (t) => `${(t.set || 1) === 2 ? "Set 2 " : ""}`;
   const locked = !!launch && hasSubmissions;
 
   return (
     <div className="mb-8">
-      <h3 className="font-semibold text-slate-900 mb-1">Question bank ({library.length})</h3>
+      <h3 className="font-semibold text-slate-900 mb-2">Question bank</h3>
+      <div className="flex gap-2 mb-3">
+        {[1, 2].map((n) => (
+          <button key={n} onClick={() => setSetNo(n)} className={`flex-1 sm:flex-none px-4 py-2 rounded-full text-sm font-bold ${setNo === n ? "bg-slate-900 text-amber-400" : "bg-white border border-slate-300 text-slate-700"}`}>
+            Set {n} ({setCount(n)})
+          </button>
+        ))}
+      </div>
       <p className="text-xs text-slate-500 mb-3">
         {launch
           ? locked
@@ -1754,10 +1765,10 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId }
             <div key={t.id} className={isLive ? "bg-teal-50" : "bg-white"}>
               <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                 <button onClick={() => setOpenId(open ? null : t.id)} className="text-slate-400 hover:text-slate-700 text-sm shrink-0" title="Read it">{open ? "▾" : "▸"}</button>
-                <span className="w-7 text-xs font-bold text-slate-400 shrink-0">{t.id}</span>
+                <span className="w-7 text-xs font-bold text-slate-400 shrink-0">{t.num || t.id}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-slate-900">{t.title}</p>
-                  <p className="text-xs text-slate-500">{t.section}</p>
+                  <p className="text-xs text-slate-500">{t.section}{t.difficulty ? ` · ${t.difficulty}` : ""}</p>
                 </div>
                 <span className={`text-xs font-bold shrink-0 ${t.audio && t.audio.scenario && t.audio.question ? "text-teal-700" : "text-rose-600"}`} title="Scenario + question audio">
                   🎧 {t.audio && t.audio.scenario ? "S✓" : "S✗"} {t.audio && t.audio.question ? "Q✓" : "Q✗"}
@@ -1779,12 +1790,14 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId }
               </div>
               {open && (
                 <div className="px-4 pb-4 text-sm text-slate-700 space-y-2">
+                  <p className="text-xs text-slate-500">Audio files: <span className="font-semibold">{fileBase(t)}Scenario {t.num || t.id}.mp3</span> and <span className="font-semibold">{fileBase(t)}Question {t.num || t.id}.mp3</span></p>
+                  {t.topic && <p className="text-xs text-slate-500">Topic: {t.topic}</p>}
                   <p className="whitespace-pre-wrap">{t.scenario}</p>
                   <p className="whitespace-pre-wrap">{t.instructions}</p>
                   <details className="text-xs text-slate-500">
                     <summary className="cursor-pointer text-teal-700 hover:underline">Model answer &amp; marking guide</summary>
-                    <p className="whitespace-pre-wrap mt-1"><span className="font-semibold">Model answer:</span> {t.modelAnswer}</p>
-                    <p className="whitespace-pre-wrap mt-2"><span className="font-semibold">Marking guide:</span> {t.markingGuide}</p>
+                    <p className="whitespace-pre-wrap mt-1"><span className="font-semibold">Model answer:</span> {t.modelAnswer || "None yet for this question."}</p>
+                    <p className="whitespace-pre-wrap mt-2"><span className="font-semibold">Marking guide:</span> {t.markingGuide || "None yet."}</p>
                   </details>
                 </div>
               )}
