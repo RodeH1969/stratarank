@@ -29,6 +29,12 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+  @keyframes cloudPink { 0%,100% { stroke-width: 9px; stroke: #f472b6; } 50% { stroke-width: 17px; stroke: #ec4899; } }
+  @keyframes cloudGlow { 0%,100% { filter: drop-shadow(0 0 4px rgba(236,72,153,0.35)); } 50% { filter: drop-shadow(0 0 16px rgba(236,72,153,0.9)); } }
+  @keyframes brainPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+  .cloud-outline { animation: cloudPink 1.6s ease-in-out infinite; }
+  .cloud-wrap { animation: cloudGlow 1.6s ease-in-out infinite; }
+  .brain-pulse { display: inline-block; animation: brainPulse 1.2s ease-in-out infinite; }
   @keyframes drillBar { 0%,100% { height: 8px; } 50% { height: 100%; } }
   .drill-bars { height: 34px; }
   .drill-lab { font-size: 9px; }
@@ -606,7 +612,7 @@ function App() {
                 tab === "drill" ? "bg-amber-400 border-slate-900 shadow-md" : "bg-gradient-to-br from-amber-300 to-amber-500 border-amber-600 hover:from-amber-200 hover:to-amber-400"
               }`}
             >
-              🧠 QLD Strata Brainiac
+              <span className="brain-pulse">🧠</span> QLD Strata Brainiac
             </button>
             <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1 w-full sm:w-auto">
               {[
@@ -1402,12 +1408,12 @@ function DrillAudioCloud() {
 
   return (
     <div className="max-w-md mx-auto mb-4">
-      <div className="relative w-full" style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.15))" }}>
+      <div className="cloud-wrap relative w-full">
         <svg viewBox="-8 -10 616 420" className="w-full block" aria-hidden="true">
-          <g fill="#0f172a" stroke="#0f172a" strokeWidth="9">{shapes}</g>
+          <g className="cloud-outline" fill="#ec4899" stroke="#ec4899" strokeWidth="9">{shapes}</g>
           <g fill="#fff">{shapes}</g>
-          <circle cx="120" cy="372" r="14" fill="#fff" stroke="#0f172a" strokeWidth="4" />
-          <circle cx="86" cy="396" r="8" fill="#fff" stroke="#0f172a" strokeWidth="4" />
+          <circle cx="120" cy="372" r="14" fill="#fff" stroke="#ec4899" strokeWidth="6" />
+          <circle cx="86" cy="396" r="8" fill="#fff" stroke="#ec4899" strokeWidth="5" />
         </svg>
         <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "30%", height: "46%" }}>
           <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's Brainiac</p>
@@ -1545,7 +1551,7 @@ function DailyDrill() {
   return (
     <div className="max-w-xl mx-auto space-y-5">
       <div className="text-center">
-        <h2 className="font-serif text-3xl font-bold mb-1">🧠 QLD Strata Brainiac</h2>
+        <h2 className="font-serif text-3xl font-bold mb-1"><span className="brain-pulse">🧠</span> QLD Strata Brainiac</h2>
         <p className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">
           {DRILL_DAYS_LONG[dp.dow]} {dp.d} {DRILL_MONTHS_LONG[dp.m]}
         </p>
