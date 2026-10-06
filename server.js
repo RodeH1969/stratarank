@@ -827,7 +827,7 @@ app.get('/api/drill/winners', async (req, res) => {
     .eq('drill_date', drillDate)
     .eq('is_correct', true)
     .order('elapsed_seconds', { ascending: true })
-    .limit(50);
+    .limit(1);
   if (error) return res.status(500).json({ error: error.message });
   res.json({
     drillDate,
@@ -836,8 +836,8 @@ app.get('/api/drill/winners', async (req, res) => {
       role: e.role,
       company: e.company,
       elapsedSeconds: e.elapsed_seconds,
-      photoUrl: i < 5 ? (e.photo_url || '') : '',
-      logoUrl: i < 5 ? (e.logo_url || '') : '',
+      photoUrl: e.photo_url || '',
+      logoUrl: e.logo_url || '',
     })),
   });
 });

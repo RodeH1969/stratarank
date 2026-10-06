@@ -1584,7 +1584,7 @@ function DailyDrill() {
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
-          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR judges the best — winners are announced below at 11:30am.</p>
+          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR judges the best — the winner is announced below at 11:30am.</p>
           <p className="text-sm text-slate-900 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
           <DrillShareButton text={shareText} />
         </div>
@@ -1632,7 +1632,7 @@ function DailyDrill() {
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
-        <p className="font-serif text-xl font-bold text-slate-900 text-center">🏆 Winners</p>
+        <p className="font-serif text-xl font-bold text-slate-900 text-center">🏆 Winner</p>
         {winnersDate && (
           <>
             <p className="font-serif text-lg font-bold text-amber-800 text-center leading-tight">
@@ -1648,11 +1648,11 @@ function DailyDrill() {
         ) : !winners ? (
           <p className="text-sm text-slate-900 text-center">Loading…</p>
         ) : winners.length === 0 ? (
-          <p className="text-sm text-slate-900 text-center">{winnersAreToday || !winnersDate ? "Winners announced at 11:30am daily" : `No winners were named for ${DRILL_DAYS_LONG[wp.dow]} ${wp.d} ${DRILL_MONTHS_LONG[wp.m]}.`}</p>
+          <p className="text-sm text-slate-900 text-center">{winnersAreToday || !winnersDate ? "Winner announced at 11:30am daily" : `No winner was named for ${DRILL_DAYS_LONG[wp.dow]} ${wp.d} ${DRILL_MONTHS_LONG[wp.m]}.`}</p>
         ) : (
           <>
             <div className="space-y-3">
-              {winners.slice(0, 5).map((e, i) => {
+              {winners.slice(0, 1).map((e, i) => {
                 const medal = ["🥇", "🥈", "🥉"][i] || null;
                 const initials = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
                 return (
@@ -1679,25 +1679,6 @@ function DailyDrill() {
               })}
             </div>
 
-            {winners.length > 5 && (
-              <div className="mt-5">
-                <p className="text-sm font-bold text-slate-900 mb-2">Also got it right</p>
-                <div className="divide-y divide-slate-200">
-                  {winners.slice(5).map((e, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 py-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-bold text-slate-900 w-6 shrink-0">{i + 6}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-900 truncate">{e.name}</p>
-                          <p className="text-xs text-slate-900 truncate">{[e.role, e.company].filter(Boolean).join(" · ")}</p>
-                        </div>
-                      </div>
-                      <span className="text-sm font-bold text-amber-800 shrink-0">{elapsedLabel(e.elapsedSeconds)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
