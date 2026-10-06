@@ -996,6 +996,44 @@ app.patch('/api/admin/drill/:id', async (req, res) => {
   res.json({ id: data.id, isCorrect: data.is_correct });
 });
 
+// Admin: add a winner by hand (someone who answered outside the site, say).
+// Goes straight in as correct, with an optional photo and company logo.
+app.post('/api/admin/drill/manual', async (req, res) => {
+  const b = req.body || {};
+  const drillDate = isDateStr(b.drillDate) ? b.drillDate : brisbaneDateStr();
+  const name = String(b.name || '').trim();
+  const company = String(b.company || '').trim();
+  if (!name) return res.status(400).json({ error: 'Name is required.' });
+  if (!company) return res.status(400).json({ error: 'Company is required.' });
+  const elapsed = Math.round(Number(b.elapsedSeconds));
+  if (!Number.isFinite(elapsed) || elapsed < 0) return res.status(400).json({ error: 'Time taken is required, like 4:30.' });
+  try {
+    const launch = await getDrillLaunch(drillDate);
+    const { data, error } = await supabase
+      .from('strata_drill_entries')
+      .insert({
+        drill_date: drillDate,
+        name,
+        role: String(b.role || '').trim() || null,
+        company,
+        answers: [{ taskId: launch ? launch.task_id : 0, text: String(b.answer || '').trim() }],
+        is_correct: true,
+        elapsed_seconds: elapsed,
+        photo_url: b.photoUrl || null,
+        logo_url: b.logoUrl || null,
+      })
+      .select()
+      .single();
+    if (error) {
+      if (error.code === '23505') return res.status(409).json({ error: 'That name and company already has an entry for this day.' });
+      return res.status(500).json({ error: error.message });
+    }
+    res.json({ id: data.id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Admin: attach (or clear) a photo / company logo on a submission —
 // shown on the public board only for that day's top five.
 app.patch('/api/admin/drill/:id/photo', async (req, res) => {

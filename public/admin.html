@@ -1812,7 +1812,7 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId, 
                   <p className="text-xs text-slate-500">{t.section}{t.difficulty ? ` · ${t.difficulty}` : ""}</p>
                 </div>
                 {t.usedOn.length > 0 && (
-                  <span className="text-xs text-slate-500 shrink-0" title={t.usedOn.join(", ")}>Used {t.usedOn[0]}{t.usedOn.length > 1 ? ` +${t.usedOn.length - 1}` : ""}</span>
+                  <span className="hidden sm:inline text-xs text-slate-500 shrink-0" title={t.usedOn.join(", ")}>Used {t.usedOn[0]}{t.usedOn.length > 1 ? ` +${t.usedOn.length - 1}` : ""}</span>
                 )}
                 {isLive ? (
                   <span className="text-xs font-bold px-2 py-1 rounded-full bg-teal-600 text-white shrink-0">LIVE TODAY</span>
@@ -1843,6 +1843,101 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId, 
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function DrillManualWinner({ date, hasLaunch, onAdded }) {
+  const empty = { name: "", role: "", company: "", answer: "", time: "", photoUrl: "", logoUrl: "" };
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState(empty);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
+
+  // Shrink the picture before it goes up, so phone photos don't bloat the database.
+  const shrink = (file, max) => new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(new Error("Couldn't read the picture"));
+    r.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("That file isn't a picture"));
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k);
+        c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.85));
+      };
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+
+  const pick = async (key, file, max) => {
+    if (!file) return;
+    try { set(key, await shrink(file, max)); } catch (e) { setErr(e.message); }
+  };
+
+  const parseTime = (t) => {
+    const m = /^(?:(\d+):)?(\d{1,2}):(\d{2})$|^(\d+):(\d{2})$|^(\d+)$/.exec(t.trim());
+    if (!m) return null;
+    if (m[6] !== undefined) return Number(m[6]) * 60; // plain number = minutes
+    if (m[4] !== undefined) return Number(m[4]) * 60 + Number(m[5]);
+    return Number(m[1] || 0) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+  };
+
+  const submit = async () => {
+    setErr(null);
+    const secs = parseTime(f.time);
+    if (!f.name.trim() || !f.company.trim()) return setErr("Name and company are required.");
+    if (secs === null) return setErr("Time taken like 4:30 (minutes:seconds).");
+    setBusy(true);
+    try {
+      await api("/api/admin/drill/manual", {
+        method: "POST",
+        body: JSON.stringify({ drillDate: date, name: f.name, role: f.role, company: f.company, answer: f.answer, elapsedSeconds: secs, photoUrl: f.photoUrl, logoUrl: f.logoUrl }),
+      });
+      setF(empty);
+      setOpen(false);
+      await onAdded();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const input = "w-full border border-slate-300 rounded px-3 py-2 text-base sm:text-sm";
+  if (!open) {
+    return <button onClick={() => setOpen(true)} className="mb-6 text-sm font-bold px-4 py-2 rounded-full bg-slate-900 text-amber-400">＋ Add winner manually</button>;
+  }
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6 space-y-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Add winner for {date}</p>
+      {!hasLaunch && <p className="text-xs text-rose-600">That day wasn't launched, so this won't show on the public board.</p>}
+      <input className={input} placeholder="Name" value={f.name} onChange={(e) => set("name", e.target.value)} />
+      <input className={input} placeholder="Role" value={f.role} onChange={(e) => set("role", e.target.value)} />
+      <input className={input} placeholder="Company" value={f.company} onChange={(e) => set("company", e.target.value)} />
+      <input className={input} placeholder="Time taken, e.g. 4:30" value={f.time} onChange={(e) => set("time", e.target.value)} />
+      <textarea className={input} rows={4} placeholder="Their answer" value={f.answer} onChange={(e) => set("answer", e.target.value)} />
+      <div className="flex flex-wrap gap-4">
+        {[["photoUrl", "Photo of person", 600, "rounded-full"], ["logoUrl", "Company logo", 500, "rounded"]].map(([key, label, max, shape]) => (
+          <div key={key} className="flex items-center gap-2">
+            {f[key] ? <img src={f[key]} alt="" className={`w-12 h-12 object-cover border border-slate-200 ${shape}`} /> : <div className={`w-12 h-12 bg-slate-100 border border-dashed border-slate-300 ${shape}`} />}
+            <label className="text-xs font-semibold text-teal-700 cursor-pointer hover:underline">
+              {f[key] ? `Replace ${label.toLowerCase()}` : label}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => { pick(key, e.target.files[0], max); e.target.value = ""; }} />
+            </label>
+          </div>
+        ))}
+      </div>
+      {err && <p className="text-sm text-rose-600">{err}</p>}
+      <div className="flex gap-2">
+        <button onClick={submit} disabled={busy} className="px-4 py-2 rounded-full bg-amber-500 text-slate-900 font-bold text-sm disabled:opacity-50">{busy ? "Adding…" : "Add winner"}</button>
+        <button onClick={() => { setOpen(false); setErr(null); }} className="px-4 py-2 rounded-full border border-slate-300 text-sm">Cancel</button>
       </div>
     </div>
   );
@@ -1980,6 +2075,8 @@ function DrillAdmin() {
               )}
             </div>
           )}
+
+          <DrillManualWinner date={date} hasLaunch={!!payload.launch} onAdded={() => load(date, true)} />
 
           {isToday && library && <DrillAudioUploader library={library.tasks} onDone={loadLibrary} />}
 
