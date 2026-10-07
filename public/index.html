@@ -1503,6 +1503,16 @@ function DrillAudioBrain() {
   );
 }
 
+function DrillSponsorLine({ sponsor, className = "" }) {
+  if (!sponsor) return null;
+  return (
+    <div className={`text-center ${className}`}>
+      <p className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-500" style={{ letterSpacing: "0.08em" }}>Today's question brought to you by</p>
+      {sponsor.logoUrl ? <img src={sponsor.logoUrl} alt={sponsor.name} className="h-12 sm:h-14 w-auto max-w-[70%] object-contain mx-auto mt-1.5" /> : <p className="font-serif text-xl font-bold text-slate-900 mt-1">{sponsor.name}</p>}
+    </div>
+  );
+}
+
 function DailyDrill() {
   const [drill, setDrill] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -1659,12 +1669,14 @@ function DailyDrill() {
         <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "The Drill is back Monday at 9am" : "Today's task goes live at 9am"}</p>
           <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday — see you then." : "Come back then — the clock starts at 9:00am sharp."}</p>
+          <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
         </div>
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
           <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR crowns the Strata Brainiac at 11:30am — shown below.</p>
           <p className="text-sm text-slate-900 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
+          <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
           <DrillShareButton text={shareText} />
         </div>
       ) : (
@@ -1672,12 +1684,7 @@ function DailyDrill() {
           {drill.tasks.map((t, i) => (
             <div key={t.id} className={i > 0 ? "border-t border-slate-100 pt-4" : ""}>
               <DrillAudioBrain />
-              {drill.sponsor && (
-                <div className="text-center -mt-1 mb-4">
-                  <p className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-500" style={{ letterSpacing: "0.08em" }}>Today's question brought to you by</p>
-                  {drill.sponsor.logoUrl ? <img src={drill.sponsor.logoUrl} alt={drill.sponsor.name} className="h-12 sm:h-14 w-auto max-w-[70%] object-contain mx-auto mt-1.5" /> : <p className="font-serif text-xl font-bold text-slate-900 mt-1">{drill.sponsor.name}</p>}
-                </div>
-              )}
+              <DrillSponsorLine sponsor={drill.sponsor} className="-mt-1 mb-4" />
               <textarea
                 value={drillAnswers[t.id] || ""}
                 onChange={(e) => setAnswer(t.id, e.target.value)}

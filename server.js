@@ -833,7 +833,7 @@ app.get('/api/drill/today', async (req, res) => {
   try {
     const launch = await getDrillLaunch(drillDate);
     const task = launch ? drillTaskById(launch.task_id) : null;
-    if (!launch || !task) return res.json({ drillDate, postedAt: null, locked: true, tasks: [] });
+    if (!launch || !task) return res.json({ drillDate, postedAt: null, locked: true, tasks: [], sponsor: await getDrillSponsor() });
     res.json({
       drillDate,
       postedAt: new Date(launch.launched_at).toISOString(),
