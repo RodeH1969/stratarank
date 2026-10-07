@@ -1606,7 +1606,7 @@ function DrillEntryImage({ entry, field, label, shape, onSaved }) {
   );
 }
 
-function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved }) {
+function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved, onCrown }) {
   const [open, setOpen] = useState(false);
   const taskById = (id) => tasks.find((t) => t.id === id);
   const verdictPill =
@@ -1629,6 +1629,11 @@ function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved }) {
         <div className="flex gap-1 shrink-0">
           <button onClick={() => onVerdict(entry.id, true)} className={`text-xs font-semibold px-2 py-1 rounded border ${entry.isCorrect === true ? "bg-teal-600 text-white border-teal-600" : "border-teal-300 text-teal-700 hover:bg-teal-50"}`}>Correct</button>
           <button onClick={() => onVerdict(entry.id, false)} className={`text-xs font-semibold px-2 py-1 rounded border ${entry.isCorrect === false ? "bg-rose-600 text-white border-rose-600" : "border-rose-300 text-rose-700 hover:bg-rose-50"}`}>Incorrect</button>
+          {entry.isCorrect === true && (
+            entry.isWinner
+              ? <span className="text-xs font-extrabold px-2 py-1 rounded bg-amber-400 text-slate-900">👑 Winner</span>
+              : <button onClick={() => onCrown(entry.id)} className="text-xs font-semibold px-2 py-1 rounded border border-amber-400 text-amber-700 hover:bg-amber-50">👑 Make winner</button>
+          )}
           {entry.isCorrect !== null && (
             <button onClick={() => onVerdict(entry.id, null)} className="text-xs font-semibold px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-50">Reset</button>
           )}
@@ -2021,9 +2026,19 @@ function DrillAdmin() {
   };
 
   const onVerdict = async (entryId, isCorrect) => {
-    setPayload((p) => p && { ...p, entries: p.entries.map((e) => (e.id === entryId ? { ...e, isCorrect } : e)) });
+    setPayload((p) => p && { ...p, entries: p.entries.map((e) => (e.id === entryId ? { ...e, isCorrect, isWinner: isCorrect === true ? e.isWinner : false } : e)) });
     try {
       await api(`/api/admin/drill/${entryId}`, { method: "PATCH", body: JSON.stringify({ isCorrect }) });
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const onCrown = async (entryId) => {
+    setError(null);
+    try {
+      await api(`/api/admin/drill/${entryId}/winner`, { method: "POST", body: "{}" });
+      await load(date, true);
     } catch (e) {
       setError(e.message);
     }
@@ -2117,7 +2132,7 @@ function DrillAdmin() {
           ) : (
             <div className="space-y-2 mb-8">
               {pending.map((e) => (
-                <DrillEntryReview key={e.id} entry={e} tasks={payload.tasks} onVerdict={onVerdict} onImageSaved={onImageSaved} />
+                <DrillEntryReview key={e.id} entry={e} tasks={payload.tasks} onVerdict={onVerdict} onImageSaved={onImageSaved} onCrown={onCrown} />
               ))}
             </div>
           )}
@@ -2128,7 +2143,7 @@ function DrillAdmin() {
           ) : (
             <div className="space-y-2">
               {judged.map((e) => (
-                <DrillEntryReview key={e.id} entry={e} tasks={payload.tasks} onVerdict={onVerdict} onImageSaved={onImageSaved} />
+                <DrillEntryReview key={e.id} entry={e} tasks={payload.tasks} onVerdict={onVerdict} onImageSaved={onImageSaved} onCrown={onCrown} />
               ))}
             </div>
           )}

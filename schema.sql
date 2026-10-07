@@ -200,3 +200,5 @@ create table if not exists strata_drill_audio (
   updated_at timestamptz default now(),
   primary key (task_id, part)
 );
+
+alter table strata_drill_entries add column if not exists is_winner boolean not null default false;

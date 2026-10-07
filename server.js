@@ -829,6 +829,7 @@ app.get('/api/drill/winners', async (req, res) => {
     .select('name, role, company, elapsed_seconds, photo_url, logo_url')
     .eq('drill_date', drillDate)
     .eq('is_correct', true)
+    .order('is_winner', { ascending: false })
     .order('elapsed_seconds', { ascending: true })
     .limit(1);
   if (error) return res.status(500).json({ error: error.message });
@@ -975,6 +976,7 @@ app.get('/api/admin/drill', async (req, res) => {
         company: e.company,
         answers: e.answers,
         isCorrect: e.is_correct,
+        isWinner: !!e.is_winner,
         elapsedSeconds: e.elapsed_seconds,
         photoUrl: e.photo_url || '',
         logoUrl: e.logo_url || '',
@@ -991,12 +993,27 @@ app.patch('/api/admin/drill/:id', async (req, res) => {
   const { isCorrect } = req.body;
   const { data, error } = await supabase
     .from('strata_drill_entries')
-    .update({ is_correct: isCorrect === null ? null : !!isCorrect })
+    .update(isCorrect === true ? { is_correct: true } : { is_correct: isCorrect === null ? null : !!isCorrect, is_winner: false })
     .eq('id', req.params.id)
     .select()
     .single();
   if (error) return res.status(500).json({ error: error.message });
   res.json({ id: data.id, isCorrect: data.is_correct });
+});
+
+// Admin: crown this entry as that day's winner (overrides fastest-time).
+app.post('/api/admin/drill/:id/winner', async (req, res) => {
+  try {
+    const { data: e, error } = await supabase.from('strata_drill_entries').select('id, drill_date').eq('id', req.params.id).single();
+    if (error || !e) return res.status(404).json({ error: 'Entry not found.' });
+    const a = await supabase.from('strata_drill_entries').update({ is_winner: false }).eq('drill_date', e.drill_date);
+    if (a.error) return res.status(500).json({ error: a.error.message });
+    const b = await supabase.from('strata_drill_entries').update({ is_winner: true, is_correct: true }).eq('id', e.id);
+    if (b.error) return res.status(500).json({ error: b.error.message });
+    res.json({ id: e.id, isWinner: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Admin: add a winner by hand (someone who answered outside the site, say).

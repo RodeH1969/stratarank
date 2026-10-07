@@ -1351,7 +1351,7 @@ function DrillInfoButton() {
   );
 }
 
-function DrillAudioCloud() {
+function DrillAudioBrain() {
   const [current, setCurrent] = useState(null); // scenario | question | null
   const [playing, setPlaying] = useState(false);
   const [heard, setHeard] = useState({ scenario: false, question: false });
@@ -1401,19 +1401,24 @@ function DrillAudioCloud() {
   ));
   const shapes = (
     <>
-      <ellipse cx="300" cy="228" rx="262" ry="128" /><circle cx="165" cy="150" r="88" /><circle cx="300" cy="112" r="108" />
-      <circle cx="435" cy="150" r="88" /><circle cx="78" cy="238" r="66" /><circle cx="522" cy="238" r="66" />
+      <ellipse cx="300" cy="215" rx="252" ry="125" /><circle cx="130" cy="150" r="85" /><circle cx="240" cy="100" r="95" />
+      <circle cx="360" cy="100" r="95" /><circle cx="470" cy="150" r="85" /><circle cx="90" cy="250" r="70" />
+      <circle cx="510" cy="250" r="70" /><circle cx="190" cy="290" r="70" /><circle cx="410" cy="290" r="70" />
     </>
   );
+  const folds = ["M60 150 q22 -34 56 -14", "M150 62 q30 -14 52 8", "M398 70 q30 -14 52 8", "M484 136 q34 -20 56 14", "M52 262 q20 28 50 18", "M498 280 q26 10 50 -18", "M150 335 q26 18 54 2", "M396 337 q28 16 54 -2"];
 
   return (
     <div className="max-w-md mx-auto mb-4">
       <div className="cloud-wrap relative w-full">
         <svg viewBox="-8 -10 616 420" className="w-full block" aria-hidden="true">
+          <rect x="268" y="320" width="64" height="86" rx="26" fill="#fff" stroke="#ec4899" strokeWidth="9" className="cloud-outline" />
           <g className="cloud-outline" fill="#ec4899" stroke="#ec4899" strokeWidth="9">{shapes}</g>
           <g fill="#fff">{shapes}</g>
-          <circle cx="120" cy="372" r="14" fill="#fff" stroke="#ec4899" strokeWidth="6" />
-          <circle cx="86" cy="396" r="8" fill="#fff" stroke="#ec4899" strokeWidth="5" />
+          <g fill="none" stroke="#f9a8d4" strokeWidth="6" strokeLinecap="round">
+            <path d="M300 28 V86" stroke="#ec4899" />
+            {folds.map((d, i) => <path key={i} d={d} />)}
+          </g>
         </svg>
         <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "30%", height: "46%" }}>
           <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's Strata Brainiac</p>
@@ -1600,7 +1605,7 @@ function DailyDrill() {
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
           {drill.tasks.map((t, i) => (
             <div key={t.id} className={i > 0 ? "border-t border-slate-100 pt-4" : ""}>
-              <DrillAudioCloud />
+              <DrillAudioBrain />
               <textarea
                 value={drillAnswers[t.id] || ""}
                 onChange={(e) => setAnswer(t.id, e.target.value)}
