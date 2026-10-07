@@ -1278,7 +1278,7 @@ const drillDateParts = (dateStr) => {
 function DrillShareButton({ text }) {
   const [copied, setCopied] = useState(false);
   const share = async () => {
-    const full = `${text}\n${window.location.origin}`;
+    const full = `${text} ${window.location.origin}`;
     if (navigator.share) {
       try {
         await navigator.share({ text: full });
@@ -1552,7 +1552,7 @@ function DailyDrill() {
   const winnersAreToday = !winnersDate || winnersDate === drill.drillDate;
   const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
   const winnerHeading = winnersAreToday ? "Today's Strata Brainiac" : dayGap === 1 ? "Yesterday's Strata Brainiac" : "Last Strata Brainiac";
-  const shareText = `🧠 Looking for a QLD Strata Brainiac.\nYou're so smart — I reckon you should enter.`;
+  const shareText = `Looking for a QLD Strata Brainiac. You're so smart, I reckon you should enter.`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
   return (
