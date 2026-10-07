@@ -704,6 +704,105 @@ async function getDrillLaunch(drillDate) {
 
 // Today's task — scenario and instructions only, never the model answer
 // or marking guide. Locked (no tasks) until QSR hits Launch.
+// ---- Strata jobs board ----
+const jobRow = (j) => ({
+  id: j.id,
+  title: j.title,
+  company: j.company,
+  location: j.location || '',
+  type: j.job_type || '',
+  description: j.description || '',
+  applyUrl: j.apply_url || '',
+  logoUrl: j.logo_url || '',
+  featured: !!j.featured,
+  createdAt: j.created_at,
+  expiresAt: j.expires_at,
+});
+async function getJobsPostUrl() {
+  const { data } = await supabase.from('strata_settings').select('value').eq('key', 'jobs_post_url').maybeSingle();
+  return (data && data.value) || '';
+}
+
+app.get('/api/jobs', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('strata_jobs')
+      .select('*')
+      .gt('expires_at', new Date().toISOString())
+      .order('featured', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ jobs: data.map(jobRow), postUrl: await getJobsPostUrl() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/jobs', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('strata_jobs').select('*').order('created_at', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ jobs: data.map(jobRow), postUrl: await getJobsPostUrl() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/jobs', async (req, res) => {
+  const b = req.body || {};
+  const title = String(b.title || '').trim();
+  const company = String(b.company || '').trim();
+  if (!title) return res.status(400).json({ error: 'Job title is required.' });
+  if (!company) return res.status(400).json({ error: 'Company is required.' });
+  const days = Math.min(365, Math.max(1, Math.round(Number(b.days)) || 30));
+  let apply = String(b.applyUrl || '').trim();
+  if (apply && !/^(https?:|mailto:)/i.test(apply)) apply = apply.includes('@') ? `mailto:${apply}` : `https://${apply}`;
+  try {
+    const { data, error } = await supabase.from('strata_jobs').insert({
+      title, company,
+      location: String(b.location || '').trim() || null,
+      job_type: String(b.type || '').trim() || null,
+      description: String(b.description || '').trim() || null,
+      apply_url: apply || null,
+      logo_url: b.logoUrl || null,
+      featured: !!b.featured,
+      expires_at: new Date(Date.now() + days * 86400000).toISOString(),
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ job: jobRow(data) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/admin/jobs/:id', async (req, res) => {
+  const update = {};
+  if (req.body && 'featured' in req.body) update.featured = !!req.body.featured;
+  if (req.body && req.body.days) update.expires_at = new Date(Date.now() + Math.min(365, Math.max(1, Math.round(Number(req.body.days)))) * 86400000).toISOString();
+  if (req.body && req.body.expireNow) update.expires_at = new Date().toISOString();
+  try {
+    const { error } = await supabase.from('strata_jobs').update(update).eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/admin/jobs/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('strata_jobs').delete().eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Where the public "Post a job" button goes (a payment link, say).
+app.put('/api/admin/jobs/post-url', async (req, res) => {
+  let url = String((req.body || {}).postUrl || '').trim();
+  if (url && !/^(https?:|mailto:)/i.test(url)) url = url.includes('@') ? `mailto:${url}` : `https://${url}`;
+  try {
+    const q = url
+      ? supabase.from('strata_settings').upsert({ key: 'jobs_post_url', value: url })
+      : supabase.from('strata_settings').delete().eq('key', 'jobs_post_url');
+    const { error } = await q;
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ postUrl: url });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // The "brought to you by" sponsor shown on today's question. One row, kept
 // until QSR changes or clears it in admin.
 async function getDrillSponsor() {

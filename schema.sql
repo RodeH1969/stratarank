@@ -208,3 +208,21 @@ create table if not exists strata_drill_sponsor (
   name text not null,
   logo_url text
 );
+
+create table if not exists strata_jobs (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  company text not null,
+  location text,
+  job_type text,
+  description text,
+  apply_url text,
+  logo_url text,
+  featured boolean not null default false,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+create table if not exists strata_settings (
+  key text primary key,
+  value text
+);

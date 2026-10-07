@@ -1535,6 +1535,7 @@ function AdminPanel({ data, refresh }) {
           { id: "record", label: "Record a deal" },
           { id: "nominations", label: "All nominations" },
           { id: "drill", label: "Daily Drill" },
+          { id: "jobs", label: "Jobs" },
         ].map(({ id, label }) => (
           <button
             key={id}
@@ -1553,6 +1554,7 @@ function AdminPanel({ data, refresh }) {
       {section === "record" && <RecordWin data={data} refresh={refresh} />}
       {section === "nominations" && <NominationsManager data={data} refresh={refresh} />}
       {section === "drill" && <DrillAdmin />}
+      {section === "jobs" && <JobsAdmin />}
     </div>
   );
 }
@@ -1850,6 +1852,130 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId, 
         })}
       </div>
     </div>
+  );
+}
+
+function JobsAdmin() {
+  const empty = { title: "", company: "", location: "", type: "", description: "", applyUrl: "", logoUrl: "", featured: false, days: "30" };
+  const [jobs, setJobs] = useState(null);
+  const [postUrl, setPostUrl] = useState("");
+  const [f, setF] = useState(empty);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
+
+  const load = async () => {
+    try {
+      const r = await api("/api/admin/jobs");
+      setJobs(r.jobs);
+      setPostUrl(r.postUrl || "");
+    } catch (e) { setErr(e.message); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const pickLogo = (file) => {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 400 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k);
+        c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        set("logoUrl", c.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.85));
+      };
+      img.onerror = () => setErr("That file isn't a picture");
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  };
+
+  const add = async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      await api("/api/admin/jobs", { method: "POST", body: JSON.stringify(f) });
+      setF(empty);
+      await load();
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  const act = async (fn) => { setErr(null); try { await fn(); await load(); } catch (e) { setErr(e.message); } };
+
+  const savePostUrl = async () => {
+    setErr(null); setMsg(null);
+    try {
+      const r = await api("/api/admin/jobs/post-url", { method: "PUT", body: JSON.stringify({ postUrl }) });
+      setPostUrl(r.postUrl);
+      setMsg(r.postUrl ? "Saved. The Post a job button is live." : "Cleared. The button is hidden.");
+    } catch (e) { setErr(e.message); }
+  };
+
+  const input = "w-full border border-slate-300 rounded px-3 py-2 text-base sm:text-sm";
+  const now = Date.now();
+  return (
+    <section className="mb-10">
+      <h2 className="font-serif text-2xl mb-4">Jobs</h2>
+      {err && <p className="text-rose-600 text-sm mb-4">{err}</p>}
+
+      <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6">
+        <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-2">"Post a job" button link</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input value={postUrl} onChange={(e) => setPostUrl(e.target.value)} placeholder="Payment link or email" className={input} />
+          <button onClick={savePostUrl} className="text-sm font-bold px-4 py-2 rounded-full bg-slate-900 text-amber-400 shrink-0">Save</button>
+        </div>
+        {msg && <p className="text-xs text-teal-700 font-semibold mt-2">{msg}</p>}
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6 space-y-3">
+        <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Add a job</p>
+        <input value={f.title} onChange={(e) => set("title", e.target.value)} placeholder="Job title" className={input} />
+        <input value={f.company} onChange={(e) => set("company", e.target.value)} placeholder="Company" className={input} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input value={f.location} onChange={(e) => set("location", e.target.value)} placeholder="Location, e.g. Brisbane" className={input} />
+          <input value={f.type} onChange={(e) => set("type", e.target.value)} placeholder="Type, e.g. Full-time" className={input} />
+        </div>
+        <textarea value={f.description} onChange={(e) => set("description", e.target.value)} placeholder="Description" rows={4} className={input} />
+        <input value={f.applyUrl} onChange={(e) => set("applyUrl", e.target.value)} placeholder="Apply link or email" className={input} />
+        <div className="flex flex-wrap items-center gap-3">
+          {f.logoUrl && <img src={f.logoUrl} alt="" className="h-10 w-auto max-w-[8rem] object-contain border border-slate-200 rounded bg-white p-1" />}
+          <label className="text-xs font-semibold px-3 py-2 rounded-full border border-slate-300 text-slate-700 cursor-pointer">
+            {f.logoUrl ? "Change logo" : "Add logo"}
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => pickLogo(e.target.files[0])} />
+          </label>
+          <label className="text-sm text-slate-700 flex items-center gap-2"><input type="checkbox" checked={f.featured} onChange={(e) => set("featured", e.target.checked)} /> Featured</label>
+          <label className="text-sm text-slate-700 flex items-center gap-2">Days live <input value={f.days} onChange={(e) => set("days", e.target.value)} inputMode="numeric" className="w-16 border border-slate-300 rounded px-2 py-1 text-base sm:text-sm" /></label>
+        </div>
+        <button onClick={add} disabled={busy || !f.title.trim() || !f.company.trim()} className="text-sm font-bold px-5 py-2 rounded-full bg-slate-900 text-amber-400 disabled:opacity-40">{busy ? "…" : "Add job"}</button>
+      </div>
+
+      <h3 className="font-semibold text-slate-900 mb-2">All jobs {jobs ? `(${jobs.length})` : ""}</h3>
+      {!jobs ? <p className="text-sm text-slate-400">Loading…</p> : jobs.length === 0 ? <p className="text-sm text-slate-400">None yet.</p> : (
+        <div className="space-y-2">
+          {jobs.map((j) => {
+            const live = new Date(j.expiresAt).getTime() > now;
+            return (
+              <div key={j.id} className="border border-slate-200 rounded-xl bg-white px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-900">{j.title}</p>
+                    <p className="text-xs text-slate-500">{j.company} · {live ? `live until ${new Date(j.expiresAt).toLocaleDateString("en-AU")}` : "expired"}{j.featured ? " · featured" : ""}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <button onClick={() => act(() => api(`/api/admin/jobs/${j.id}`, { method: "PATCH", body: JSON.stringify({ featured: !j.featured }) }))} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-400 text-amber-700">{j.featured ? "Unfeature" : "Feature"}</button>
+                  <button onClick={() => act(() => api(`/api/admin/jobs/${j.id}`, { method: "PATCH", body: JSON.stringify({ days: 30 }) }))} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-300 text-slate-700">{live ? "Extend 30 days" : "Relist 30 days"}</button>
+                  <button onClick={() => { if (window.confirm(`Delete "${j.title}"?`)) act(() => api(`/api/admin/jobs/${j.id}`, { method: "DELETE" })); }} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-rose-300 text-rose-700">Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 

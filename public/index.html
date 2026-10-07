@@ -619,6 +619,7 @@ function App() {
                 { id: "dotm", label: "Deal of the Month", shortLabel: "Deal of Month" },
                 { id: "log", label: "Every Deal", shortLabel: "Every Deal" },
                 { id: "season", label: "Season Leaderboard", shortLabel: "Leaderboard" },
+                { id: "jobs", label: "💼 Jobs", shortLabel: "💼 Jobs" },
                 { id: "report", label: "🔍 The Scoop", shortLabel: "🔍 The Scoop" },
               ].map(({ id, label, shortLabel }) => (
                 <button
@@ -626,7 +627,7 @@ function App() {
                   onClick={() => setTab(id)}
                   className={
                     id === "report"
-                      ? `px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap text-center text-slate-900 ${tab === id ? "claim-tab-active" : "claim-tab"}`
+                      ? `col-span-2 sm:col-span-1 px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap text-center text-slate-900 ${tab === id ? "claim-tab-active" : "claim-tab"}`
                       : `px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-medium whitespace-nowrap text-center transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`
                   }
                 >
@@ -636,7 +637,7 @@ function App() {
               ))}
             </nav>
           </div>
-          {tab !== "drill" && <MetricInfoButton />}
+          {tab !== "drill" && tab !== "jobs" && <MetricInfoButton />}
         </header>
 
         {loadError && (
@@ -655,6 +656,8 @@ function App() {
           <SeasonLeaderboard standings={seasonStandings} agencyLogos={data.agencyLogos} sponsors={data.sponsors} previousRankMap={previousRankMap} seasonYear={data.seasonYear} />
         ) : tab === "drill" ? (
           <DailyDrill />
+        ) : tab === "jobs" ? (
+          <JobsBoard />
         ) : (
           <ReportWin data={data} refresh={refresh} />
         )}
@@ -1267,6 +1270,69 @@ function Stopwatch({ seconds, running, label }) {
 const DRILL_DAYS_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DRILL_DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DRILL_MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function JobCard({ job }) {
+  const [open, setOpen] = useState(false);
+  const meta = [job.company, job.location, job.type].filter(Boolean).join(" · ");
+  return (
+    <div className={`rounded-2xl border bg-white p-4 sm:p-5 ${job.featured ? "border-amber-400 shadow-md" : "border-slate-200"}`}>
+      <div className="flex items-start gap-3 sm:gap-4">
+        {job.logoUrl && (
+          <div className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg border border-slate-200 bg-white flex items-center justify-center p-1">
+            <img src={job.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          {job.featured && <span className="inline-block text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-400 text-slate-900 mb-1">Featured</span>}
+          <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 leading-snug">{job.title}</h3>
+          <p className="text-sm text-slate-600 mt-0.5">{meta}</p>
+        </div>
+      </div>
+      {open && job.description && <p className="text-sm text-slate-700 whitespace-pre-wrap mt-3">{job.description}</p>}
+      <div className="flex flex-wrap items-center gap-2 mt-3">
+        {job.description && (
+          <button onClick={() => setOpen((o) => !o)} className="text-sm font-semibold px-4 py-2 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50">
+            {open ? "Less" : "Details"}
+          </button>
+        )}
+        {job.applyUrl && (
+          <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-extrabold px-5 py-2 rounded-full bg-slate-900 text-amber-400 hover:bg-slate-700">Apply</a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function JobsBoard() {
+  const [state, setState] = useState({ loading: true, jobs: [], postUrl: "", error: null });
+  useEffect(() => {
+    let cancelled = false;
+    api("/api/jobs")
+      .then((r) => { if (!cancelled) setState({ loading: false, jobs: r.jobs || [], postUrl: r.postUrl || "", error: null }); })
+      .catch((e) => { if (!cancelled) setState({ loading: false, jobs: [], postUrl: "", error: e.message }); });
+    return () => { cancelled = true; };
+  }, []);
+  const { loading, jobs, postUrl, error } = state;
+  return (
+    <section className="max-w-2xl mx-auto">
+      <h2 className="font-serif text-3xl sm:text-4xl text-center font-bold text-slate-900 mb-1">💼 Strata Jobs</h2>
+      <p className="text-center text-sm font-semibold text-slate-600 mb-5">Queensland strata roles</p>
+      {postUrl && (
+        <div className="text-center mb-5">
+          <a href={postUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-sm font-extrabold uppercase tracking-wide px-5 py-2.5 rounded-full bg-amber-400 text-slate-900 border-2 border-slate-900 hover:bg-amber-300">Post a job</a>
+        </div>
+      )}
+      {error && <p className="text-sm text-rose-700 text-center">{error}</p>}
+      {loading ? (
+        <p className="text-center text-slate-400 text-sm">Loading…</p>
+      ) : jobs.length === 0 ? (
+        !error && <p className="text-center text-slate-400 text-sm py-8">No jobs listed yet.</p>
+      ) : (
+        <div className="space-y-3">{jobs.map((j) => <JobCard key={j.id} job={j} />)}</div>
+      )}
+    </section>
+  );
+}
+
 const DRILL_MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 // drillDate is a plain "YYYY-MM-DD" Brisbane date; read it as UTC so no timezone shifts the day.
 const drillDateParts = (dateStr) => {
