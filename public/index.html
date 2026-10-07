@@ -1645,7 +1645,7 @@ function DailyDrill() {
   const wp = drillDateParts(winnersDate || drill.drillDate);
   const winnersAreToday = !!winnersDate && winnersDate === drill.drillDate;
   const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
-  const winnerHeading = winnersAreToday ? "Today's Strata Brainiac" : (!winnersDate || dayGap === 1) ? "Yesterday's Strata Brainiac" : "Last Strata Brainiac";
+  const winnerHeading = winnersAreToday ? "Today's Strata Brainiac" : (!winnersDate || dayGap === 1) ? "Yesterday's Strata Brainiac" : dayGap <= 3 ? `${DRILL_DAYS_LONG[wp.dow]}'s Strata Brainiac` : "Last Strata Brainiac";
   const shareText = `Hey mate, this came through on our work Teams and I know you're a strata genius. You should enter!`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
