@@ -1545,6 +1545,8 @@ function DailyDrill() {
   const isWeekend = dp.dow === 0 || dp.dow === 6;
   const wp = drillDateParts(winnersDate || drill.drillDate);
   const winnersAreToday = !winnersDate || winnersDate === drill.drillDate;
+  const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
+  const winnerHeading = winnersAreToday ? "Today's Brainiac" : dayGap === 1 ? "Yesterday's Brainiac" : "Last Brainiac";
   const shareText = `🧠 QLD Strata Brainiac\n📅 ${DRILL_DAYS_SHORT[dp.dow]} ${dp.d} ${DRILL_MONTHS_SHORT[dp.m]}\n⏱ Answered in ${result ? elapsedLabel(result.elapsedSeconds) : ""}\nThink you can beat me?`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
@@ -1638,14 +1640,14 @@ function DailyDrill() {
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
-        <p className="font-serif text-xl font-bold text-slate-900 text-center">🏆 Today's Brainiac</p>
+        <p className="font-serif text-xl font-bold text-slate-900 text-center">🏆 {winnerHeading}</p>
         {winnersDate && (
           <>
             <p className="font-serif text-lg font-bold text-amber-800 text-center leading-tight">
               {DRILL_DAYS_LONG[wp.dow]} {wp.d} {DRILL_MONTHS_LONG[wp.m]}
             </p>
             <p className="text-xs font-extrabold uppercase tracking-wide text-slate-900 text-center mb-3">
-              {winnersAreToday ? "Today's challenge" : "From the last challenge — stays up until the next task goes live"}
+              {winnersAreToday ? "Today's challenge" : "Today's winner at 11:30am"}
             </p>
           </>
         )}

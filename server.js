@@ -811,10 +811,13 @@ app.get('/api/drill/winners', async (req, res) => {
   if (isDateStr(req.query.date)) {
     drillDate = req.query.date;
   } else {
+    // Newest day (up to today) that actually has a winner. So on a new game
+    // day, until QSR marks today's winner, yesterday's stays up.
     const today = brisbaneDateStr();
     const { data: recent, error: rErr } = await supabase
-      .from('strata_drill_launches')
+      .from('strata_drill_entries')
       .select('drill_date')
+      .eq('is_correct', true)
       .lte('drill_date', today)
       .order('drill_date', { ascending: false })
       .limit(1);
