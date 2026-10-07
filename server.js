@@ -949,7 +949,10 @@ app.get('/api/drill/winners', async (req, res) => {
       .order('drill_date', { ascending: false })
       .limit(1);
     if (rErr) return res.status(500).json({ error: rErr.message });
-    drillDate = recent && recent[0] ? recent[0].drill_date : today;
+    // No winner anywhere yet: show yesterday (empty), never today.
+    const y = new Date(`${today}T00:00:00Z`);
+    y.setUTCDate(y.getUTCDate() - 1);
+    drillDate = recent && recent[0] ? recent[0].drill_date : y.toISOString().slice(0, 10);
   }
   const { data, error } = await supabase
     .from('strata_drill_entries')
