@@ -1504,11 +1504,28 @@ function DrillAudioBrain() {
 }
 
 function DrillSponsorLine({ sponsor, className = "" }) {
+  const [open, setOpen] = useState(false);
   if (!sponsor) return null;
+  const mark = (big) => sponsor.logoUrl
+    ? <img src={sponsor.logoUrl} alt={sponsor.name} className={big ? "w-full max-h-[70vh] object-contain mx-auto" : "h-24 sm:h-28 w-auto max-w-[90%] object-contain mx-auto mt-2"} />
+    : <p className={`font-serif font-bold text-slate-900 ${big ? "text-4xl text-center" : "text-3xl mt-2"}`}>{sponsor.name}</p>;
   return (
     <div className={`text-center ${className}`}>
-      <p className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-500" style={{ letterSpacing: "0.08em" }}>Today's question brought to you by</p>
-      {sponsor.logoUrl ? <img src={sponsor.logoUrl} alt={sponsor.name} className="h-12 sm:h-14 w-auto max-w-[70%] object-contain mx-auto mt-1.5" /> : <p className="font-serif text-xl font-bold text-slate-900 mt-1">{sponsor.name}</p>}
+      <button type="button" onClick={() => setOpen(true)} className="block w-full" aria-label={`Sponsor: ${sponsor.name}. Tap to enlarge`}>
+        <span className="block text-[10px] sm:text-[11px] font-bold uppercase text-slate-500" style={{ letterSpacing: "0.08em" }}>Today's question brought to you by</span>
+        {mark(false)}
+        <span className="block text-[10px] font-semibold text-slate-400 mt-1">Tap to expand</span>
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-end -mt-2 -mr-2"><button onClick={() => setOpen(false)} aria-label="Close" className="text-slate-400 hover:text-slate-700 text-3xl leading-none">×</button></div>
+            <p className="text-[11px] font-bold uppercase text-slate-500 mb-4" style={{ letterSpacing: "0.06em" }}>Today's question brought to you by</p>
+            {mark(true)}
+            {sponsor.logoUrl && <p className="font-serif text-2xl font-bold text-slate-900 mt-4">{sponsor.name}</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
