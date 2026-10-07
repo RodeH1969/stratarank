@@ -1333,7 +1333,7 @@ function DrillInfoButton() {
                 <li>⏰ A fresh real-world task drops every day at 9am.</li>
                 <li>✍️ Write your answer. Hit submit. Beat the clock.</li>
                 <li>✅ Get it right and you're on the board.</li>
-                <li>⚡ Fastest correct answer is crowned Brainiac of the day.</li>
+                <li>⚡ Fastest correct answer is crowned Strata Brainiac of the day.</li>
               </ul>
               <p className="mt-4 text-base text-slate-900 font-extrabold">Win it for the bragging rights — and a $20 Dan Murphy's voucher.</p>
               <button
@@ -1416,7 +1416,7 @@ function DrillAudioCloud() {
           <circle cx="86" cy="396" r="8" fill="#fff" stroke="#ec4899" strokeWidth="5" />
         </svg>
         <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "30%", height: "46%" }}>
-          <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's Brainiac</p>
+          <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's Strata Brainiac</p>
           <div className={`drill-bars flex items-center my-1.5 sm:my-2 ${playing ? "on" : ""}`}>{bars}</div>
           <div className="flex items-center justify-center gap-2">
             {btn("scenario", "Facts")}
@@ -1546,7 +1546,7 @@ function DailyDrill() {
   const wp = drillDateParts(winnersDate || drill.drillDate);
   const winnersAreToday = !winnersDate || winnersDate === drill.drillDate;
   const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
-  const winnerHeading = winnersAreToday ? "Today's Brainiac" : dayGap === 1 ? "Yesterday's Brainiac" : "Last Brainiac";
+  const winnerHeading = winnersAreToday ? "Today's Strata Brainiac" : dayGap === 1 ? "Yesterday's Strata Brainiac" : "Last Strata Brainiac";
   const shareText = `🧠 QLD Strata Brainiac\n📅 ${DRILL_DAYS_SHORT[dp.dow]} ${dp.d} ${DRILL_MONTHS_SHORT[dp.m]}\n⏱ Answered in ${result ? elapsedLabel(result.elapsedSeconds) : ""}\nThink you can beat me?`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
@@ -1592,7 +1592,7 @@ function DailyDrill() {
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
-          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR crowns the Brainiac at 11:30am — shown below.</p>
+          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR crowns the Strata Brainiac at 11:30am — shown below.</p>
           <p className="text-sm text-slate-900 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
           <DrillShareButton text={shareText} />
         </div>
@@ -1670,7 +1670,7 @@ function DailyDrill() {
                       ) : (
                         <div className="w-full aspect-square bg-amber-500 text-white font-extrabold flex items-center justify-center" style={{ fontSize: "5rem" }}>{initials}</div>
                       )}
-                      <span className="absolute top-3 left-3 bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow">🥇 Brainiac</span>
+                      <span className="absolute top-3 left-3 bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow">🥇 Strata Brainiac</span>
                       <span className="absolute top-3 right-3 bg-slate-900 text-amber-400 font-extrabold text-sm px-3 py-1.5 rounded-full shadow">{elapsedLabel(e.elapsedSeconds)}</span>
                     </div>
                     <div className="px-5 pt-4 pb-5 text-center">
