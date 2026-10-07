@@ -1634,16 +1634,16 @@ function DailyDrill() {
   return (
     <div className="max-w-xl mx-auto space-y-5">
       <div className="text-center">
-        <h2 className="font-serif text-3xl font-bold mb-1"><span className="brain-pulse">🧠</span> QLD Strata Brainiac</h2>
-        <p className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">
+        <h2 className="font-serif text-xl sm:text-3xl font-bold mb-0.5"><span className="brain-pulse">🧠</span> QLD Strata Brainiac</h2>
+        <p className="font-serif text-lg sm:text-3xl font-bold text-slate-900 leading-tight">
           {DRILL_DAYS_LONG[dp.dow]} {dp.d} {DRILL_MONTHS_LONG[dp.m]}
         </p>
-        <div className="flex items-center justify-center gap-1.5 mt-3">
+        <div className="flex items-center justify-center gap-1.5 mt-2 sm:mt-3">
           {[1, 2, 3, 4, 5].map((n) => (
             <span
               key={n}
               title={DRILL_DAYS_LONG[n]}
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-extrabold border-2 ${
+              className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-extrabold border-2 ${
                 dp.dow === n ? "bg-amber-400 border-slate-900 text-slate-900 shadow-md" : "bg-slate-900 border-slate-900 text-stone-200"
               }`}
             >
@@ -1651,7 +1651,7 @@ function DailyDrill() {
             </span>
           ))}
         </div>
-        <p className="text-sm font-extrabold uppercase tracking-wide text-slate-900 mt-2">Runs Monday to Friday · new task 9am Brisbane time</p>
+        <p className="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide text-slate-900 mt-2">Runs Monday to Friday · new task 9am Brisbane time</p>
       </div>
 
       <DrillInfoButton />
