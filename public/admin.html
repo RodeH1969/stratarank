@@ -1853,6 +1853,76 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId, 
   );
 }
 
+function DrillSponsor() {
+  const [saved, setSaved] = useState(undefined);
+  const [name, setName] = useState("");
+  const [logo, setLogo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    api("/api/admin/drill/sponsor").then((r) => {
+      setSaved(r.sponsor);
+      setName(r.sponsor ? r.sponsor.name : "");
+      setLogo(r.sponsor ? r.sponsor.logoUrl : "");
+    }).catch((e) => setErr(e.message));
+  }, []);
+
+  const pick = (file) => {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 500 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k);
+        c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        setLogo(c.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.85));
+      };
+      img.onerror = () => setErr("That file isn't a picture");
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  };
+
+  const save = async (clear) => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await api("/api/admin/drill/sponsor", { method: "PUT", body: JSON.stringify(clear ? { name: "" } : { name, logoUrl: logo }) });
+      setSaved(r.sponsor);
+      if (clear) { setName(""); setLogo(""); }
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6">
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-2">Today's question brought to you by</p>
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Sponsor name (blank = no sponsor)" className="flex-1 border border-slate-300 rounded px-3 py-2 text-base sm:text-sm" />
+        {logo && <img src={logo} alt="" className="h-10 w-auto max-w-[8rem] object-contain border border-slate-200 rounded bg-white p-1" />}
+        <label className="text-xs font-semibold px-3 py-2 rounded-full border border-slate-300 text-slate-700 cursor-pointer text-center">
+          {logo ? "Change logo" : "Add logo"}
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files[0])} />
+        </label>
+        {logo && <button onClick={() => setLogo("")} className="text-xs text-slate-500 hover:underline">Remove logo</button>}
+      </div>
+      <div className="flex items-center gap-3 mt-3">
+        <button onClick={() => save(false)} disabled={busy || !name.trim()} className="text-sm font-bold px-4 py-2 rounded-full bg-slate-900 text-amber-400 disabled:opacity-40">{busy ? "…" : "Save sponsor"}</button>
+        {saved && <button onClick={() => save(true)} disabled={busy} className="text-sm font-semibold text-rose-600 hover:underline">Clear</button>}
+        {saved && <span className="text-xs text-teal-700 font-semibold">Showing: {saved.name}</span>}
+      </div>
+      {err && <p className="text-xs text-rose-600 mt-2">{err}</p>}
+    </div>
+  );
+}
+
 function DrillManualWinner({ date, hasLaunch, onAdded }) {
   const empty = { name: "", role: "", company: "", answer: "", time: "", photoUrl: "", logoUrl: "" };
   const [open, setOpen] = useState(false);
@@ -2090,6 +2160,8 @@ function DrillAdmin() {
               )}
             </div>
           )}
+
+          {isToday && <DrillSponsor />}
 
           <DrillManualWinner date={date} hasLaunch={!!payload.launch} onAdded={() => load(date, true)} />
 

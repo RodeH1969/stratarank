@@ -704,6 +704,31 @@ async function getDrillLaunch(drillDate) {
 
 // Today's task — scenario and instructions only, never the model answer
 // or marking guide. Locked (no tasks) until QSR hits Launch.
+// The "brought to you by" sponsor shown on today's question. One row, kept
+// until QSR changes or clears it in admin.
+async function getDrillSponsor() {
+  const { data } = await supabase.from('strata_drill_sponsor').select('name, logo_url').eq('id', 1).maybeSingle();
+  return data && data.name ? { name: data.name, logoUrl: data.logo_url || '' } : null;
+}
+
+app.get('/api/admin/drill/sponsor', async (req, res) => {
+  try { res.json({ sponsor: await getDrillSponsor() }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/admin/drill/sponsor', async (req, res) => {
+  const name = String((req.body || {}).name || '').trim();
+  try {
+    if (!name) {
+      const { error } = await supabase.from('strata_drill_sponsor').delete().eq('id', 1);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ sponsor: null });
+    }
+    const { error } = await supabase.from('strata_drill_sponsor').upsert({ id: 1, name, logo_url: req.body.logoUrl || null });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ sponsor: await getDrillSponsor() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/drill/today', async (req, res) => {
   const drillDate = brisbaneDateStr();
   try {
@@ -716,6 +741,7 @@ app.get('/api/drill/today', async (req, res) => {
       locked: false,
       // Audio only: the task's text is never sent to visitors.
       tasks: [{ id: task.id }],
+      sponsor: await getDrillSponsor(),
     });
   } catch (e) {
     res.status(500).json({ error: e.message });

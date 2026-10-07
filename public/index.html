@@ -1412,7 +1412,7 @@ function DrillAudioBrain() {
     <div className="max-w-md mx-auto mb-4">
       <div className="cloud-wrap relative w-full">
         <svg viewBox="-8 -10 616 420" className="w-full block" aria-hidden="true">
-          <rect x="268" y="320" width="64" height="86" rx="26" fill="#fff" stroke="#ec4899" strokeWidth="9" className="cloud-outline" />
+          <rect x="268" y="320" width="64" height="76" rx="26" fill="#fff" stroke="#ec4899" strokeWidth="9" className="cloud-outline" />
           <g className="cloud-outline" fill="#ec4899" stroke="#ec4899" strokeWidth="9">{shapes}</g>
           <g fill="#fff">{shapes}</g>
           <g fill="none" stroke="#f9a8d4" strokeWidth="6" strokeLinecap="round">
@@ -1606,6 +1606,12 @@ function DailyDrill() {
           {drill.tasks.map((t, i) => (
             <div key={t.id} className={i > 0 ? "border-t border-slate-100 pt-4" : ""}>
               <DrillAudioBrain />
+              {drill.sponsor && (
+                <div className="text-center -mt-1 mb-4">
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-500" style={{ letterSpacing: "0.08em" }}>Today's question brought to you by</p>
+                  {drill.sponsor.logoUrl ? <img src={drill.sponsor.logoUrl} alt={drill.sponsor.name} className="h-12 sm:h-14 w-auto max-w-[70%] object-contain mx-auto mt-1.5" /> : <p className="font-serif text-xl font-bold text-slate-900 mt-1">{drill.sponsor.name}</p>}
+                </div>
+              )}
               <textarea
                 value={drillAnswers[t.id] || ""}
                 onChange={(e) => setAnswer(t.id, e.target.value)}

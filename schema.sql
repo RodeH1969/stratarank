@@ -202,3 +202,9 @@ create table if not exists strata_drill_audio (
 );
 
 alter table strata_drill_entries add column if not exists is_winner boolean not null default false;
+
+create table if not exists strata_drill_sponsor (
+  id int primary key,
+  name text not null,
+  logo_url text
+);
