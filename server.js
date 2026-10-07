@@ -806,8 +806,8 @@ app.put('/api/admin/jobs/post-url', async (req, res) => {
 // The "brought to you by" sponsor shown on today's question. One row, kept
 // until QSR changes or clears it in admin.
 async function getDrillSponsor() {
-  const { data } = await supabase.from('strata_drill_sponsor').select('name, logo_url').eq('id', 1).maybeSingle();
-  return data && data.name ? { name: data.name, logoUrl: data.logo_url || '' } : null;
+  const { data } = await supabase.from('strata_drill_sponsor').select('name, logo_url, website_url').eq('id', 1).maybeSingle();
+  return data && data.name ? { name: data.name, logoUrl: data.logo_url || '', websiteUrl: data.website_url || '' } : null;
 }
 
 app.get('/api/admin/drill/sponsor', async (req, res) => {
@@ -822,7 +822,9 @@ app.put('/api/admin/drill/sponsor', async (req, res) => {
       if (error) return res.status(500).json({ error: error.message });
       return res.json({ sponsor: null });
     }
-    const { error } = await supabase.from('strata_drill_sponsor').upsert({ id: 1, name, logo_url: req.body.logoUrl || null });
+    let site = String(req.body.websiteUrl || '').trim();
+    if (site && !/^https?:\/\//i.test(site)) site = `https://${site}`;
+    const { error } = await supabase.from('strata_drill_sponsor').upsert({ id: 1, name, logo_url: req.body.logoUrl || null, website_url: site || null });
     if (error) return res.status(500).json({ error: error.message });
     res.json({ sponsor: await getDrillSponsor() });
   } catch (e) { res.status(500).json({ error: e.message }); }

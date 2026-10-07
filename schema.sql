@@ -226,3 +226,5 @@ create table if not exists strata_settings (
   key text primary key,
   value text
 );
+
+alter table strata_drill_sponsor add column if not exists website_url text;

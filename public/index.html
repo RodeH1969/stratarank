@@ -1523,6 +1523,7 @@ function DrillSponsorLine({ sponsor, className = "" }) {
             <p className="text-[11px] font-bold uppercase text-slate-500 mb-4" style={{ letterSpacing: "0.06em" }}>Today's question brought to you by</p>
             {mark(true)}
             {sponsor.logoUrl && <p className="font-serif text-2xl font-bold text-slate-900 mt-4">{sponsor.name}</p>}
+            {sponsor.websiteUrl && <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-5 text-sm font-extrabold uppercase tracking-wide px-6 py-3 rounded-full bg-slate-900 text-amber-400 hover:bg-slate-700">Visit website</a>}
           </div>
         </div>
       )}

@@ -1983,6 +1983,7 @@ function DrillSponsor() {
   const [saved, setSaved] = useState(undefined);
   const [name, setName] = useState("");
   const [logo, setLogo] = useState("");
+  const [site, setSite] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -1991,6 +1992,7 @@ function DrillSponsor() {
       setSaved(r.sponsor);
       setName(r.sponsor ? r.sponsor.name : "");
       setLogo(r.sponsor ? r.sponsor.logoUrl : "");
+      setSite(r.sponsor ? r.sponsor.websiteUrl : "");
     }).catch((e) => setErr(e.message));
   }, []);
 
@@ -2017,9 +2019,9 @@ function DrillSponsor() {
     setBusy(true);
     setErr(null);
     try {
-      const r = await api("/api/admin/drill/sponsor", { method: "PUT", body: JSON.stringify(clear ? { name: "" } : { name, logoUrl: logo }) });
+      const r = await api("/api/admin/drill/sponsor", { method: "PUT", body: JSON.stringify(clear ? { name: "" } : { name, logoUrl: logo, websiteUrl: site }) });
       setSaved(r.sponsor);
-      if (clear) { setName(""); setLogo(""); }
+      if (clear) { setName(""); setLogo(""); setSite(""); }
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -2039,6 +2041,7 @@ function DrillSponsor() {
         </label>
         {logo && <button onClick={() => setLogo("")} className="text-xs text-slate-500 hover:underline">Remove logo</button>}
       </div>
+      <input value={site} onChange={(e) => setSite(e.target.value)} placeholder="Sponsor website (optional)" className="w-full border border-slate-300 rounded px-3 py-2 text-base sm:text-sm mt-2" />
       <div className="flex items-center gap-3 mt-3">
         <button onClick={() => save(false)} disabled={busy || !name.trim()} className="text-sm font-bold px-4 py-2 rounded-full bg-slate-900 text-amber-400 disabled:opacity-40">{busy ? "…" : "Save sponsor"}</button>
         {saved && <button onClick={() => save(true)} disabled={busy} className="text-sm font-semibold text-rose-600 hover:underline">Clear</button>}
