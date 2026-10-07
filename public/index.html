@@ -1301,7 +1301,7 @@ function DrillShareButton({ text }) {
       onClick={share}
       className="mt-4 w-full bg-teal-600 hover:bg-teal-700 text-white font-extrabold uppercase tracking-wide py-3 rounded-lg text-sm"
     >
-      {copied ? "Copied! ✓" : "📤 Share your time"}
+      {copied ? "Copied! ✓" : "📤 Tell a mate to enter"}
     </button>
   );
 }
@@ -1547,7 +1547,7 @@ function DailyDrill() {
   const winnersAreToday = !winnersDate || winnersDate === drill.drillDate;
   const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
   const winnerHeading = winnersAreToday ? "Today's Strata Brainiac" : dayGap === 1 ? "Yesterday's Strata Brainiac" : "Last Strata Brainiac";
-  const shareText = `🧠 QLD Strata Brainiac\n📅 ${DRILL_DAYS_SHORT[dp.dow]} ${dp.d} ${DRILL_MONTHS_SHORT[dp.m]}\n⏱ Answered in ${result ? elapsedLabel(result.elapsedSeconds) : ""}\nThink you can beat me?`;
+  const shareText = `🧠 Looking for a QLD Strata Brainiac.\nYou're so smart — I reckon you should enter.\nOne real task every day. Fastest right answer wins.`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
   return (
