@@ -1686,7 +1686,7 @@ function DailyDrill() {
   const winnersAreToday = !!winnersDate && winnersDate === drill.drillDate;
   const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
   const winnerHeading = winnersAreToday ? "Today's Strata Laureate" : (!winnersDate || dayGap === 1) ? "Yesterday's Strata Laureate" : dayGap <= 3 ? `${DRILL_DAYS_LONG[wp.dow]}'s Strata Laureate` : "Last Strata Laureate";
-  const shareText = `Hey mate, this came through on our work Teams and I know you're a strata genius. You should enter!`;
+  const shareText = `Hey mate, this came through to our work email and I know you're a strata genius. You should enter!`;
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
