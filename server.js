@@ -956,7 +956,7 @@ app.get('/api/drill/winners', async (req, res) => {
   }
   const { data, error } = await supabase
     .from('strata_drill_entries')
-    .select('name, role, company, photo_url, logo_url')
+    .select('name, role, company, answers, photo_url, logo_url')
     .eq('drill_date', drillDate)
     .eq('is_winner', true)
     .limit(1);
@@ -967,6 +967,7 @@ app.get('/api/drill/winners', async (req, res) => {
       name: e.name,
       role: e.role,
       company: e.company,
+      answer: (Array.isArray(e.answers) ? e.answers : []).map((a) => String((a && a.text) || '').trim()).filter(Boolean).join('\n\n'),
       photoUrl: e.photo_url || '',
       logoUrl: e.logo_url || '',
     })),
