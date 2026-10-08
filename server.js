@@ -928,7 +928,7 @@ app.post('/api/drill/submit', async (req, res) => {
   res.json({ drillDate, elapsedSeconds });
 });
 
-// Winners for a day — submissions marked correct, fastest first. The first
+// The day's winner — the entry QSR crowned as the most thorough answer. The first
 // five get their photo/logo (if the admin's attached one). With no date
 // given: today's winners if today's task has been launched, otherwise the
 // most recent launched day's, so the last winners stay up until the next
@@ -944,7 +944,7 @@ app.get('/api/drill/winners', async (req, res) => {
     const { data: recent, error: rErr } = await supabase
       .from('strata_drill_entries')
       .select('drill_date')
-      .eq('is_correct', true)
+      .eq('is_winner', true)
       .lte('drill_date', today)
       .order('drill_date', { ascending: false })
       .limit(1);
@@ -956,11 +956,9 @@ app.get('/api/drill/winners', async (req, res) => {
   }
   const { data, error } = await supabase
     .from('strata_drill_entries')
-    .select('name, role, company, elapsed_seconds, photo_url, logo_url')
+    .select('name, role, company, photo_url, logo_url')
     .eq('drill_date', drillDate)
-    .eq('is_correct', true)
-    .order('is_winner', { ascending: false })
-    .order('elapsed_seconds', { ascending: true })
+    .eq('is_winner', true)
     .limit(1);
   if (error) return res.status(500).json({ error: error.message });
   res.json({
@@ -969,7 +967,6 @@ app.get('/api/drill/winners', async (req, res) => {
       name: e.name,
       role: e.role,
       company: e.company,
-      elapsedSeconds: e.elapsed_seconds,
       photoUrl: e.photo_url || '',
       logoUrl: e.logo_url || '',
     })),
@@ -1131,7 +1128,7 @@ app.patch('/api/admin/drill/:id', async (req, res) => {
   res.json({ id: data.id, isCorrect: data.is_correct });
 });
 
-// Admin: crown this entry as that day's winner (overrides fastest-time).
+// Admin: crown this entry as that day's winner (most thorough answer).
 app.post('/api/admin/drill/:id/winner', async (req, res) => {
   try {
     const { data: e, error } = await supabase.from('strata_drill_entries').select('id, drill_date').eq('id', req.params.id).single();
@@ -1155,10 +1152,10 @@ app.post('/api/admin/drill/manual', async (req, res) => {
   const company = String(b.company || '').trim();
   if (!name) return res.status(400).json({ error: 'Name is required.' });
   if (!company) return res.status(400).json({ error: 'Company is required.' });
-  const elapsed = Math.round(Number(b.elapsedSeconds));
-  if (!Number.isFinite(elapsed) || elapsed < 0) return res.status(400).json({ error: 'Time taken is required, like 4:30.' });
+  const elapsed = Math.max(0, Math.round(Number(b.elapsedSeconds)) || 0);
   try {
     const launch = await getDrillLaunch(drillDate);
+    await supabase.from('strata_drill_entries').update({ is_winner: false }).eq('drill_date', drillDate);
     const { data, error } = await supabase
       .from('strata_drill_entries')
       .insert({
@@ -1168,6 +1165,7 @@ app.post('/api/admin/drill/manual', async (req, res) => {
         company,
         answers: [{ taskId: launch ? launch.task_id : 0, text: String(b.answer || '').trim() }],
         is_correct: true,
+        is_winner: true,
         elapsed_seconds: elapsed,
         photo_url: b.photoUrl || null,
         logo_url: b.logoUrl || null,

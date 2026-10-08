@@ -1631,7 +1631,7 @@ function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved, onCrown }) {
         <div className="flex gap-1 shrink-0">
           <button onClick={() => onVerdict(entry.id, true)} className={`text-xs font-semibold px-2 py-1 rounded border ${entry.isCorrect === true ? "bg-teal-600 text-white border-teal-600" : "border-teal-300 text-teal-700 hover:bg-teal-50"}`}>Correct</button>
           <button onClick={() => onVerdict(entry.id, false)} className={`text-xs font-semibold px-2 py-1 rounded border ${entry.isCorrect === false ? "bg-rose-600 text-white border-rose-600" : "border-rose-300 text-rose-700 hover:bg-rose-50"}`}>Incorrect</button>
-          {entry.isCorrect === true && (
+          {entry.isCorrect !== false && (
             entry.isWinner
               ? <span className="text-xs font-extrabold px-2 py-1 rounded bg-amber-400 text-slate-900">👑 Winner</span>
               : <button onClick={() => onCrown(entry.id)} className="text-xs font-semibold px-2 py-1 rounded border border-amber-400 text-amber-700 hover:bg-amber-50">👑 Make winner</button>
@@ -2097,12 +2097,12 @@ function DrillManualWinner({ date, hasLaunch, onAdded }) {
     setErr(null);
     const secs = parseTime(f.time);
     if (!f.name.trim() || !f.company.trim()) return setErr("Name and company are required.");
-    if (secs === null) return setErr("Time taken like 4:30 (minutes:seconds).");
+    if (f.time.trim() && secs === null) return setErr("Time like 4:30 (minutes:seconds), or leave blank.");
     setBusy(true);
     try {
       await api("/api/admin/drill/manual", {
         method: "POST",
-        body: JSON.stringify({ drillDate: date, name: f.name, role: f.role, company: f.company, answer: f.answer, elapsedSeconds: secs, photoUrl: f.photoUrl, logoUrl: f.logoUrl }),
+        body: JSON.stringify({ drillDate: date, name: f.name, role: f.role, company: f.company, answer: f.answer, elapsedSeconds: secs || 0, photoUrl: f.photoUrl, logoUrl: f.logoUrl }),
       });
       setF(empty);
       setOpen(false);
@@ -2125,7 +2125,7 @@ function DrillManualWinner({ date, hasLaunch, onAdded }) {
       <input className={input} placeholder="Name" value={f.name} onChange={(e) => set("name", e.target.value)} />
       <input className={input} placeholder="Role" value={f.role} onChange={(e) => set("role", e.target.value)} />
       <input className={input} placeholder="Company" value={f.company} onChange={(e) => set("company", e.target.value)} />
-      <input className={input} placeholder="Time taken, e.g. 4:30" value={f.time} onChange={(e) => set("time", e.target.value)} />
+      <input className={input} placeholder="Time taken, e.g. 4:30 (optional)" value={f.time} onChange={(e) => set("time", e.target.value)} />
       <textarea className={input} rows={4} placeholder="Their answer" value={f.answer} onChange={(e) => set("answer", e.target.value)} />
       <div className="flex flex-wrap gap-4">
         {[["photoUrl", "Photo of person", 600, "rounded-full"], ["logoUrl", "Company logo", 500, "rounded"]].map(([key, label, max, shape]) => (
@@ -2338,7 +2338,7 @@ function DrillAdmin() {
             </div>
           )}
 
-          <h3 className="font-semibold text-slate-900 mb-2">Judged ({judged.length}) — fastest first</h3>
+          <h3 className="font-semibold text-slate-900 mb-2">Judged ({judged.length})</h3>
           {judged.length === 0 ? (
             <p className="text-sm text-slate-400">Nothing judged yet.</p>
           ) : (

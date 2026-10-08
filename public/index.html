@@ -1397,9 +1397,9 @@ function DrillInfoButton() {
               </p>
               <ul className="mt-4 space-y-2 text-base text-slate-900 font-medium">
                 <li>⏰ A fresh real-world task drops every day at 9am.</li>
-                <li>✍️ Write your answer. Hit submit. Beat the clock.</li>
-                <li>✅ Get it right and you're on the board.</li>
-                <li>⚡ Fastest correct answer is crowned Strata Laureate of the day.</li>
+                <li>✍️ Write your answer. Make it thorough. Hit submit.</li>
+                <li>✅ Cover everything and you're in the running.</li>
+                <li>⚡ The most thorough answer is crowned Strata Laureate of the day.</li>
               </ul>
               <p className="mt-4 text-base text-slate-900 font-extrabold">Win it for the bragging rights — and a $20 Dan Murphy's voucher.</p>
               <button
@@ -1545,7 +1545,6 @@ function DailyDrill() {
   const [winners, setWinners] = useState(null);
   const [winnersError, setWinnersError] = useState(null);
   const [winnersDate, setWinnersDate] = useState(null);
-  const [now, setNow] = useState(Date.now());
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -1573,12 +1572,6 @@ function DailyDrill() {
     const id = setInterval(() => setReloadKey((k) => k + 1), 10000);
     return () => clearInterval(id);
   }, [drill]);
-
-  useEffect(() => {
-    if (result) return; // stop the clock once submitted
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [result, drill]);
 
   // Winners are judged by hand and can land any time, so keep polling —
   // not just a once-off load like the old auto-marked leaderboard.
@@ -1647,7 +1640,6 @@ function DailyDrill() {
   const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
   const winnerHeading = winnersAreToday ? "Today's Strata Laureate" : (!winnersDate || dayGap === 1) ? "Yesterday's Strata Laureate" : dayGap <= 3 ? `${DRILL_DAYS_LONG[wp.dow]}'s Strata Laureate` : "Last Strata Laureate";
   const shareText = `Hey mate, this came through on our work Teams and I know you're a strata genius. You should enter!`;
-  const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
@@ -1677,24 +1669,22 @@ function DailyDrill() {
 
       <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 rounded-2xl px-4 py-3 flex items-center justify-center gap-x-2 gap-y-1 flex-wrap text-center shadow-sm">
         <span className="text-base">🏆</span>
-        <span className="font-extrabold text-sm sm:text-base text-slate-900">Today's fastest correct answer wins a</span>
+        <span className="font-extrabold text-sm sm:text-base text-slate-900">Today's most thorough answer wins a</span>
         <img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-7 sm:h-9 inline-block" onError={(e) => { e.target.style.display = "none"; }} />
         <span className="font-extrabold text-sm sm:text-base text-slate-900">$20 voucher!</span>
       </div>
 
-      <Stopwatch seconds={result ? result.elapsedSeconds : liveElapsed} running={!result && !drill.locked} label={drill.locked ? (isWeekend ? "Back Monday" : "Starts at 9am") : null} />
 
       {drill.locked ? (
         <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "Strata Laureate is back Monday at 9am" : "Today's task goes live at 9am"}</p>
-          <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday — see you then." : "Come back then — the clock starts at 9:00am sharp."}</p>
+          <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday — see you then." : "Come back then."}</p>
           <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
         </div>
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
           <p className="text-sm text-slate-900 mt-2">Your answer is in. The Strata Laureate is announced when someone nails it, or when no one does. Shown below.</p>
-          <p className="text-sm text-slate-900 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
           <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
           <DrillShareButton text={shareText} />
         </div>
@@ -1774,7 +1764,6 @@ function DailyDrill() {
                         <div className="w-full aspect-square bg-amber-500 text-white font-extrabold flex items-center justify-center" style={{ fontSize: "5rem" }}>{initials}</div>
                       )}
                       <span className="absolute top-3 left-3 bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow">🥇 Strata Laureate</span>
-                      <span className="absolute top-3 right-3 bg-slate-900 text-amber-400 font-extrabold text-sm px-3 py-1.5 rounded-full shadow">{elapsedLabel(e.elapsedSeconds)}</span>
                     </div>
                     <div className="px-5 pt-4 pb-5 text-center">
                       <p className="font-serif text-3xl font-bold text-slate-900 leading-tight break-words">{e.name}</p>
