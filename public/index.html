@@ -1016,7 +1016,7 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
         </p>
         <p className="mt-2 text-sm sm:text-base font-bold text-rose-700">⏱ {daysUntilLabel(msUntilSeasonEnd(seasonYear))} to climb the board</p>
       </div>
-      <p className="text-center text-xs text-slate-500 mb-6">Ranked by total points accumulated this season — ties broken by total lots landed.</p>
+      <p className="text-center text-xs text-slate-500 mb-6">Ranked by points this season. Ties go to the most lots.</p>
       {standings.length === 0 ? (
         <p className="text-slate-500 text-center py-16">No deals recorded yet this season.</p>
       ) : (
@@ -1025,7 +1025,7 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
           const currentRank = i + 1;
           const movement = prevRank ? prevRank - currentRank : null;
           return (
-            <div key={row.manager.id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 py-4 border-b border-slate-200 ${rowBg(i)}`}>
+            <div key={row.manager.id} className={`flex items-center gap-x-3 sm:gap-x-4 py-4 border-b border-slate-200 ${rowBg(i)}`}>
               <div className="w-10 sm:w-14 text-center font-serif text-2xl sm:text-3xl text-slate-400 shrink-0">
                 {medal(i) ? <span className="text-4xl sm:text-5xl">{medal(i)}</span> : currentRank}
               </div>
@@ -1046,16 +1046,11 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
                     <span className="text-xs font-bold text-amber-600 shrink-0 bg-amber-100 px-1.5 py-0.5 rounded">NEW</span>
                   )}
                 </div>
-                {row.months.length > 0 && (
-                  <p className="text-xs text-slate-500 mt-1 pl-0 sm:pl-[52px]">
-                    {row.months.map((m) => `${monthLabel(m.monthKey)}: ${m.points} pt${m.points === 1 ? "" : "s"} (${m.lots} lots)`).join(" · ")}
-                  </p>
-                )}
               </div>
-              <div className="basis-full sm:basis-auto text-right sm:shrink-0 pl-12 sm:pl-0">
+              <div className="text-right shrink-0">
                 <span className="font-serif text-2xl sm:text-3xl">{row.points}</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">point{row.points === 1 ? "" : "s"}</span>
-                <p className="text-xs text-slate-500 mt-0.5">{row.lots} total lots (tiebreak)</p>
+                <span className="text-xs sm:text-sm font-bold text-slate-700 ml-2">pts</span>
+                <p className="text-xs text-slate-500 mt-0.5">{row.lots.toLocaleString("en-AU")} lots</p>
               </div>
             </div>
           );
