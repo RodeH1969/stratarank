@@ -1786,9 +1786,7 @@ function DailyDrill() {
             <p className="font-serif text-lg font-bold text-amber-800 text-center leading-tight">
               {DRILL_DAYS_LONG[wp.dow]} {wp.d} {DRILL_MONTHS_LONG[wp.m]}
             </p>
-            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-900 text-center mb-3">
-              {winnersAreToday ? "Today's challenge" : "Today's winner announced soon"}
-            </p>
+            <div className="mb-3" />
           </>
         )}
         {winnersError ? (
@@ -1796,7 +1794,7 @@ function DailyDrill() {
         ) : !winners ? (
           <p className="text-sm text-slate-900 text-center">Loading…</p>
         ) : winners.length === 0 ? (
-          <p className="text-sm text-slate-900 text-center">Winner announced when someone nails it, or when no one does</p>
+          <p className="text-sm text-slate-900 text-center">No winner was named.</p>
         ) : (
           <>
             <div>
