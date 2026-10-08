@@ -1394,10 +1394,10 @@ function DrillInfoPopup({ onClose }) {
             </div>
             <div className="p-6">
               <p className="font-serif text-xl text-slate-900 font-bold leading-snug">
-                The daily test of strata expertise. One real task every weekday. Who's Queensland's smartest strata manager? The winner takes the crown, and their company takes the bragging rights.
+                The daily test of strata expertise. One real scenario every weekday. Who's Queensland's smartest strata manager? The winner takes the crown, and their company takes the bragging rights.
               </p>
               <ul className="mt-4 space-y-2 text-base text-slate-900 font-medium">
-                <li>⏰ A fresh real-world task drops every weekday at 9am.</li>
+                <li>⏰ A new Laureate Scenario every weekday.</li>
                 <li>🎧 You hear it, you don't read it. Facts first, then the question.</li>
                 <li>✍️ Write your answer. Make it thorough. Hit submit.</li>
                 <li>✅ Cover everything and you're in the running.</li>
@@ -1709,7 +1709,7 @@ function DailyDrill() {
             </span>
           ))}
         </div>
-        <p className="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide text-slate-900 mt-2">Runs Monday to Friday · new task 9am Brisbane time</p>
+        <p className="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide text-slate-900 mt-2">Runs Monday to Friday · new Laureate Scenario daily</p>
       </div>
 
       <DrillInfoButton />
@@ -1724,8 +1724,8 @@ function DailyDrill() {
 
       {drill.locked ? (
         <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
-          <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "Strata Laureate is back Monday at 9am" : "Today's task goes live at 9am"}</p>
-          <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday — see you then." : "Come back then."}</p>
+          <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "Strata Laureate is back Monday" : "Today's Scenario isn't up yet"}</p>
+          <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday. See you then." : "Check back soon."}</p>
           <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
         </div>
       ) : result ? (

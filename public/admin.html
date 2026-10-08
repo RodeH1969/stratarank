@@ -2214,7 +2214,7 @@ function DrillAdmin() {
   };
 
   const unlaunch = async () => {
-    if (!window.confirm("Take today's question offline? The public page goes back to 'goes live at 9am'.")) return;
+    if (!window.confirm("Take today's question offline? The public page goes back to 'isn't up yet'.")) return;
     setError(null);
     try {
       await api("/api/admin/drill/unlaunch", { method: "POST", body: "{}" });
@@ -2284,7 +2284,7 @@ function DrillAdmin() {
               ) : (
                 <>
                   <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Not launched yet</p>
-                  <p className="text-sm text-slate-900 mt-1">The public page is showing "goes live at 9am". Pick a question below and hit Launch.</p>
+                  <p className="text-sm text-slate-900 mt-1">The public page is showing "Today's Laureate Scenario isn't up yet". Pick one below and hit Launch.</p>
                 </>
               )}
             </div>
