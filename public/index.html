@@ -614,6 +614,8 @@ function App() {
             >
               <span className="brain-pulse">🧠</span> Strata Laureate
             </button>
+            <div className="w-full sm:w-auto flex flex-col items-center">
+            <p className="font-serif text-lg sm:text-xl font-bold text-slate-900 leading-none mb-2.5 mt-2">Deal Room</p>
             <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1 w-full sm:w-auto">
               {[
                 { id: "dotm", label: "Deal of the Month", shortLabel: "Deal of Month" },
@@ -636,6 +638,7 @@ function App() {
                 </button>
               ))}
             </nav>
+            </div>
           </div>
           {tab !== "drill" && tab !== "jobs" && <MetricInfoButton />}
         </header>
