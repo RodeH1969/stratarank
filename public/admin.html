@@ -1534,7 +1534,7 @@ function AdminPanel({ data, refresh }) {
           { id: "sponsors", label: "Sponsors" },
           { id: "record", label: "Record a deal" },
           { id: "nominations", label: "All nominations" },
-          { id: "drill", label: "Daily Drill" },
+          { id: "drill", label: "Strata Laureate" },
           { id: "jobs", label: "Jobs" },
         ].map(({ id, label }) => (
           <button
@@ -2248,7 +2248,7 @@ function DrillAdmin() {
     setPayload((p) => p && { ...p, entries: p.entries.map((e) => (e.id === entryId ? { ...e, [key]: url } : e)) });
   };
 
-  if (loading && !payload) return <section className="mb-10"><h2 className="font-serif text-2xl mb-4">Strata Daily Drill</h2><p className="text-slate-400 text-sm">Loading…</p></section>;
+  if (loading && !payload) return <section className="mb-10"><h2 className="font-serif text-2xl mb-4">Strata Laureate</h2><p className="text-slate-400 text-sm">Loading…</p></section>;
 
   const pending = payload ? payload.entries.filter((e) => e.isCorrect === null) : [];
   const judged = payload ? payload.entries.filter((e) => e.isCorrect !== null) : [];
@@ -2256,7 +2256,7 @@ function DrillAdmin() {
 
   return (
     <section className="mb-10">
-      <h2 className="font-serif text-2xl mb-4">Strata Daily Drill</h2>
+      <h2 className="font-serif text-2xl mb-4">Strata Laureate</h2>
 
       <div className="flex items-center gap-2 mb-6">
         <button onClick={() => shiftDate(-1)} className="px-2 py-1 rounded border border-slate-300 text-sm hover:bg-slate-50">&larr;</button>

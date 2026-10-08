@@ -612,7 +612,7 @@ function App() {
                 tab === "drill" ? "bg-amber-400 border-slate-900 shadow-md" : "bg-gradient-to-br from-amber-300 to-amber-500 border-amber-600 hover:from-amber-200 hover:to-amber-400"
               }`}
             >
-              <span className="brain-pulse">🧠</span> QLD Strata Brainiac
+              <span className="brain-pulse">🧠</span> Strata Laureate
             </button>
             <nav className="grid grid-cols-2 sm:flex sm:flex-row gap-1.5 sm:gap-1 bg-slate-900 rounded-2xl sm:rounded-full p-1.5 sm:p-1 w-full sm:w-auto">
               {[
@@ -1388,7 +1388,7 @@ function DrillInfoButton() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden text-left" onClick={(e) => e.stopPropagation()}>
             <div className="bg-red-600 text-white px-6 py-4 flex items-start justify-between">
-              <h3 className="font-serif text-2xl font-bold">🧠 QLD Strata Brainiac</h3>
+              <h3 className="font-serif text-2xl font-bold">🧠 Strata Laureate</h3>
               <button onClick={() => setOpen(false)} aria-label="Close" className="text-white/80 hover:text-white text-2xl leading-none shrink-0 ml-3">×</button>
             </div>
             <div className="p-6">
@@ -1399,7 +1399,7 @@ function DrillInfoButton() {
                 <li>⏰ A fresh real-world task drops every day at 9am.</li>
                 <li>✍️ Write your answer. Hit submit. Beat the clock.</li>
                 <li>✅ Get it right and you're on the board.</li>
-                <li>⚡ Fastest correct answer is crowned Strata Brainiac of the day.</li>
+                <li>⚡ Fastest correct answer is crowned Strata Laureate of the day.</li>
               </ul>
               <p className="mt-4 text-base text-slate-900 font-extrabold">Win it for the bragging rights — and a $20 Dan Murphy's voucher.</p>
               <button
@@ -1487,7 +1487,7 @@ function DrillAudioBrain() {
           </g>
         </svg>
         <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "30%", height: "46%" }}>
-          <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's Strata Brainiac</p>
+          <p className="drill-lab font-extrabold uppercase text-amber-800" style={{ letterSpacing: "0.14em" }}>🎧 Today's Strata Laureate</p>
           <div className={`drill-bars flex items-center my-1.5 sm:my-2 ${playing ? "on" : ""}`}>{bars}</div>
           <div className="flex items-center justify-center gap-2">
             {btn("scenario", "Facts")}
@@ -1645,14 +1645,15 @@ function DailyDrill() {
   const wp = drillDateParts(winnersDate || drill.drillDate);
   const winnersAreToday = !!winnersDate && winnersDate === drill.drillDate;
   const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
-  const winnerHeading = winnersAreToday ? "Today's Strata Brainiac" : (!winnersDate || dayGap === 1) ? "Yesterday's Strata Brainiac" : dayGap <= 3 ? `${DRILL_DAYS_LONG[wp.dow]}'s Strata Brainiac` : "Last Strata Brainiac";
+  const winnerHeading = winnersAreToday ? "Today's Strata Laureate" : (!winnersDate || dayGap === 1) ? "Yesterday's Strata Laureate" : dayGap <= 3 ? `${DRILL_DAYS_LONG[wp.dow]}'s Strata Laureate` : "Last Strata Laureate";
   const shareText = `Hey mate, this came through on our work Teams and I know you're a strata genius. You should enter!`;
   const liveElapsed = drill.postedAt ? Math.max(0, Math.round((now - new Date(drill.postedAt).getTime()) / 1000)) : 0;
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
       <div className="text-center">
-        <h2 className="font-serif text-xl sm:text-3xl font-bold mb-0.5"><span className="brain-pulse">🧠</span> QLD Strata Brainiac</h2>
+        <h2 className="font-serif text-xl sm:text-3xl font-bold"><span className="brain-pulse">🧠</span> Strata Laureate</h2>
+        <p className="text-xs sm:text-sm font-semibold italic text-slate-600 mb-1.5">The daily test of strata expertise.</p>
         <p className="font-serif text-lg sm:text-3xl font-bold text-slate-900 leading-tight">
           {DRILL_DAYS_LONG[dp.dow]} {dp.d} {DRILL_MONTHS_LONG[dp.m]}
         </p>
@@ -1685,14 +1686,14 @@ function DailyDrill() {
 
       {drill.locked ? (
         <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
-          <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "The Drill is back Monday at 9am" : "Today's task goes live at 9am"}</p>
+          <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "Strata Laureate is back Monday at 9am" : "Today's task goes live at 9am"}</p>
           <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday — see you then." : "Come back then — the clock starts at 9:00am sharp."}</p>
           <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
         </div>
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
-          <p className="text-sm text-slate-900 mt-2">Your answer is in. The Strata Brainiac is announced when someone nails it, or when no one does. Shown below.</p>
+          <p className="text-sm text-slate-900 mt-2">Your answer is in. The Strata Laureate is announced when someone nails it, or when no one does. Shown below.</p>
           <p className="text-sm text-slate-900 mt-2">Your time: <span className="font-bold">{elapsedLabel(result.elapsedSeconds)}</span></p>
           <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
           <DrillShareButton text={shareText} />
@@ -1772,7 +1773,7 @@ function DailyDrill() {
                       ) : (
                         <div className="w-full aspect-square bg-amber-500 text-white font-extrabold flex items-center justify-center" style={{ fontSize: "5rem" }}>{initials}</div>
                       )}
-                      <span className="absolute top-3 left-3 bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow">🥇 Strata Brainiac</span>
+                      <span className="absolute top-3 left-3 bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow">🥇 Strata Laureate</span>
                       <span className="absolute top-3 right-3 bg-slate-900 text-amber-400 font-extrabold text-sm px-3 py-1.5 rounded-full shadow">{elapsedLabel(e.elapsedSeconds)}</span>
                     </div>
                     <div className="px-5 pt-4 pb-5 text-center">
