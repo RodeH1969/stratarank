@@ -1128,6 +1128,23 @@ app.patch('/api/admin/drill/:id', async (req, res) => {
   res.json({ id: data.id, isCorrect: data.is_correct });
 });
 
+// Admin: edit the written answer on an entry (tidy it up before it's shown as the winning answer).
+app.patch('/api/admin/drill/:id/answer', async (req, res) => {
+  const text = String((req.body && req.body.text) || '').trim();
+  if (!text) return res.status(400).json({ error: 'Answer can\'t be empty.' });
+  try {
+    const { data: e, error } = await supabase.from('strata_drill_entries').select('id, answers').eq('id', req.params.id).single();
+    if (error || !e) return res.status(404).json({ error: 'Entry not found.' });
+    const taskId = Array.isArray(e.answers) && e.answers[0] ? e.answers[0].taskId : 0;
+    const answers = [{ taskId, text }];
+    const u = await supabase.from('strata_drill_entries').update({ answers }).eq('id', e.id);
+    if (u.error) return res.status(500).json({ error: u.error.message });
+    res.json({ id: e.id, answers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Admin: crown this entry as that day's winner (most thorough answer).
 app.post('/api/admin/drill/:id/winner', async (req, res) => {
   try {
