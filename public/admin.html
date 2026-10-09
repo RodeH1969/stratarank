@@ -1521,7 +1521,7 @@ function Overview({ data, refresh }) {
   );
 }
 
-function AdminPanel({ data, refresh }) {
+function AdminPanel({ data, refresh, badges = {} }) {
   const [section, setSection] = useState("overview");
 
   return (
@@ -1543,6 +1543,7 @@ function AdminPanel({ data, refresh }) {
             className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-full text-sm font-medium text-center whitespace-nowrap transition-colors ${section === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`}
           >
             {label}
+            {badges[id] > 0 && <span className="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-extrabold align-middle">{badges[id]}</span>}
           </button>
         ))}
       </nav>
@@ -2387,6 +2388,7 @@ function AdminApp() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [unlocked, setUnlocked] = useState(false);
+  const [laureatePending, setLaureatePending] = useState(0);
 
   useEffect(() => {
     const supplied = window.prompt("Admin password");
@@ -2405,10 +2407,26 @@ function AdminApp() {
     }
   };
 
+  const loadCounts = async () => {
+    try {
+      const c = await api("/api/admin/counts");
+      setLaureatePending(c.laureatePending || 0);
+    } catch (e) { /* badges are best-effort */ }
+  };
+
   useEffect(() => {
     if (!unlocked) return;
     refresh();
+    loadCounts();
+    const t = setInterval(() => { refresh(); loadCounts(); }, 30000);
+    return () => clearInterval(t);
   }, [unlocked]);
+
+  const nominationsPending = data.events.filter((e) => e.status !== "approved").length;
+  useEffect(() => {
+    const total = nominationsPending + laureatePending;
+    document.title = `${total > 0 ? `(${total}) ` : ""}QLD Strata Rankings — Admin`;
+  }, [nominationsPending, laureatePending]);
 
   if (!unlocked) return <div className="p-10 text-center"><h1 className="font-serif text-3xl">Access Denied</h1><a href="index.html" className="text-teal-700 underline">Back</a></div>;
 
@@ -2424,7 +2442,7 @@ function AdminApp() {
             Couldn't reach the rankings server: {loadError}
           </div>
         )}
-        {loading ? <p>Loading…</p> : <AdminPanel data={data} refresh={refresh} />}
+        {loading ? <p>Loading…</p> : <AdminPanel data={data} refresh={refresh} badges={{ nominations: nominationsPending, drill: laureatePending }} />}
       </div>
     </div>
   );

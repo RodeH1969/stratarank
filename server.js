@@ -237,6 +237,20 @@ app.get('/api/admin/data', async (req, res) => {
   }
 });
 
+// Admin: counts of things waiting on QSR, polled by the admin page for tab badges.
+app.get('/api/admin/counts', async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from('strata_drill_entries')
+      .select('id', { count: 'exact', head: true })
+      .is('is_correct', null);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ laureatePending: count || 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- managers ------------------------------------------------------------
 
 app.patch('/api/managers/:id', async (req, res) => {
