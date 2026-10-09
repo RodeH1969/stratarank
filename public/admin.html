@@ -2240,6 +2240,7 @@ function DrillAdmin() {
       await load(date, true);
     } catch (e) {
       setError(e.message);
+      alert("Couldn't make winner: " + e.message);
     }
   };
 
