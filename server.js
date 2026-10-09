@@ -667,13 +667,8 @@ app.delete('/api/sponsor-invites/:id', async (req, res) => {
 // answered — timed from the moment the day's task was launched to when
 // the server received their submission.
 
-const DRILL_TASKS_PATH = path.join(__dirname, 'public', 'Daily Drill', 'tasks.json');
 let DRILL_TASKS = [];
-try {
-  DRILL_TASKS = JSON.parse(fs.readFileSync(DRILL_TASKS_PATH, 'utf8'));
-} catch (err) {
-  console.error('Could not load Daily Drill tasks from', DRILL_TASKS_PATH, err.message);
-}
+// Set 1 was retired. Only Set 2 (ids 101+) is loaded.
 // Set 2 — a second bank, ids 101+ (so audio names stay unambiguous). No
 // model answers yet; judging for these is from the scenario and topic alone.
 try {
