@@ -948,9 +948,7 @@ app.post('/api/drill/submit', async (req, res) => {
 // task goes live.
 app.get('/api/drill/winners', async (req, res) => {
   let drillDate;
-  if (isDateStr(req.query.date)) {
-    drillDate = req.query.date;
-  } else {
+  {  // Always the previous day's winner: answers for older days are never served.
     // Newest day BEFORE today that has a winner: always yesterday's (or the
     // last contest day's). Today's winner appears from tomorrow.
     const today = brisbaneDateStr();
