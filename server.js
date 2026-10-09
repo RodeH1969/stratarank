@@ -1144,6 +1144,13 @@ app.patch('/api/admin/drill/:id', async (req, res) => {
   res.json({ id: data.id, isCorrect: data.is_correct });
 });
 
+// Admin: delete an entry outright (junk or test answers).
+app.delete('/api/admin/drill/:id', async (req, res) => {
+  const { error } = await supabase.from('strata_drill_entries').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ id: req.params.id, deleted: true });
+});
+
 // Admin: edit the written answer on an entry (tidy it up before it's shown as the winning answer).
 app.patch('/api/admin/drill/:id/answer', async (req, res) => {
   const text = String((req.body && req.body.text) || '').trim();

@@ -1609,7 +1609,7 @@ function DrillEntryImage({ entry, field, label, shape, onSaved }) {
   );
 }
 
-function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved, onCrown }) {
+function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved, onCrown, onDelete }) {
   const [open, setOpen] = useState(false);
   const [answers, setAnswers] = useState(entry.answers);
   const [editing, setEditing] = useState(false);
@@ -1650,6 +1650,7 @@ function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved, onCrown }) {
               ? <span className="text-xs font-extrabold px-2 py-1 rounded bg-amber-400 text-slate-900">👑 Winner</span>
               : <button onClick={() => onCrown(entry.id)} className="text-xs font-semibold px-2 py-1 rounded border border-amber-400 text-amber-700 hover:bg-amber-50">👑 Make winner</button>
           )}
+          <button onClick={() => { if (window.confirm(`Delete ${entry.name}'s answer? This can't be undone.`)) onDelete(entry.id); }} className="text-xs font-semibold px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50">🗑 Delete</button>
           {entry.isCorrect !== null && (
             <button onClick={() => onVerdict(entry.id, null)} className="text-xs font-semibold px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-50">Reset</button>
           )}
@@ -2265,6 +2266,17 @@ function DrillAdmin() {
     }
   };
 
+  const onDelete = async (entryId) => {
+    setError(null);
+    try {
+      await api(`/api/admin/drill/${entryId}`, { method: "DELETE" });
+      setPayload((p) => p && { ...p, entries: p.entries.filter((e) => e.id !== entryId) });
+    } catch (e) {
+      setError(e.message);
+      alert("Couldn't delete: " + e.message);
+    }
+  };
+
   const onCrown = async (entryId) => {
     setError(null);
     try {
@@ -2366,7 +2378,7 @@ function DrillAdmin() {
           ) : (
             <div className="space-y-2 mb-8">
               {pending.map((e) => (
-                <DrillEntryReview key={e.id} entry={e} tasks={payload.tasks} onVerdict={onVerdict} onImageSaved={onImageSaved} onCrown={onCrown} />
+                <DrillEntryReview key={e.id} entry={e} tasks={payload.tasks} onVerdict={onVerdict} onImageSaved={onImageSaved} onCrown={onCrown} onDelete={onDelete} />
               ))}
             </div>
           )}
@@ -2377,7 +2389,7 @@ function DrillAdmin() {
           ) : (
             <div className="space-y-2">
               {judged.map((e) => (
-                <DrillEntryReview key={e.id} entry={e} tasks={payload.tasks} onVerdict={onVerdict} onImageSaved={onImageSaved} onCrown={onCrown} />
+                <DrillEntryReview key={e.id} entry={e} tasks={payload.tasks} onVerdict={onVerdict} onImageSaved={onImageSaved} onCrown={onCrown} onDelete={onDelete} />
               ))}
             </div>
           )}
