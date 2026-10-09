@@ -2086,6 +2086,8 @@ function DrillManualWinner({ date, hasLaunch, onAdded }) {
   const [f, setF] = useState(empty);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const [d, setD] = useState(date);
+  useEffect(() => { setD(date); }, [date]);
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
 
   // Shrink the picture before it goes up, so phone photos don't bloat the database.
@@ -2130,7 +2132,7 @@ function DrillManualWinner({ date, hasLaunch, onAdded }) {
     try {
       await api("/api/admin/drill/manual", {
         method: "POST",
-        body: JSON.stringify({ drillDate: date, name: f.name, role: f.role, company: f.company, answer: f.answer, elapsedSeconds: secs || 0, photoUrl: f.photoUrl, logoUrl: f.logoUrl }),
+        body: JSON.stringify({ drillDate: d, name: f.name, role: f.role, company: f.company, answer: f.answer, elapsedSeconds: secs || 0, photoUrl: f.photoUrl, logoUrl: f.logoUrl }),
       });
       setF(empty);
       setOpen(false);
@@ -2144,12 +2146,14 @@ function DrillManualWinner({ date, hasLaunch, onAdded }) {
 
   const input = "w-full border border-slate-300 rounded px-3 py-2 text-base sm:text-sm";
   if (!open) {
-    return <button onClick={() => setOpen(true)} className="mb-6 text-sm font-bold px-4 py-2 rounded-full bg-slate-900 text-amber-400">＋ Add winner manually</button>;
+    return <button onClick={() => setOpen(true)} className="mb-6 text-sm font-bold px-4 py-2 rounded-full bg-slate-900 text-amber-400">＋ Add a past winner</button>;
   }
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6 space-y-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Add winner for {date}</p>
-      {!hasLaunch && <p className="text-xs text-rose-600">That day wasn't launched, so this won't show on the public board.</p>}
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Add a winner for any day</p>
+      <label className="block text-sm text-slate-700">Day they won
+        <input type="date" className={input + " mt-1"} value={d} onChange={(e) => setD(e.target.value)} />
+      </label>
       <input className={input} placeholder="Name" value={f.name} onChange={(e) => set("name", e.target.value)} />
       <input className={input} placeholder="Role" value={f.role} onChange={(e) => set("role", e.target.value)} />
       <input className={input} placeholder="Company" value={f.company} onChange={(e) => set("company", e.target.value)} />
