@@ -948,22 +948,10 @@ app.post('/api/drill/submit', async (req, res) => {
 // task goes live.
 app.get('/api/drill/winners', async (req, res) => {
   let drillDate;
-  {  // Always the previous day's winner: answers for older days are never served.
-    // Newest day BEFORE today that has a winner: always yesterday's (or the
-    // last contest day's). Today's winner appears from tomorrow.
-    const today = brisbaneDateStr();
-    const { data: recent, error: rErr } = await supabase
-      .from('strata_drill_entries')
-      .select('drill_date')
-      .eq('is_winner', true)
-      .lt('drill_date', today)
-      .order('drill_date', { ascending: false })
-      .limit(1);
-    if (rErr) return res.status(500).json({ error: rErr.message });
-    // No winner anywhere yet: show the last contest day (empty), never today.
-    const y = new Date(`${today}T00:00:00Z`);
-    do { y.setUTCDate(y.getUTCDate() - 1); } while (y.getUTCDay() === 0 || y.getUTCDay() === 6); // last contest day (Mon-Fri)
-    drillDate = recent && recent[0] ? recent[0].drill_date : y.toISOString().slice(0, 10);
+  {  // Always the previous contest day (Mon-Fri) — never an older winner, never today's.
+    const y = new Date(`${brisbaneDateStr()}T00:00:00Z`);
+    do { y.setUTCDate(y.getUTCDate() - 1); } while (y.getUTCDay() === 0 || y.getUTCDay() === 6);
+    drillDate = y.toISOString().slice(0, 10);
   }
   const { data, error } = await supabase
     .from('strata_drill_entries')
