@@ -1670,8 +1670,34 @@ function WinningAnswer({ entry }) {
   );
 }
 
+function LaureateLightbox({ entry, onClose }) {
+  const initials = entry.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
+      <div className="relative w-full max-w-sm max-h-[92vh] overflow-y-auto rounded-3xl border-4 border-amber-400 bg-gradient-to-b from-amber-100 to-amber-200 p-5 text-center" onClick={(e) => e.stopPropagation()}>
+        <button type="button" onClick={onClose} aria-label="Close" className="absolute top-2 right-3 text-slate-700 text-2xl font-bold leading-none">×</button>
+        <span className="inline-block bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow mb-3">🥇 Strata Laureate</span>
+        {entry.photoUrl ? (
+          <img src={entry.photoUrl} alt={entry.name} className="w-full aspect-square object-cover object-top rounded-2xl border-4 border-amber-400 shadow-md block" />
+        ) : (
+          <div className="w-full aspect-square rounded-2xl bg-amber-500 text-white font-extrabold flex items-center justify-center" style={{ fontSize: "6rem" }}>{initials}</div>
+        )}
+        <p className="font-serif text-2xl font-bold text-slate-900 mt-3 leading-tight break-words">{entry.name}</p>
+        {entry.role && <p className="text-sm font-semibold text-slate-800 mt-0.5 break-words">{entry.role}</p>}
+        {entry.logoUrl && (
+          <div className="bg-white rounded-2xl mt-3 px-4 py-4 flex items-center justify-center">
+            <img src={entry.logoUrl} alt={entry.company} className="h-28 max-w-full object-contain" />
+          </div>
+        )}
+        <p className="text-base font-extrabold text-amber-900 mt-3 break-words">{entry.company}</p>
+      </div>
+    </div>
+  );
+}
+
 function PastLaureates({ before }) {
   const [list, setList] = useState(null);
+  const [zoom, setZoom] = useState(null);
   useEffect(() => {
     if (!before) return;
     let cancelled = false;
@@ -1687,7 +1713,7 @@ function PastLaureates({ before }) {
           const dp = drillDateParts(e.drillDate);
           const initials = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
           return (
-            <div key={i} className="text-center min-w-0">
+            <button type="button" key={i} onClick={() => setZoom(e)} className="text-center min-w-0 block w-full cursor-pointer">
               {e.photoUrl ? (
                 <img src={e.photoUrl} alt={e.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover object-top border-2 border-amber-400 mx-auto block" />
               ) : (
@@ -1696,10 +1722,11 @@ function PastLaureates({ before }) {
               <p className="text-[10px] font-extrabold uppercase text-amber-400 mt-1.5" style={{ letterSpacing: "0.1em" }}>{DRILL_DAYS_SHORT[dp.dow]}</p>
               <p className="text-xs font-bold text-white leading-tight break-words">{e.name}</p>
               <p className="text-[11px] text-stone-300 leading-tight break-words">{e.company}</p>
-            </div>
+            </button>
           );
         })}
       </div>
+      {zoom && <LaureateLightbox entry={zoom} onClose={() => setZoom(null)} />}
     </div>
   );
 }
@@ -1718,6 +1745,7 @@ function DailyDrill() {
   const [winners, setWinners] = useState(null);
   const [winnersError, setWinnersError] = useState(null);
   const [winnersDate, setWinnersDate] = useState(null);
+  const [zoomWinner, setZoomWinner] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -1942,7 +1970,7 @@ function DailyDrill() {
                     <div className="pt-5 flex flex-col items-center">
                       <span className="bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow mb-3">🥇 Strata Laureate</span>
                       {e.photoUrl ? (
-                        <img src={e.photoUrl} alt={e.name} className="w-36 h-36 sm:w-44 sm:h-44 rounded-full object-cover object-top border-4 border-amber-400 shadow-md block" />
+                        <img src={e.photoUrl} alt={e.name} className="w-36 h-36 sm:w-44 sm:h-44 rounded-full object-cover object-top border-4 border-amber-400 shadow-md block cursor-zoom-in" onClick={() => setZoomWinner(e)} />
                       ) : (
                         <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-amber-500 text-white font-extrabold flex items-center justify-center border-4 border-amber-300" style={{ fontSize: "3.5rem" }}>{initials}</div>
                       )}
@@ -1952,7 +1980,7 @@ function DailyDrill() {
                       {e.role && <p className="text-base font-semibold text-slate-800 mt-1 break-words">{e.role}</p>}
                       {e.logoUrl && (
                         <div className="bg-white rounded-2xl mt-4 px-4 py-3 flex items-center justify-center">
-                          <img src={e.logoUrl} alt={e.company} className="h-20 sm:h-24 max-w-full object-contain" />
+                          <img src={e.logoUrl} alt={e.company} className="h-20 sm:h-24 max-w-full object-contain cursor-zoom-in" onClick={() => setZoomWinner(e)} />
                         </div>
                       )}
                       <p className="text-base font-extrabold text-amber-900 mt-3 break-words">Flying the flag for {e.company}</p>
@@ -1968,6 +1996,7 @@ function DailyDrill() {
         )}
       </div>
       <PastLaureates before={winnersDate} />
+      {zoomWinner && <LaureateLightbox entry={zoomWinner} onClose={() => setZoomWinner(null)} />}
     </div>
   );
 }
