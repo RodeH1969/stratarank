@@ -1548,6 +1548,98 @@ function DrillSponsorLine({ sponsor, className = "" }) {
   );
 }
 
+function loadImg(src) {
+  return new Promise((resolve) => {
+    if (!src) return resolve(null);
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.onload = () => resolve(im);
+    im.onerror = () => resolve(null);
+    im.src = src;
+  });
+}
+
+async function makeWinnerCard(e, dateLabel) {
+  const W = 1080, H = 1350;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  const [photo, logo] = await Promise.all([loadImg(e.photoUrl), loadImg(e.logoUrl)]);
+  const bg = x.createRadialGradient(W / 2, 0, 50, W / 2, 0, H);
+  bg.addColorStop(0, "#3b2a08"); bg.addColorStop(0.6, "#0f172a"); bg.addColorStop(1, "#0b1020");
+  x.fillStyle = bg; x.fillRect(0, 0, W, H);
+  x.strokeStyle = "#fbbf24"; x.lineWidth = 8; x.strokeRect(28, 28, W - 56, H - 56);
+  x.textAlign = "center";
+  x.fillStyle = "#fbbf24"; x.font = "700 30px Georgia, serif";
+  x.fillText("Q S R   P R E S E N T S", W / 2, 105);
+  const g = x.createLinearGradient(0, 130, 0, 230);
+  g.addColorStop(0, "#fde68a"); g.addColorStop(0.55, "#f59e0b"); g.addColorStop(1, "#b45309");
+  x.fillStyle = g; x.font = "900 104px Georgia, serif";
+  x.fillText("Strata Laureate", W / 2, 215);
+  x.fillStyle = "#d6d3d1"; x.font = "italic 600 34px Georgia, serif";
+  x.fillText(dateLabel, W / 2, 268);
+  // photo
+  const cx = W / 2, cy = 520, r = 190;
+  x.save(); x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath(); x.clip();
+  if (photo) {
+    const s = Math.max((r * 2) / photo.width, (r * 2) / photo.height);
+    const w = photo.width * s, h = photo.height * s;
+    x.drawImage(photo, cx - w / 2, cy - r, w, h);
+  } else {
+    x.fillStyle = "#f59e0b"; x.fillRect(cx - r, cy - r, r * 2, r * 2);
+    x.fillStyle = "#fff"; x.font = "900 150px Arial, sans-serif"; x.textBaseline = "middle";
+    x.fillText(e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join(""), cx, cy + 6);
+    x.textBaseline = "alphabetic";
+  }
+  x.restore();
+  x.strokeStyle = "#fbbf24"; x.lineWidth = 10; x.beginPath(); x.arc(cx, cy, r + 5, 0, Math.PI * 2); x.stroke();
+  // name
+  const fit = (text, max, start, face) => { let f = start; do { x.font = `${face.replace("{}", f)}`; f -= 2; } while (x.measureText(text).width > max && f > 24); };
+  x.fillStyle = "#ffffff"; fit(e.name, W - 140, 84, "700 {}px Georgia, serif");
+  x.fillText(e.name, W / 2, 800);
+  if (e.role) { x.fillStyle = "#e7e5e4"; fit(e.role, W - 160, 40, "600 {}px Arial, sans-serif"); x.fillText(e.role, W / 2, 855); }
+  // logo box
+  const bx = 190, by = 895, bw = W - 380, bh = 190;
+  x.fillStyle = "#ffffff"; x.beginPath(); x.roundRect(bx, by, bw, bh, 28); x.fill();
+  if (logo) {
+    const s = Math.min((bw - 60) / logo.width, (bh - 40) / logo.height);
+    const w = logo.width * s, h = logo.height * s;
+    x.drawImage(logo, bx + (bw - w) / 2, by + (bh - h) / 2, w, h);
+  } else {
+    x.fillStyle = "#0f172a"; fit(e.company, bw - 60, 56, "800 {}px Georgia, serif"); x.fillText(e.company, W / 2, by + bh / 2 + 18);
+  }
+  x.fillStyle = "#fcd34d"; fit("Flying the flag for " + e.company, W - 140, 44, "800 {}px Arial, sans-serif");
+  x.fillText("Flying the flag for " + e.company, W / 2, 1160);
+  x.fillStyle = "#a8a29e"; x.font = "600 30px Arial, sans-serif";
+  x.fillText("The daily test of strata expertise  ·  stratarank.onrender.com", W / 2, 1270);
+  return new Promise((resolve) => c.toBlob(resolve, "image/png"));
+}
+
+function ShareWinnerButton({ entry, dateLabel }) {
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    try {
+      const blob = await makeWinnerCard(entry, dateLabel);
+      if (!blob) throw new Error("no image");
+      const file = new File([blob], "strata-laureate.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], text: `${entry.name} is today's Strata Laureate! stratarank.onrender.com` });
+      } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = "strata-laureate.png"; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }
+    } catch (err) { /* cancelled share or blocked image */ }
+    setBusy(false);
+  };
+  return (
+    <button type="button" onClick={go} disabled={busy} className="mt-2 w-full bg-gradient-to-br from-amber-300 to-amber-500 text-slate-900 font-extrabold uppercase tracking-wide text-sm py-3 rounded-xl shadow disabled:opacity-60">
+      {busy ? "Making your card…" : "📤 Share this win"}
+    </button>
+  );
+}
+
 function WinningAnswer({ entry }) {
   const [open, setOpen] = useState(false);
   if (!entry.answer) return null;
@@ -1831,6 +1923,7 @@ function DailyDrill() {
                       )}
                       <p className="text-base font-extrabold text-amber-900 mt-3 break-words">Flying the flag for {e.company}</p>
                       <WinningAnswer entry={e} />
+                      <ShareWinnerButton entry={e} dateLabel={`${DRILL_DAYS_LONG[wp.dow]} ${wp.d} ${DRILL_MONTHS_LONG[wp.m]}`} />
                     </div>
                   </div>
                 );
