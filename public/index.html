@@ -1944,7 +1944,7 @@ function ReportWin({ data, refresh }) {
       setSuburb(""); setLotCount(""); setSchemeName("");
       setWinType(""); setNewTerm(""); setPrevTerm(""); setDate(todayStr());
       setStep(0);
-      setConfirmation({ points: result.event.points, label: `Logged for ${result.manager.name} — worth ${result.event.points} points once we've confirmed it with them directly.` });
+      setConfirmation({ points: result.event.points, label: `Logged for ${result.manager.name}${agency ? ` at ${agency}` : ""}. You'll get ${result.event.points} points on our leaderboard once we've verified the win.` });
     } catch (e) {
       setError(e.message);
     } finally {
