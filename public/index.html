@@ -1939,13 +1939,13 @@ function DailyDrill() {
                 const initials = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
                 return (
                   <div key={i} className="rounded-3xl overflow-hidden border-4 border-amber-400 shadow-lg bg-gradient-to-b from-amber-100 to-amber-200">
-                    <div className="relative">
+                    <div className="pt-5 flex flex-col items-center">
+                      <span className="bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow mb-3">🥇 Strata Laureate</span>
                       {e.photoUrl ? (
-                        <img src={e.photoUrl} alt={e.name} className="w-full aspect-square object-cover object-top block" />
+                        <img src={e.photoUrl} alt={e.name} className="w-36 h-36 sm:w-44 sm:h-44 rounded-full object-cover object-top border-4 border-amber-400 shadow-md block" />
                       ) : (
-                        <div className="w-full aspect-square bg-amber-500 text-white font-extrabold flex items-center justify-center" style={{ fontSize: "5rem" }}>{initials}</div>
+                        <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-amber-500 text-white font-extrabold flex items-center justify-center border-4 border-amber-300" style={{ fontSize: "3.5rem" }}>{initials}</div>
                       )}
-                      <span className="absolute top-3 left-3 bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow">🥇 Strata Laureate</span>
                     </div>
                     <div className="px-5 pt-4 pb-5 text-center">
                       <p className="font-serif text-3xl font-bold text-slate-900 leading-tight break-words">{e.name}</p>
