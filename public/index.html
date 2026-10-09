@@ -596,18 +596,18 @@ function App() {
                 src="/qsr-logo.jpg"
                 alt="QSR - Qld Strata Rankings"
                 style={{ mixBlendMode: "multiply" }}
-                className="mx-auto w-60 sm:w-72 h-auto block"
+                className={`mx-auto h-auto block ${tab === "drill" ? "w-40 sm:w-52" : "w-60 sm:w-72"}`}
               />
             </h1>
             <p
-              className="text-slate-800 mt-3 font-semibold whitespace-nowrap"
+              className={`text-slate-800 mt-3 font-semibold whitespace-nowrap ${tab === "drill" ? "hidden" : ""}`}
               style={{ fontSize: "clamp(0.7rem, 2.8vw, 1.25rem)" }}
             >
               Ranking ELITE strata managers across Qld
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <div className="w-full sm:w-auto flex flex-col items-center">
+            <div className={`w-full sm:w-auto flex-col items-center ${tab === "drill" ? "hidden" : "flex"}`}>
               <div className="relative w-full sm:w-auto">
                 <button
                   onClick={() => setTab("drill")}
@@ -1718,6 +1718,13 @@ function DailyDrill() {
           <span className="bg-white rounded-md px-1.5 py-0.5 inline-flex"><img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-6 sm:h-7 inline-block" onError={(e) => { e.target.parentNode.style.display = "none"; }} /></span>
           <span className="font-extrabold text-sm text-amber-300">$20 voucher</span>
         </div>
+        {!drill.locked && !result && (
+          <div className="mt-5">
+            <button type="button" onClick={() => { const el = document.getElementById("laureate-play"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="gold-pulse-ring bg-gradient-to-br from-amber-300 to-amber-500 text-slate-900 font-black text-sm sm:text-lg px-6 py-3 rounded-full border-2 border-amber-200 shadow-lg">
+              🎧 Enter today's Scenario
+            </button>
+          </div>
+        )}
         <p className="text-[11px] sm:text-xs font-bold uppercase text-stone-400 mt-4" style={{ letterSpacing: "0.12em" }}>Mon to Fri · new Laureate Scenario daily</p>
       </div>
 
@@ -1725,6 +1732,7 @@ function DailyDrill() {
 
 
 
+      <div id="laureate-play" style={{ scrollMarginTop: "12px" }} />
       {drill.locked ? (
         <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "Strata Laureate is back Monday" : "Today's Scenario isn't up yet"}</p>
