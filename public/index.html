@@ -867,7 +867,6 @@ function WinOfTheMonth({ monthKey, entries, sponsors, agencyLogos, schemeById, s
 
   const sorted = [...entries].sort((a, b) => b.points - a.points || b.lots - a.lots);
   const leader = sorted[0];
-  const others = sorted.slice(1);
   const leaderDeals = leader
     ? leader.events.map((ev) => ({ event: ev, scheme: schemeById(ev.schemeId) })).filter((d) => d.scheme)
     : [];
@@ -991,26 +990,6 @@ function WinOfTheMonth({ monthKey, entries, sponsors, agencyLogos, schemeById, s
             </div>
           </div>
 
-          {others.length > 0 && (
-            <div className="mt-6">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Also in the running this month</p>
-              <div className="space-y-2">
-                {others.map((row) => (
-                  <div key={row.managerId} className="flex items-center gap-3 py-2 px-3 border border-slate-200 rounded-lg">
-                    <AgencyBadge agency={row.manager.agency} agencyLogos={agencyLogos} size="h-12 sm:h-14 max-w-[6rem]" />
-                    <ManagerPhotoPopup manager={row.manager}>
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate hover:underline decoration-dotted">{row.manager.name}</p>
-                      </div>
-                    </ManagerPhotoPopup>
-                    <div className="ml-auto text-right shrink-0">
-                      <span className="font-serif text-lg">{row.points}</span>
-                      <span className="text-xs text-slate-500 ml-1">({row.events.length} · {row.lots} lots)</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           )}
         </>
       )}
