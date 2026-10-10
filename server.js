@@ -477,11 +477,11 @@ app.patch('/api/events/:id', async (req, res) => {
       .single();
     if (findError) return res.status(404).json({ error: 'nomination not found' });
 
-    const { managerName, agency, suburb, planType, module, lotCount, schemeName, cts, type, newTerm, prevTerm, points, date } = req.body;
+    const { managerName, managerRole, agency, suburb, planType, module, lotCount, schemeName, cts, type, newTerm, prevTerm, points, date } = req.body;
 
     const { data: manager, error: managerError } = await supabase
       .from('strata_managers')
-      .update({ name: managerName.trim(), agency: (agency || '').trim() })
+      .update({ name: managerName.trim(), agency: (agency || '').trim(), role: (managerRole || '').trim() || null })
       .eq('id', existing.manager_id)
       .select()
       .single();
