@@ -1152,7 +1152,7 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <AgencyBadge agency={manager?.agency} agencyLogos={agencyLogos} />
+                    <AgencyBadge agency={manager?.agency} agencyLogos={agencyLogos} size="h-12 sm:h-14 max-w-[6rem]" />
                     <ManagerPhotoPopup manager={manager}>
                       <div className="min-w-0">
                         <p className="font-semibold text-base text-slate-900 truncate hover:underline decoration-dotted">{manager?.name || "Unknown"}</p>
