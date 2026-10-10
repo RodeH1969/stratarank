@@ -1466,7 +1466,7 @@ function NominationsManager({ data, refresh }) {
 
   return (
     <section className="mb-10">
-      <h2 className="font-serif text-2xl mb-1">All nominations</h2>
+      <h2 className="font-serif text-2xl mb-1">All deals</h2>
       <p className="text-sm text-slate-500 mb-4">Edit or delete any nomination, past or present.</p>
       <div className="flex gap-1 bg-slate-100 rounded-full p-1 w-fit mb-4">
         {[
@@ -1514,7 +1514,7 @@ function Overview({ data, refresh }) {
       </div>
       {pending.length > 0 && (
         <p className="text-sm text-slate-500 mt-4">
-          Head to <span className="font-semibold text-slate-700">All nominations</span> to review and approve.
+          Head to <span className="font-semibold text-slate-700">All deals</span> to review and approve.
         </p>
       )}
     </section>
@@ -1533,7 +1533,7 @@ function AdminPanel({ data, refresh, badges = {} }) {
           { id: "manager-photos", label: "Manager Photos" },
           { id: "sponsors", label: "Sponsors" },
           { id: "record", label: "Record a deal" },
-          { id: "nominations", label: "All nominations" },
+          { id: "nominations", label: "All deals" },
           { id: "drill", label: "Strata Laureate" },
           { id: "jobs", label: "Jobs" },
         ].map(({ id, label }) => (
