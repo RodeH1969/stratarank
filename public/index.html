@@ -1713,7 +1713,7 @@ function PastLaureates({ before }) {
           const dp = drillDateParts(e.drillDate);
           const initials = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
           return (
-            <button type="button" key={i} onClick={() => setZoom(e)} className="text-center min-w-0 block w-full cursor-pointer">
+            <button type="button" key={i} onClick={() => setZoom(e)} className="text-center min-w-0 w-full h-full cursor-pointer flex flex-col items-center justify-start">
               {e.photoUrl ? (
                 <img src={e.photoUrl} alt={e.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover object-top border-2 border-amber-400 mx-auto block" />
               ) : (
