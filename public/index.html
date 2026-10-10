@@ -371,7 +371,7 @@ function MetricInfoButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="blue-pulse bg-blue-600 hover:bg-blue-700 text-white font-extrabold uppercase text-xs sm:text-sm px-2.5 py-1.5 rounded-full inline-block"
+        className="blue-pulse bg-blue-600 hover:bg-blue-700 text-white font-extrabold uppercase text-sm sm:text-base px-4 py-2 rounded-full inline-block"
       >
         Rankings Metric
       </button>
@@ -626,7 +626,7 @@ function App() {
             <div className="w-full sm:w-auto bg-slate-900 rounded-3xl px-2 pt-2.5 pb-2 sm:px-3 sm:pb-2.5 shadow-md">
             <div className="flex items-center justify-center gap-3 mb-2">
               <span className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-400/70"></span>
-              <p className="text-amber-400 font-extrabold uppercase text-xs sm:text-sm whitespace-nowrap" style={{ letterSpacing: "0.3em" }}>Deal Room</p>
+              <p className="text-amber-400 font-extrabold uppercase text-base sm:text-lg whitespace-nowrap" style={{ letterSpacing: "0.25em" }}>Deal Room</p>
               <span className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-400/70"></span>
             </div>
             <nav className="grid grid-cols-2 sm:flex sm:flex-row sm:justify-center gap-1.5 sm:gap-1 w-full sm:w-auto">
@@ -642,8 +642,8 @@ function App() {
                   onClick={() => setTab(id)}
                   className={
                     id === "report"
-                      ? `col-span-2 sm:col-span-1 px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap text-center text-slate-900 ${tab === id ? "claim-tab-active" : "claim-tab"}`
-                      : `px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-medium whitespace-nowrap text-center transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`
+                      ? `col-span-2 sm:col-span-1 px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-base sm:text-base font-extrabold whitespace-nowrap text-center text-slate-900 ${tab === id ? "claim-tab-active" : "claim-tab"}`
+                      : `px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-full text-base sm:text-base font-semibold whitespace-nowrap text-center transition-colors ${tab === id ? "bg-amber-500 text-slate-900" : "text-stone-200 hover:text-white"}`
                   }
                 >
                   <span className="sm:hidden">{shortLabel}</span>
