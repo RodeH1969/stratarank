@@ -1569,8 +1569,6 @@ async function makeWinnerCard(e, dateLabel) {
   g.addColorStop(0, "#fde68a"); g.addColorStop(0.55, "#f59e0b"); g.addColorStop(1, "#b45309");
   x.fillStyle = g; x.font = "900 104px Georgia, serif";
   x.fillText("Strata Laureate", W / 2, 215);
-  x.fillStyle = "#d6d3d1"; x.font = "italic 600 34px Georgia, serif";
-  x.fillText("The Reigning Laureate", W / 2, 268);
   // photo
   const cx = W / 2, cy = 520, r = 190;
   x.save(); x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath(); x.clip();
