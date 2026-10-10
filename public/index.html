@@ -1681,7 +1681,6 @@ function LaureateLightbox({ entry, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
       <div className="relative w-full max-w-sm max-h-[92vh] overflow-y-auto rounded-3xl border-4 border-amber-400 bg-gradient-to-b from-amber-100 to-amber-200 p-5 text-center" onClick={(e) => e.stopPropagation()}>
         <button type="button" onClick={onClose} aria-label="Close" className="absolute top-2 right-3 text-slate-700 text-2xl font-bold leading-none">×</button>
-        <span className="inline-block bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow mb-3">🥇 Strata Laureate</span>
         {entry.photoUrl ? (
           <img src={entry.photoUrl} alt={entry.name} className="w-full aspect-square object-cover object-top rounded-2xl border-4 border-amber-400 shadow-md block" />
         ) : (
@@ -1929,8 +1928,7 @@ function DailyDrill() {
                 const initials = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
                 return (
                   <div key={i} className="rounded-3xl overflow-hidden border-4 border-amber-400 shadow-lg bg-gradient-to-b from-amber-100 to-amber-200">
-                    <div className="pt-5 flex flex-col items-center">
-                      <span className="bg-amber-400 text-slate-900 font-extrabold text-xs uppercase tracking-wide px-3 py-1.5 rounded-full shadow mb-3">🥇 Strata Laureate</span>
+                    <div className="pt-4 flex flex-col items-center">
                       {e.photoUrl ? (
                         <img src={e.photoUrl} alt={e.name} className="w-36 h-36 sm:w-44 sm:h-44 rounded-full object-cover object-top border-4 border-amber-400 shadow-md block cursor-zoom-in" onClick={() => setZoomWinner(e)} />
                       ) : (
