@@ -1695,42 +1695,6 @@ function LaureateLightbox({ entry, onClose }) {
   );
 }
 
-function PastLaureates({ before }) {
-  const [list, setList] = useState(null);
-  const [zoom, setZoom] = useState(null);
-  useEffect(() => {
-    if (!before) return;
-    let cancelled = false;
-    api(`/api/drill/winners/week?before=${before}`).then((r) => { if (!cancelled) setList(r.entries); }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [before]);
-  if (!list || list.length === 0) return null;
-  return (
-    <div className="rounded-3xl border-2 border-slate-900 bg-slate-900 px-3 py-4 sm:px-5">
-      <p className="text-amber-400 font-extrabold uppercase text-xs sm:text-sm text-center mb-3" style={{ letterSpacing: "0.25em" }}>Past week's Laureates</p>
-      <div className="grid grid-cols-3 gap-x-2 gap-y-4">
-        {list.map((e, i) => {
-          const dp = drillDateParts(e.drillDate);
-          const initials = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
-          return (
-            <button type="button" key={i} onClick={() => setZoom(e)} className="text-center min-w-0 w-full h-full cursor-pointer flex flex-col items-center justify-start">
-              {e.photoUrl ? (
-                <img src={e.photoUrl} alt={e.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover object-top border-2 border-amber-400 mx-auto block" />
-              ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-500 text-white font-extrabold flex items-center justify-center mx-auto border-2 border-amber-300 text-xl">{initials}</div>
-              )}
-              <p className="text-[10px] font-extrabold uppercase text-amber-400 mt-1.5" style={{ letterSpacing: "0.1em" }}>{DRILL_DAYS_SHORT[dp.dow]}</p>
-              <p className="text-xs font-bold text-white leading-tight break-words">{e.name}</p>
-              <p className="text-[11px] text-stone-300 leading-tight break-words">{e.company}</p>
-            </button>
-          );
-        })}
-      </div>
-      {zoom && <LaureateLightbox entry={zoom} onClose={() => setZoom(null)} />}
-    </div>
-  );
-}
-
 function DailyDrill() {
   const [drill, setDrill] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -1839,7 +1803,7 @@ function DailyDrill() {
   const wp = drillDateParts(winnersDate || drill.drillDate);
   const winnersAreToday = !!winnersDate && winnersDate === drill.drillDate;
   const dayGap = winnersDate ? Math.round((new Date(drill.drillDate + "T00:00:00Z") - new Date(winnersDate + "T00:00:00Z")) / 86400000) : 0;
-  const winnerHeading = winnersAreToday ? "Today's Strata Laureate" : (!winnersDate || dayGap === 1) ? "Yesterday's Strata Laureate" : dayGap <= 3 ? `${DRILL_DAYS_LONG[wp.dow]}'s Strata Laureate` : "Last Strata Laureate";
+  const winnerHeading = "The Reigning Strata Laureate";
   const shareText = `Hey mate, this came through to our work email and I know you're a strata genius. You should enter!`;
 
   return (
@@ -1995,7 +1959,6 @@ function DailyDrill() {
           </>
         )}
       </div>
-      <PastLaureates before={winnersDate} />
       {zoomWinner && <LaureateLightbox entry={zoomWinner} onClose={() => setZoomWinner(null)} />}
     </div>
   );

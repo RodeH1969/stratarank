@@ -973,22 +973,6 @@ app.get('/api/drill/winners', async (req, res) => {
   });
 });
 
-// Previous winners (one per day) before a given date — the past week's Laureates.
-app.get('/api/drill/winners/week', async (req, res) => {
-  const before = isDateStr(req.query.before) ? req.query.before : brisbaneDateStr();
-  const { data, error } = await supabase
-    .from('strata_drill_entries')
-    .select('drill_date, name, role, company, photo_url, logo_url')
-    .eq('is_winner', true)
-    .lt('drill_date', before)
-    .order('drill_date', { ascending: false })
-    .limit(5);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({
-    entries: data.map((e) => ({ drillDate: e.drill_date, name: e.name, role: e.role, company: e.company, photoUrl: e.photo_url || '', logoUrl: e.logo_url || '' })),
-  });
-});
-
 const drillTaskFull = (t) => ({
   id: t.id,
   set: t.set || 1,
