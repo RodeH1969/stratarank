@@ -1591,7 +1591,7 @@ async function makeWinnerCard(e, dateLabel) {
   x.fillStyle = g; x.font = "900 104px Georgia, serif";
   x.fillText("Strata Laureate", W / 2, 215);
   x.fillStyle = "#d6d3d1"; x.font = "italic 600 34px Georgia, serif";
-  x.fillText("The Reigning Laureate  ·  " + dateLabel, W / 2, 268);
+  x.fillText("The Reigning Laureate", W / 2, 268);
   // photo
   const cx = W / 2, cy = 520, r = 190;
   x.save(); x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath(); x.clip();
@@ -1924,14 +1924,7 @@ function DailyDrill() {
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
         <p className="font-serif text-xl font-bold text-slate-900 text-center">🏆 {winnerHeading}</p>
-        {winnersDate && (
-          <>
-            <p className="font-serif text-lg font-bold text-amber-800 text-center leading-tight">
-              {DRILL_DAYS_LONG[wp.dow]} {wp.d} {DRILL_MONTHS_LONG[wp.m]}
-            </p>
-            <div className="mb-3" />
-          </>
-        )}
+        <div className="mb-3" />
         {winnersError ? (
           <p className="text-sm text-rose-600 text-center">Couldn't load the board right now.</p>
         ) : !winners ? (
