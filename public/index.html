@@ -1139,10 +1139,10 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
                     </ManagerPhotoPopup>
                   </div>
 
-                  <div className="sm:flex-1 sm:min-w-[140px]">
-                    <p className="text-base font-semibold text-slate-800">{scheme?.suburb || "Building"}</p>
-                    <p className="text-sm text-slate-500 mt-0.5">{[scheme?.planType, scheme?.module].filter(Boolean).join(" · ")}</p>
-                    {scheme?.lotCount ? <p className="text-sm text-slate-500 mt-0.5">{scheme.lotCount} lots</p> : null}
+                  <div className="sm:flex-1 sm:min-w-[140px] sm:pl-4">
+                    <p className="text-lg font-bold text-indigo-700">{scheme?.suburb || "Building"}</p>
+                    <p className="text-sm font-medium text-slate-700 mt-0.5">{[scheme?.planType, scheme?.module].filter(Boolean).join(" · ")}</p>
+                    {scheme?.lotCount ? <p className="text-sm font-medium text-slate-700 mt-0.5">{scheme.lotCount} lots</p> : null}
                   </div>
 
                   <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:shrink-0">
