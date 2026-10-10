@@ -828,6 +828,7 @@ function ImagePick({ label, value, onChange, max, round }) {
 function RecordWin({ data, refresh }) {
   const [managerChoice, setManagerChoice] = useState("__new__");
   const [managerName, setManagerName] = useState("");
+  const [managerRole, setManagerRole] = useState("");
   const [agencyChoice, setAgencyChoice] = useState("__new__");
   const [agency, setAgency] = useState("");
   const [schemeChoice, setSchemeChoice] = useState("__new__");
@@ -869,6 +870,7 @@ function RecordWin({ data, refresh }) {
           managerName: isNewManager ? managerName : undefined,
           agency: isNewManager ? agency : undefined,
           managerPhotoUrl: isNewManager && managerPhoto ? managerPhoto : undefined,
+          managerRole: isNewManager && managerRole.trim() ? managerRole : undefined,
           schemeId: isNewScheme ? null : schemeChoice,
           suburb: isNewScheme ? suburb : undefined,
           planType: isNewScheme ? planType : undefined,
@@ -883,9 +885,9 @@ function RecordWin({ data, refresh }) {
         }),
       });
       // Existing manager picked and a photo added: attach it to them.
-      if (!isNewManager && managerPhoto) {
+      if (!isNewManager && (managerPhoto || managerRole.trim())) {
         const m = data.managers.find((x) => x.id === managerChoice);
-        if (m) await api(`/api/managers/${m.id}`, { method: "PATCH", body: JSON.stringify({ name: m.name, agency: m.agency, photoUrl: managerPhoto }) });
+        if (m) await api(`/api/managers/${m.id}`, { method: "PATCH", body: JSON.stringify({ name: m.name, agency: m.agency, photoUrl: managerPhoto || undefined, role: managerRole.trim() || undefined }) });
       }
       const agencyName = (isNewManager ? agency : (data.managers.find((x) => x.id === managerChoice) || {}).agency || "").trim();
       if (agencyLogo && agencyName) {
@@ -893,7 +895,7 @@ function RecordWin({ data, refresh }) {
       }
       await refresh();
       setManagerPhoto(""); setAgencyLogo("");
-      setManagerChoice("__new__"); setManagerName(""); setAgencyChoice("__new__"); setAgency("");
+      setManagerChoice("__new__"); setManagerName(""); setManagerRole(""); setAgencyChoice("__new__"); setAgency("");
       setSchemeChoice("__new__"); setSuburb(""); setModule(""); setLotCount(""); setSchemeName(""); setCts("");
       setWinType(""); setNewTerm(""); setPrevTerm("");
       setConfirmation({ points: result.event.points, label: `Logged for ${result.manager.name} — ${result.event.points} points` });
@@ -960,6 +962,9 @@ function RecordWin({ data, refresh }) {
           const hasLogo = agencyName && (data.agencyLogos || {})[agencyName.toLowerCase()];
           return (
             <>
+              {(!chosen || !chosen.role) && (
+                <Field label="Manager's role / job title"><input value={managerRole} onChange={(e) => setManagerRole(e.target.value)} placeholder="e.g. Senior Community Manager" className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" /></Field>
+              )}
               {(!chosen || !chosen.photoUrl) && <ImagePick label="Manager photo" value={managerPhoto} onChange={setManagerPhoto} max={600} round />}
               {agencyName && !hasLogo && <ImagePick label={`Agency logo (${agencyName})`} value={agencyLogo} onChange={setAgencyLogo} max={500} />}
             </>

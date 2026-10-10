@@ -98,7 +98,7 @@ function loadStaticSponsorLogos() {
 
 function toManagerOut(m) {
   if (!m) return null;
-  return { id: m.id, name: m.name, agency: m.agency || '', photoUrl: m.photo_url || '', linkedinUrl: m.linkedin_url || '' };
+  return { id: m.id, name: m.name, agency: m.agency || '', photoUrl: m.photo_url || '', linkedinUrl: m.linkedin_url || '', role: m.role || '' };
 }
 
 function toSchemeOut(s, opts) {
@@ -254,10 +254,11 @@ app.get('/api/admin/counts', async (req, res) => {
 // --- managers ------------------------------------------------------------
 
 app.patch('/api/managers/:id', async (req, res) => {
-  const { name, agency, photoUrl, linkedinUrl } = req.body;
+  const { name, agency, photoUrl, linkedinUrl, role } = req.body;
   const update = { name, agency };
   if (photoUrl !== undefined) update.photo_url = photoUrl || null;
   if (linkedinUrl !== undefined) update.linkedin_url = linkedinUrl || null;
+  if (role !== undefined) update.role = role || null;
   const { data, error } = await supabase
     .from('strata_managers')
     .update(update)
@@ -342,7 +343,7 @@ function buildSchemeLabel(scheme) {
 app.post('/api/events', async (req, res) => {
   try {
     const {
-      managerId, managerName, agency, managerPhotoUrl,
+      managerId, managerName, agency, managerPhotoUrl, managerRole,
       schemeId, suburb, planType, module, lotCount, schemeName, cts,
       type, newTerm, prevTerm, date,
       source, businessName, contactName, tipSource,
@@ -370,7 +371,7 @@ app.post('/api/events', async (req, res) => {
       if (!managerName || !managerName.trim()) return res.status(400).json({ error: 'managerName is required' });
       const { data, error } = await supabase
         .from('strata_managers')
-        .insert({ name: managerName.trim(), agency: (agency || '').trim(), photo_url: managerPhotoUrl || null })
+        .insert({ name: managerName.trim(), agency: (agency || '').trim(), photo_url: managerPhotoUrl || null, role: (managerRole || '').trim() || null })
         .select()
         .single();
       if (error) return res.status(500).json({ error: error.message });
