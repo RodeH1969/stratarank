@@ -161,7 +161,7 @@ const countdownLabel = (ms) => {
   if (ms <= 0) return "Ends today";
   const days = Math.floor(ms / (1000 * 60 * 60 * 24));
   const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
-  if (days > 0) return `${days} day${days === 1 ? "" : "s"} ${hours}h left`;
+  if (days > 0) return `${days} day${days === 1 ? "" : "s"} left`;
   return `${hours}h left`;
 };
 const msUntilSeasonEnd = (seasonYear) => {
@@ -386,7 +386,7 @@ function MetricInfoButton() {
               A deal is recorded when a Body Corporate committee formally awards or renews the Administration Agreement — the contract that appoints a company as the scheme's strata manager.
             </p>
             <p className="text-sm text-slate-900 font-bold mt-3">
-              Must have BC minutes approval in the last 4 weeks to count.
+              Must have BC minutes approval in this month to count.
             </p>
           </div>
         </div>
@@ -902,9 +902,7 @@ function WinOfTheMonth({ monthKey, entries, sponsors, agencyLogos, schemeById, s
             {leaderDeals[0]?.event?.status === "approved" && <VerifiedStamp />}
             <TipSash tipSource={leaderDeals[0]?.event?.tipSource} />
             <p className="text-center text-base sm:text-lg font-bold text-slate-700 mb-1">{monthLabel(monthKey)}</p>
-            <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-3">⏱ {countdownLabel(msUntilMonthEnd(monthKey))}</p>
-            <p className="text-center text-xs sm:text-sm font-bold uppercase tracking-wide text-amber-700 mb-1">Current leader — month's still open</p>
-            <p className="text-center text-[11px] sm:text-xs font-bold text-teal-700 mb-5">Contract must be passed at an AGM held this month to count.</p>
+            <p className="text-center text-xs sm:text-sm font-semibold text-rose-600 mb-5">⏱ {countdownLabel(msUntilMonthEnd(monthKey))}</p>
 
             <div className="text-center">
               <ManagerPhotoPopup manager={leader.manager}>
