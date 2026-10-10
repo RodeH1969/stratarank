@@ -1610,7 +1610,7 @@ function DrillEntryImage({ entry, field, label, shape, onSaved }) {
 }
 
 function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved, onCrown, onDelete }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!entry.isWinner);
   const [answers, setAnswers] = useState(entry.answers);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -2310,6 +2310,7 @@ function DrillAdmin() {
         {!isToday && (
           <button onClick={() => setDate(brisbaneToday())} className="text-xs text-teal-700 hover:underline">Today</button>
         )}
+        <button onClick={() => { const y = new Date(brisbaneToday() + "T00:00:00Z"); do { y.setUTCDate(y.getUTCDate() - 1); } while (y.getUTCDay() === 0 || y.getUTCDay() === 6); setDate(y.toISOString().slice(0, 10)); }} className="text-xs font-bold px-3 py-1.5 rounded-full bg-amber-400 text-slate-900 whitespace-nowrap">👑 Reigning Laureate</button>
       </div>
 
       {error && <p className="text-rose-600 text-sm mb-4">{error}</p>}

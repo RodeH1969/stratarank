@@ -1577,7 +1577,7 @@ async function makeWinnerCard(e, dateLabel) {
   x.fillStyle = g; x.font = "900 104px Georgia, serif";
   x.fillText("Strata Laureate", W / 2, 215);
   x.fillStyle = "#d6d3d1"; x.font = "italic 600 34px Georgia, serif";
-  x.fillText(dateLabel, W / 2, 268);
+  x.fillText("The Reigning Laureate  ·  " + dateLabel, W / 2, 268);
   // photo
   const cx = W / 2, cy = 520, r = 190;
   x.save(); x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath(); x.clip();
@@ -1624,7 +1624,7 @@ function ShareWinnerButton({ entry, dateLabel }) {
       if (!blob) throw new Error("no image");
       const file = new File([blob], "strata-laureate.png", { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], text: `${entry.name} is today's Strata Laureate! stratarank.onrender.com` });
+        await navigator.share({ files: [file], text: `${entry.name} is the Reigning Strata Laureate! stratarank.onrender.com` });
       } else {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob); a.download = "strata-laureate.png"; a.click();
@@ -1860,7 +1860,7 @@ function DailyDrill() {
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
-          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR reads every answer and crowns the most thorough one today's Strata Laureate. Check back below.</p>
+          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR reads every answer and crowns the most thorough one the next Reigning Strata Laureate. Check back below.</p>
           <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
           <DrillShareButton text={shareText} />
         </div>
