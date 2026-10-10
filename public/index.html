@@ -1592,7 +1592,8 @@ async function makeWinnerCard(e, dateLabel) {
   x.fillText(e.name, W / 2, 800);
   if (e.role) { x.fillStyle = "#e7e5e4"; fit(e.role, W - 160, 40, "600 {}px Arial, sans-serif"); x.fillText(e.role, W / 2, 855); }
   // logo box
-  const bx = 190, by = 895, bw = W - 380, bh = 190;
+  const bx = 190, by = logo ? 930 : 895, bw = W - 380, bh = 190;
+  if (logo) { x.fillStyle = "#93c5fd"; x.font = "italic 600 40px Arial, sans-serif"; x.fillText("Flying the flag for", W / 2, 910); }
   x.fillStyle = "#ffffff"; x.beginPath(); x.roundRect(bx, by, bw, bh, 28); x.fill();
   if (logo) {
     const s = Math.min((bw - 60) / logo.width, (bh - 40) / logo.height);
@@ -1601,8 +1602,7 @@ async function makeWinnerCard(e, dateLabel) {
   } else {
     x.fillStyle = "#0f172a"; fit(e.company, bw - 60, 56, "800 {}px Georgia, serif"); x.fillText(e.company, W / 2, by + bh / 2 + 18);
   }
-  x.fillStyle = "#fcd34d"; fit("Flying the flag for " + e.company, W - 140, 44, "800 {}px Arial, sans-serif");
-  x.fillText("Flying the flag for " + e.company, W / 2, 1160);
+  if (!logo) { x.fillStyle = "#93c5fd"; fit("Flying the flag for " + e.company, W - 140, 44, "italic 600 {}px Arial, sans-serif"); x.fillText("Flying the flag for " + e.company, W / 2, 1160); }
   x.fillStyle = "#a8a29e"; x.font = "600 30px Arial, sans-serif";
   x.fillText("The daily test of strata expertise  ·  stratarank.onrender.com", W / 2, 1270);
   return new Promise((resolve) => c.toBlob(resolve, "image/png"));
@@ -1940,12 +1940,16 @@ function DailyDrill() {
                     <div className="px-5 pt-4 pb-5 text-center">
                       <p className="font-serif text-3xl font-bold text-slate-900 leading-tight break-words">{e.name}</p>
                       {e.role && <p className="text-base font-semibold text-slate-800 mt-1 break-words">{e.role}</p>}
-                      {e.logoUrl && (
-                        <div className="bg-white rounded-2xl mt-4 px-4 py-3 flex items-center justify-center">
-                          <img src={e.logoUrl} alt={e.company} className="h-20 sm:h-24 max-w-full object-contain cursor-zoom-in" onClick={() => setZoomWinner(e)} />
-                        </div>
+                      {e.logoUrl ? (
+                        <>
+                          <p className="text-base italic font-semibold text-blue-700 mt-4">Flying the flag for</p>
+                          <div className="bg-white rounded-2xl mt-1.5 px-4 py-3 flex items-center justify-center">
+                            <img src={e.logoUrl} alt={e.company} className="h-20 sm:h-24 max-w-full object-contain cursor-zoom-in" onClick={() => setZoomWinner(e)} />
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-base italic font-semibold text-blue-700 mt-4 break-words">Flying the flag for {e.company}</p>
                       )}
-                      <p className="text-base font-extrabold text-amber-900 mt-3 break-words">Flying the flag for {e.company}</p>
                       <WinningAnswer entry={e} />
                       <ShareWinnerButton entry={e} dateLabel={`${DRILL_DAYS_LONG[wp.dow]} ${wp.d} ${DRILL_MONTHS_LONG[wp.m]}`} />
                     </div>
