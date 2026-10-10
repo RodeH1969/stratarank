@@ -744,6 +744,7 @@ function ManagerPhotoPopup({ manager, children }) {
 }
 
 function AgencyBadge({ agency, agencyLogos, size }) {
+  const [open, setOpen] = useState(false);
   if (!agency) return null;
   const key = agency.trim().toLowerCase();
   const match = (agencyLogos || {})[key];
@@ -751,12 +752,25 @@ function AgencyBadge({ agency, agencyLogos, size }) {
   const badgeSize = size ? "h-16 min-w-16 text-lg" : "h-6 min-w-6 text-[10px]";
 
   if (match && match.logoUrl) {
-    const logo = <img src={match.logoUrl} alt={agency} className={`${logoSize} w-auto object-contain shrink-0`} />;
-    return match.websiteUrl ? (
-      <a href={match.websiteUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="shrink-0 hover:opacity-80 transition-opacity">
-        {logo}
-      </a>
-    ) : logo;
+    return (
+      <>
+        <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(true); }} className="shrink-0 hover:opacity-80 transition-opacity cursor-zoom-in" aria-label={`Show ${agency} logo`}>
+          <img src={match.logoUrl} alt={agency} className={`${logoSize} w-auto object-contain block`} />
+        </button>
+        {open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={(e) => { e.stopPropagation(); setOpen(false); }}>
+            <div className="relative w-full max-w-sm max-h-[92vh] overflow-y-auto rounded-3xl bg-white p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="absolute top-2 right-3 text-slate-600 text-2xl font-bold leading-none">×</button>
+              <img src={match.logoUrl} alt={agency} className="max-h-56 w-full object-contain mx-auto mt-3" />
+              <p className="font-serif text-xl font-bold text-slate-900 mt-4 break-words">{agency}</p>
+              {match.websiteUrl && (
+                <a href={match.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-3 bg-slate-900 text-amber-400 font-extrabold uppercase tracking-wide text-xs px-4 py-2.5 rounded-full">Visit website</a>
+              )}
+            </div>
+          </div>
+        )}
+      </>
+    );
   }
   const initials = agency.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
