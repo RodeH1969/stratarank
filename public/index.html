@@ -1059,10 +1059,15 @@ function EventLog({ events, managerById, schemeById, agencyLogos, sponsorInvites
   const findWinSponsors = (eventId) =>
     (sponsorInvites || []).filter((inv) => inv.eventId === eventId && inv.status === "accepted" && inv.logoUrl).slice(0, 5);
 
-  const isNew = (ev) => {
-    if (!ev.createdAt) return false;
-    return Date.now() - new Date(ev.createdAt).getTime() < 24 * 60 * 60 * 1000;
-  };
+  const latestId = useMemo(() => {
+    let best = null;
+    for (const ev of events) {
+      if (!ev.createdAt) continue;
+      if (!best || new Date(ev.createdAt) > new Date(best.createdAt)) best = ev;
+    }
+    return best ? best.id : null;
+  }, [events]);
+  const isNew = (ev) => ev.id === latestId;
 
   const filteredEvents = useMemo(() => {
     const q = query.trim().toLowerCase();
