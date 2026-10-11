@@ -596,11 +596,11 @@ function App() {
                 src="/qsr-logo.jpg"
                 alt="QSR - Qld Strata Rankings"
                 style={{ mixBlendMode: "multiply" }}
-                className={`mx-auto h-auto block ${tab === "drill" ? "w-40 sm:w-52" : "w-60 sm:w-72"}`}
+                className={`mx-auto h-auto block w-60 sm:w-72`}
               />
             </h1>
             <p
-              className={`text-slate-800 mt-3 font-semibold whitespace-nowrap ${tab === "drill" ? "hidden" : ""}`}
+              className="text-slate-800 mt-3 font-semibold whitespace-nowrap"
               style={{ fontSize: "clamp(0.7rem, 2.8vw, 1.25rem)" }}
             >
               Ranking ELITE strata managers across Qld
@@ -1815,13 +1815,13 @@ function DailyDrill() {
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
-      <div className="relative overflow-hidden rounded-3xl border-2 border-amber-400 text-center px-4 py-7 sm:px-8 sm:py-10 shadow-xl" style={{ background: "radial-gradient(ellipse at 50% 0%, #3b2a08 0%, #0f172a 62%)" }}>
-        <p className="text-amber-400 text-[10px] sm:text-xs font-extrabold uppercase" style={{ letterSpacing: "0.35em" }}>QSR presents</p>
+      <div className="relative overflow-hidden rounded-3xl border-2 border-amber-400 text-center px-4 py-7 sm:px-8 sm:py-10 shadow-xl" style={{ background: "linear-gradient(180deg,#fffbeb 0%,#fef3c7 55%,#fde68a 100%)" }}>
+        <p className="text-amber-800 text-[10px] sm:text-xs font-extrabold uppercase" style={{ letterSpacing: "0.35em" }}>QSR presents</p>
         <p className="text-4xl sm:text-5xl mt-2 brain-pulse">🧠</p>
-        <h2 className="font-serif font-black leading-none mt-2 text-4xl sm:text-6xl" style={{ background: "linear-gradient(180deg,#fde68a 0%,#f59e0b 55%,#b45309 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Strata Laureate</h2>
-        <p className="text-sm sm:text-lg font-semibold italic text-stone-300 mt-2">The daily test of strata expertise.</p>
-        <div className="h-px w-24 mx-auto my-4 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
-        <p className="font-serif text-lg sm:text-2xl font-bold text-white leading-tight">
+        <h2 className="font-serif font-black leading-none mt-2 text-4xl sm:text-6xl" style={{ background: "linear-gradient(180deg,#d97706 0%,#b45309 60%,#78350f 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Strata Laureate</h2>
+        <p className="text-sm sm:text-lg font-semibold italic text-slate-700 mt-2">The daily test of strata expertise.</p>
+        <div className="h-px w-24 mx-auto my-4 bg-gradient-to-r from-transparent via-amber-600 to-transparent"></div>
+        <p className="font-serif text-lg sm:text-2xl font-bold text-slate-900 leading-tight">
           {DRILL_DAYS_LONG[dp.dow]} {dp.d} {DRILL_MONTHS_LONG[dp.m]}
         </p>
         <div className="flex items-center justify-center gap-1.5 mt-3">
@@ -1830,18 +1830,18 @@ function DailyDrill() {
               key={n}
               title={DRILL_DAYS_LONG[n]}
               className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-extrabold border-2 ${
-                dp.dow === n ? "bg-amber-400 border-amber-300 text-slate-900 shadow-md" : "bg-transparent border-slate-600 text-slate-400"
+                dp.dow === n ? "bg-amber-500 border-amber-600 text-slate-900 shadow-md" : "bg-white/60 border-amber-400 text-amber-800"
               }`}
             >
               {DRILL_DAYS_SHORT[n][0]}
             </span>
           ))}
         </div>
-        <div className="mt-5 inline-flex items-center justify-center gap-x-2 gap-y-1 flex-wrap rounded-2xl bg-amber-400/10 border border-amber-400/40 px-3 py-3">
+        <div className="mt-5 inline-flex items-center justify-center gap-x-2 gap-y-1 flex-wrap rounded-2xl bg-white border-2 border-amber-400 shadow-sm px-3 py-3">
           <span className="text-base">🏆</span>
-          <span className="font-extrabold text-sm text-white">Most <span className="bg-amber-400 text-slate-900 rounded px-1.5 py-0.5">thorough</span> answer wins a</span>
+          <span className="font-extrabold text-sm text-slate-900">Most <span className="bg-amber-400 text-slate-900 rounded px-1.5 py-0.5">thorough</span> answer wins a</span>
           <span className="bg-white rounded-md px-1.5 py-0.5 inline-flex"><img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-6 sm:h-7 inline-block" onError={(e) => { e.target.parentNode.style.display = "none"; }} /></span>
-          <span className="font-extrabold text-sm text-amber-300">$20 voucher</span>
+          <span className="font-extrabold text-sm text-amber-800">$20 voucher</span>
         </div>
         {!drill.locked && !result && (
           <div className="mt-5">
@@ -1850,7 +1850,7 @@ function DailyDrill() {
             </button>
           </div>
         )}
-        <p className="text-[11px] sm:text-xs font-bold uppercase text-stone-400 mt-4" style={{ letterSpacing: "0.12em" }}>Mon to Fri · new Laureate Scenario daily</p>
+        <p className="text-[11px] sm:text-xs font-bold uppercase text-slate-600 mt-4" style={{ letterSpacing: "0.12em" }}>Mon to Fri · new Laureate Scenario daily</p>
       </div>
 
       <DrillInfoButton />
