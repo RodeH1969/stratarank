@@ -855,7 +855,7 @@ app.get('/api/drill/today', async (req, res) => {
       postedAt: new Date(launch.launched_at).toISOString(),
       locked: false,
       // Audio only: the task's text is never sent to visitors.
-      tasks: [{ id: task.id }],
+      tasks: [{ id: task.id, title: task.title || '' }],
       sponsor: await getDrillSponsor(),
     });
   } catch (e) {
