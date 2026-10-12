@@ -782,6 +782,15 @@ function SponsorManager({ data, refresh }) {
   );
 }
 
+function exportCanvas(c, file) {
+  if (/png|webp|gif|avif/.test(file.type || "")) return c.toDataURL("image/png");
+  const o = document.createElement("canvas");
+  o.width = c.width; o.height = c.height;
+  const x = o.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, o.width, o.height); x.drawImage(c, 0, 0);
+  return o.toDataURL("image/jpeg", 0.85);
+}
+
 // Shrink a picked image before it goes up, so phone photos don't bloat the database.
 const shrinkImage = (file, max) => new Promise((resolve, reject) => {
   const r = new FileReader();
@@ -795,7 +804,7 @@ const shrinkImage = (file, max) => new Promise((resolve, reject) => {
       c.width = Math.round(img.width * k);
       c.height = Math.round(img.height * k);
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      resolve(c.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.85));
+      resolve(exportCanvas(c, file));
     };
     img.src = r.result;
   };
@@ -2035,7 +2044,7 @@ function JobsAdmin() {
         c.width = Math.round(img.width * k);
         c.height = Math.round(img.height * k);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        set("logoUrl", c.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.85));
+        set("logoUrl", exportCanvas(c, file));
       };
       img.onerror = () => setErr("That file isn't a picture");
       img.src = r.result;
@@ -2157,7 +2166,7 @@ function DrillSponsor() {
         c.width = Math.round(img.width * k);
         c.height = Math.round(img.height * k);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        setLogo(c.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.85));
+        setLogo(exportCanvas(c, file));
       };
       img.onerror = () => setErr("That file isn't a picture");
       img.src = r.result;
@@ -2225,7 +2234,7 @@ function DrillManualWinner({ date, hasLaunch, onAdded }) {
         c.width = Math.round(img.width * k);
         c.height = Math.round(img.height * k);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        resolve(c.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.85));
+        resolve(exportCanvas(c, file));
       };
       img.src = r.result;
     };
