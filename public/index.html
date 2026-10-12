@@ -1502,9 +1502,20 @@ function DrillAudioBrain({ title }) {
           </g>
         </svg>
         <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "30%", height: "46%" }}>
-          {title ? (
-            <p className="font-serif font-extrabold text-slate-900 leading-tight px-12 sm:px-16" style={{ fontSize: "clamp(0.75rem, 3vw, 1.1rem)" }}>{title}</p>
-          ) : (
+          {title ? ((() => {
+            const w = title.trim().split(/\s+/);
+            let best = 1, diff = Infinity;
+            for (let i = 1; i < w.length; i++) { const d = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length); if (d < diff) { diff = d; best = i; } }
+            const l1 = w.length > 1 ? w.slice(0, best).join(" ") : title;
+            const l2 = w.length > 1 ? w.slice(best).join(" ") : "";
+            return (
+              <p className="font-serif font-extrabold text-slate-900 leading-tight" style={{ fontSize: "clamp(0.7rem, 2.8vw, 1.05rem)" }}>
+                <span className="block whitespace-nowrap">{l1}</span>
+                {l2 && <span className="block whitespace-nowrap">{l2}</span>}
+              </p>
+            );
+          })()
+) : (
             <p className="drill-lab font-extrabold uppercase text-amber-800 whitespace-nowrap" style={{ letterSpacing: "0.06em" }}>🎧 Laureate Scenario</p>
           )}
           <div className={`drill-bars flex items-center my-1.5 sm:my-2 ${playing ? "on" : ""}`}>{bars}</div>
