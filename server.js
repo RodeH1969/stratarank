@@ -948,18 +948,31 @@ app.post('/api/drill/submit', async (req, res) => {
 // most recent launched day's, so the last winners stay up until the next
 // task goes live.
 app.get('/api/drill/winners', async (req, res) => {
-  let drillDate;
-  {  // Always the previous contest day (Mon-Fri) — never an older winner, never today's.
-    const y = new Date(`${brisbaneDateStr()}T00:00:00Z`);
-    do { y.setUTCDate(y.getUTCDate() - 1); } while (y.getUTCDay() === 0 || y.getUTCDay() === 6);
-    drillDate = y.toISOString().slice(0, 10);
-  }
-  const { data, error } = await supabase
+  // The Reigning Laureate: today's winner from 5pm Brisbane on a weekday;
+  // otherwise the previous contest day's (Mon-Fri).
+  const bris = new Date(Date.now() + 10 * 3600 * 1000);
+  const today = bris.toISOString().slice(0, 10);
+  const afterFive = bris.getUTCHours() >= 17 && bris.getUTCDay() >= 1 && bris.getUTCDay() <= 5;
+  const prev = new Date(`${today}T00:00:00Z`);
+  do { prev.setUTCDate(prev.getUTCDate() - 1); } while (prev.getUTCDay() === 0 || prev.getUTCDay() === 6);
+  const prevDate = prev.toISOString().slice(0, 10);
+  const pick = (d) => supabase
     .from('strata_drill_entries')
     .select('name, role, company, answers, photo_url, logo_url')
-    .eq('drill_date', drillDate)
+    .eq('drill_date', d)
     .eq('is_winner', true)
     .limit(1);
+  let drillDate = prevDate;
+  let { data, error } = { data: null, error: null };
+  if (afterFive) {
+    const t = await pick(today);
+    if (t.error) return res.status(500).json({ error: t.error.message });
+    if (t.data && t.data.length) { drillDate = today; data = t.data; }
+  }
+  if (!data) {
+    const r = await pick(prevDate);
+    data = r.data; error = r.error;
+  }
   if (error) return res.status(500).json({ error: error.message });
   const { data: pastRows } = await supabase
     .from('strata_drill_entries')
