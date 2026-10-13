@@ -948,11 +948,11 @@ app.post('/api/drill/submit', async (req, res) => {
 // most recent launched day's, so the last winners stay up until the next
 // task goes live.
 app.get('/api/drill/winners', async (req, res) => {
-  // The Reigning Laureate: today's winner from 5pm Brisbane on a weekday;
+  // The Reigning Laureate: today's winner from 4:30pm Brisbane on a weekday;
   // otherwise the previous contest day's (Mon-Fri).
   const bris = new Date(Date.now() + 10 * 3600 * 1000);
   const today = bris.toISOString().slice(0, 10);
-  const afterFive = bris.getUTCHours() >= 17 && bris.getUTCDay() >= 1 && bris.getUTCDay() <= 5;
+  const afterFive = bris.getUTCHours() * 60 + bris.getUTCMinutes() >= 16 * 60 + 30 && bris.getUTCDay() >= 1 && bris.getUTCDay() <= 5;
   const prev = new Date(`${today}T00:00:00Z`);
   do { prev.setUTCDate(prev.getUTCDate() - 1); } while (prev.getUTCDay() === 0 || prev.getUTCDay() === 6);
   const prevDate = prev.toISOString().slice(0, 10);
