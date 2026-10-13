@@ -703,6 +703,11 @@ const drillTaskById = (id) => DRILL_TASKS.find((t) => t.id === id) || null;
 function brisbaneDateStr(d = new Date()) {
   return new Date(d.getTime() + 10 * 3600 * 1000).toISOString().slice(0, 10);
 }
+// The Strata Laureate "day" rolls over at 4:30pm Brisbane (when the winner is
+// announced), so the next question can be launched straight after.
+function drillDayStr(d = new Date()) {
+  return new Date(d.getTime() + 17.5 * 3600 * 1000).toISOString().slice(0, 10);
+}
 const isDateStr = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 // The launch row for a day (which task, and when it went live), or null.
@@ -845,7 +850,7 @@ app.put('/api/admin/drill/sponsor', async (req, res) => {
 });
 
 app.get('/api/drill/today', async (req, res) => {
-  const drillDate = brisbaneDateStr();
+  const drillDate = drillDayStr();
   try {
     const launch = await getDrillLaunch(drillDate);
     const task = launch ? drillTaskById(launch.task_id) : null;
@@ -870,7 +875,7 @@ app.get('/api/drill/audio/:part', async (req, res) => {
   const part = req.params.part;
   if (part !== 'scenario' && part !== 'question') return res.status(404).end();
   try {
-    const launch = await getDrillLaunch(brisbaneDateStr());
+    const launch = await getDrillLaunch(drillDayStr());
     if (!launch) return res.status(403).end();
     const { data, error } = await supabase
       .from('strata_drill_audio')
@@ -906,7 +911,7 @@ app.post('/api/drill/submit', async (req, res) => {
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required.' });
   if (!company || !company.trim()) return res.status(400).json({ error: 'Strata company is required.' });
 
-  const drillDate = brisbaneDateStr();
+  const drillDate = drillDayStr();
   let launch;
   try {
     launch = await getDrillLaunch(drillDate);
@@ -948,31 +953,18 @@ app.post('/api/drill/submit', async (req, res) => {
 // most recent launched day's, so the last winners stay up until the next
 // task goes live.
 app.get('/api/drill/winners', async (req, res) => {
-  // The Reigning Laureate: today's winner from 4:30pm Brisbane on a weekday;
-  // otherwise the previous contest day's (Mon-Fri).
-  const bris = new Date(Date.now() + 10 * 3600 * 1000);
-  const today = bris.toISOString().slice(0, 10);
-  const afterFive = bris.getUTCHours() * 60 + bris.getUTCMinutes() >= 16 * 60 + 30 && bris.getUTCDay() >= 1 && bris.getUTCDay() <= 5;
-  const prev = new Date(`${today}T00:00:00Z`);
-  do { prev.setUTCDate(prev.getUTCDate() - 1); } while (prev.getUTCDay() === 0 || prev.getUTCDay() === 6);
-  const prevDate = prev.toISOString().slice(0, 10);
-  const pick = (d) => supabase
+  // The Reigning Laureate: the winner of the previous contest day (Mon-Fri).
+  // The contest day rolls over at 4:30pm Brisbane, so a winner announced at
+  // 4:30pm is Reigning as soon as the next question is up.
+  const cur = new Date(`${drillDayStr()}T00:00:00Z`);
+  do { cur.setUTCDate(cur.getUTCDate() - 1); } while (cur.getUTCDay() === 0 || cur.getUTCDay() === 6);
+  const drillDate = cur.toISOString().slice(0, 10);
+  const { data, error } = await supabase
     .from('strata_drill_entries')
     .select('name, role, company, answers, photo_url, logo_url')
-    .eq('drill_date', d)
+    .eq('drill_date', drillDate)
     .eq('is_winner', true)
     .limit(1);
-  let drillDate = prevDate;
-  let { data, error } = { data: null, error: null };
-  if (afterFive) {
-    const t = await pick(today);
-    if (t.error) return res.status(500).json({ error: t.error.message });
-    if (t.data && t.data.length) { drillDate = today; data = t.data; }
-  }
-  if (!data) {
-    const r = await pick(prevDate);
-    data = r.data; error = r.error;
-  }
   if (error) return res.status(500).json({ error: error.message });
   const { data: pastRows } = await supabase
     .from('strata_drill_entries')
@@ -1024,7 +1016,7 @@ app.get('/api/admin/drill/tasks', async (req, res) => {
   if (aErr) return res.status(500).json({ error: aErr.message });
   const audio = {};
   for (const a of audioRows) (audio[a.task_id] = audio[a.task_id] || {})[a.part] = true;
-  const today = brisbaneDateStr();
+  const today = drillDayStr();
   const todays = data.find((l) => l.drill_date === today);
   res.json({
     today,
@@ -1056,7 +1048,7 @@ app.post('/api/admin/drill/audio', async (req, res) => {
 app.post('/api/admin/drill/launch', async (req, res) => {
   const taskId = Number(req.body && req.body.taskId);
   if (!drillTaskById(taskId)) return res.status(400).json({ error: 'Unknown question.' });
-  const drillDate = brisbaneDateStr();
+  const drillDate = drillDayStr();
   try {
     const { data: clips, error: aErr } = await supabase.from('strata_drill_audio').select('part').eq('task_id', taskId);
     if (aErr) return res.status(500).json({ error: aErr.message });
@@ -1084,7 +1076,7 @@ app.post('/api/admin/drill/launch', async (req, res) => {
 // Admin: take today's question offline (back to "goes live at 9am").
 // Only while nobody's submitted.
 app.post('/api/admin/drill/unlaunch', async (req, res) => {
-  const drillDate = brisbaneDateStr();
+  const drillDate = drillDayStr();
   const { count, error: cErr } = await supabase
     .from('strata_drill_entries')
     .select('id', { count: 'exact', head: true })
@@ -1100,7 +1092,7 @@ app.post('/api/admin/drill/unlaunch', async (req, res) => {
 // alike), plus that day's launched question including its model answer
 // and marking guide, so QSR can judge each written answer against them.
 app.get('/api/admin/drill', async (req, res) => {
-  const drillDate = isDateStr(req.query.date) ? req.query.date : brisbaneDateStr();
+  const drillDate = isDateStr(req.query.date) ? req.query.date : drillDayStr();
   try {
     const launch = await getDrillLaunch(drillDate);
     const { data, error } = await supabase
@@ -1193,7 +1185,7 @@ app.post('/api/admin/drill/:id/winner', async (req, res) => {
 // Goes straight in as correct, with an optional photo and company logo.
 app.post('/api/admin/drill/manual', async (req, res) => {
   const b = req.body || {};
-  const drillDate = isDateStr(b.drillDate) ? b.drillDate : brisbaneDateStr();
+  const drillDate = isDateStr(b.drillDate) ? b.drillDate : drillDayStr();
   const name = String(b.name || '').trim();
   const company = String(b.company || '').trim();
   if (!name) return res.status(400).json({ error: 'Name is required.' });
