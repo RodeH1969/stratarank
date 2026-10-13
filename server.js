@@ -961,8 +961,16 @@ app.get('/api/drill/winners', async (req, res) => {
     .eq('is_winner', true)
     .limit(1);
   if (error) return res.status(500).json({ error: error.message });
+  const { data: pastRows } = await supabase
+    .from('strata_drill_entries')
+    .select('name, company, photo_url, logo_url, drill_date')
+    .eq('is_winner', true)
+    .lt('drill_date', drillDate)
+    .order('drill_date', { ascending: false })
+    .limit(5);
   res.json({
     drillDate,
+    past: (pastRows || []).map((p) => ({ name: p.name, company: p.company, photoUrl: p.photo_url || '', logoUrl: p.logo_url || '' })),
     entries: data.map((e, i) => ({
       name: e.name,
       role: e.role,

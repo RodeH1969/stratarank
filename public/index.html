@@ -1731,6 +1731,7 @@ function DailyDrill() {
   const [winners, setWinners] = useState(null);
   const [winnersError, setWinnersError] = useState(null);
   const [winnersDate, setWinnersDate] = useState(null);
+  const [pastLaureates, setPastLaureates] = useState([]);
   const [zoomWinner, setZoomWinner] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -1773,7 +1774,7 @@ function DailyDrill() {
         // live, otherwise the last drill's — so they stay up until the
         // next task goes live.
         const r = await api("/api/drill/winners");
-        if (!cancelled) { setWinners(r.entries); setWinnersDate(r.drillDate); }
+        if (!cancelled) { setWinners(r.entries); setWinnersDate(r.drillDate); setPastLaureates(r.past || []); }
       } catch (e) {
         if (!cancelled) setWinnersError(e.message);
       }
@@ -1977,6 +1978,33 @@ function DailyDrill() {
           </>
         )}
       </div>
+      {pastLaureates.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5">
+          <p className="font-serif text-xl font-bold text-slate-900 text-center mb-3">Past 5 Laureates</p>
+          <div className="flex gap-3 overflow-x-auto sm:grid sm:grid-cols-5 sm:overflow-visible pb-1">
+            {pastLaureates.map((p, i) => {
+              const ini = p.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+              return (
+                <div key={i} className="shrink-0 w-[5.5rem] sm:w-auto flex flex-col items-center text-center">
+                  {p.photoUrl ? (
+                    <img src={p.photoUrl} alt={p.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover object-top border-2 border-amber-400 cursor-zoom-in" onClick={() => setZoomWinner(p)} />
+                  ) : (
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-500 text-white font-extrabold flex items-center justify-center border-2 border-amber-300 text-xl">{ini}</div>
+                  )}
+                  <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight mt-1.5 break-words">{p.name}</p>
+                  {p.logoUrl ? (
+                    <div className="bg-white border border-slate-100 rounded-lg mt-1.5 px-1.5 py-1 w-full flex items-center justify-center">
+                      <img src={p.logoUrl} alt={p.company} className="h-8 max-w-full object-contain" />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-600 mt-1 break-words">{p.company}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {zoomWinner && <LaureateLightbox entry={zoomWinner} onClose={() => setZoomWinner(null)} />}
     </div>
   );
