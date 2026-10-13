@@ -1981,11 +1981,11 @@ function DailyDrill() {
       {pastLaureates.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5">
           <p className="font-serif text-xl font-bold text-slate-900 text-center mb-3">Past 5 Laureates</p>
-          <div className="flex gap-3 overflow-x-auto sm:grid sm:grid-cols-5 sm:overflow-visible pb-1">
+          <div className="flex gap-3 overflow-x-auto sm:overflow-visible pb-1">
             {pastLaureates.map((p, i) => {
               const ini = p.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
               return (
-                <div key={i} className="shrink-0 w-[5.5rem] sm:w-auto flex flex-col items-center text-center">
+                <div key={i} className="shrink-0 w-[5.5rem] sm:w-28 first:ml-auto last:mr-auto flex flex-col items-center text-center">
                   {p.photoUrl ? (
                     <img src={p.photoUrl} alt={p.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover object-top border-2 border-amber-400 cursor-zoom-in" onClick={() => setZoomWinner(p)} />
                   ) : (
