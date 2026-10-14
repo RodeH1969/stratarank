@@ -1542,7 +1542,7 @@ function DrillSponsorLine({ sponsor, className = "" }) {
   return (
     <div className={`text-center ${className}`}>
       <button type="button" onClick={() => setOpen(true)} className="block w-full" aria-label={`Sponsor: ${sponsor.name}. Tap to enlarge`}>
-        <span className="block text-[10px] sm:text-[11px] font-bold uppercase text-slate-500" style={{ letterSpacing: "0.08em" }}>Today's question brought to you by</span>
+        <span className="block text-[10px] sm:text-[11px] font-bold uppercase text-slate-500" style={{ letterSpacing: "0.08em" }}>Question brought to you by</span>
         {mark(false)}
         <span className="block text-[10px] font-semibold text-slate-400 mt-1">Tap to expand</span>
       </button>
@@ -1550,7 +1550,7 @@ function DrillSponsorLine({ sponsor, className = "" }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto p-6 text-center" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-end -mt-2 -mr-2"><button onClick={() => setOpen(false)} aria-label="Close" className="text-slate-400 hover:text-slate-700 text-3xl leading-none">×</button></div>
-            <p className="text-[11px] font-bold uppercase text-slate-500 mb-4" style={{ letterSpacing: "0.06em" }}>Today's question brought to you by</p>
+            <p className="text-[11px] font-bold uppercase text-slate-500 mb-4" style={{ letterSpacing: "0.06em" }}>Question brought to you by</p>
             {mark(true)}
             {sponsor.logoUrl && <p className="font-serif text-2xl font-bold text-slate-900 mt-4">{sponsor.name}</p>}
             {sponsor.websiteUrl && <a href={sponsor.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-5 text-sm font-extrabold uppercase tracking-wide px-6 py-3 rounded-full bg-slate-900 text-amber-400 hover:bg-slate-700">Visit website</a>}
@@ -1876,7 +1876,7 @@ function DailyDrill() {
       <div id="laureate-play" style={{ scrollMarginTop: "12px" }} />
       {drill.locked ? (
         <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
-          <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "Strata Laureate is back Monday" : "Today's Scenario isn't up yet"}</p>
+          <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "Strata Laureate is back Monday" : `${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dp.dow]}'s Scenario isn't up yet`}</p>
           <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday. See you then." : "Check back soon."}</p>
           <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
         </div>
