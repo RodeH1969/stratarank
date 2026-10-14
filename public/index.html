@@ -1996,10 +1996,10 @@ function DailyDrill() {
                   ) : (
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-500 text-white font-extrabold flex items-center justify-center border-2 border-amber-300 text-xl">{ini}</div>
                   )}
-                  <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight mt-1.5 break-words">{p.name}</p>
+                  <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight mt-1.5 break-words min-h-[2.5em] flex items-center justify-center">{p.name}</p>
                   {p.logoUrl ? (
-                    <div className="bg-white border border-slate-100 rounded-lg mt-1.5 px-1.5 py-1 w-full flex items-center justify-center">
-                      <img src={p.logoUrl} alt={p.company} className="h-8 max-w-full object-contain" />
+                    <div className="bg-white border border-slate-100 rounded-lg mt-1.5 px-1.5 py-1 w-full h-12 flex items-center justify-center">
+                      <img src={p.logoUrl} alt={p.company} className="max-h-full max-w-full object-contain" />
                     </div>
                   ) : (
                     <p className="text-xs text-slate-600 mt-1 break-words">{p.company}</p>
