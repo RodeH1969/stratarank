@@ -972,7 +972,7 @@ app.get('/api/drill/winners', async (req, res) => {
     .eq('is_winner', true)
     .lt('drill_date', drillDate)
     .order('drill_date', { ascending: false })
-    .limit(5);
+    .limit(200);
   res.json({
     drillDate,
     past: (pastRows || []).map((p) => ({ name: p.name, company: p.company, photoUrl: p.photo_url || '', logoUrl: p.logo_url || '' })),
