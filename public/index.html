@@ -670,7 +670,7 @@ function App() {
         ) : tab === "log" ? (
           <EventLog events={sortedEvents} managerById={managerById} schemeById={schemeById} agencyLogos={data.agencyLogos} sponsorInvites={data.sponsorInvites} />
         ) : tab === "season" ? (
-          <SeasonLeaderboard standings={seasonStandings} agencyLogos={data.agencyLogos} sponsors={data.sponsors} previousRankMap={previousRankMap} seasonYear={data.seasonYear} />
+          <SeasonLeaderboard standings={seasonStandings} agencyLogos={data.agencyLogos} sponsors={data.sponsors} previousRankMap={previousRankMap} seasonYear={data.seasonYear} latestManagerId={(sortedEvents.filter((x) => x.createdAt).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] || {}).managerId} />
         ) : tab === "drill" ? (
           <DailyDrill />
         ) : tab === "jobs" ? (
@@ -995,7 +995,7 @@ function WinOfTheMonth({ monthKey, entries, sponsors, agencyLogos, schemeById, s
   );
 }
 
-function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, seasonYear }) {
+function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, seasonYear, latestManagerId }) {
   const medal = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null);
   const rowBg = (i) => (i === 0 ? "bg-amber-50 -mx-4 px-4 rounded-lg border-b-0" : i === 1 ? "bg-slate-50 -mx-4 px-4 rounded-lg border-b-0" : i === 2 ? "bg-orange-50/60 -mx-4 px-4 rounded-lg border-b-0" : "");
 
@@ -1035,7 +1035,7 @@ function SeasonLeaderboard({ standings, sponsors, agencyLogos, previousRankMap, 
                       {movement > 0 ? `▲${movement}` : `▼${Math.abs(movement)}`}
                     </span>
                   )}
-                  {prevRank === undefined && (
+                  {prevRank === undefined && row.manager.id === latestManagerId && (
                     <span className="text-xs font-bold text-amber-600 shrink-0 bg-amber-100 px-1.5 py-0.5 rounded">NEW</span>
                   )}
                 </div>
