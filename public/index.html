@@ -2003,6 +2003,11 @@ function DailyDrill() {
               );
             })}
           </div>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-2 flex-wrap">
+            <span className="font-serif font-black text-3xl sm:text-4xl text-amber-500 leading-none">$20</span>
+            <span className="bg-white rounded-md inline-flex"><img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-8 sm:h-9 inline-block rounded" onError={(e) => { e.target.parentNode.style.display = "none"; }} /></span>
+            <span className="font-extrabold text-sm text-slate-900">voucher for every Laureate</span>
+          </div>
         </div>
       )}
       {zoomWinner && <LaureateLightbox entry={zoomWinner} onClose={() => setZoomWinner(null)} />}
