@@ -2378,10 +2378,11 @@ function DrillAdmin() {
   };
 
   const unlaunch = async () => {
-    if (!window.confirm("Take today's question offline? The public page goes back to 'isn't up yet'.")) return;
+    const n = payload && payload.entries ? payload.entries.length : 0;
+    if (!window.confirm(n > 0 ? `Take this question offline? The ${n} entr${n === 1 ? "y" : "ies"} (winner included) stay. The public page goes back to 'isn't up yet'.` : "Take this question offline? The public page goes back to 'isn't up yet'.")) return;
     setError(null);
     try {
-      await api("/api/admin/drill/unlaunch", { method: "POST", body: "{}" });
+      await api("/api/admin/drill/unlaunch", { method: "POST", body: JSON.stringify({ date }) });
       await Promise.all([load(date, true), loadLibrary()]);
     } catch (e) {
       setError(e.message);
@@ -2454,9 +2455,7 @@ function DrillAdmin() {
                 <>
                   <p className="text-xs font-bold uppercase tracking-wide text-teal-800">Live now — launched {brisbaneTime(payload.launch.launchedAt)}</p>
                   <p className="text-sm font-semibold text-slate-900 mt-1">{liveTask ? liveTask.title : `Question ${payload.launch.taskId}`}</p>
-                  {payload.entries.length === 0 && (
-                    <button onClick={unlaunch} className="mt-2 text-xs font-extrabold uppercase tracking-wide px-3 py-1.5 rounded-full bg-slate-900 text-white hover:bg-slate-700">Take offline</button>
-                  )}
+                  <button onClick={unlaunch} className="mt-2 text-xs font-extrabold uppercase tracking-wide px-3 py-1.5 rounded-full bg-slate-900 text-white hover:bg-slate-700">Take offline</button>
                 </>
               ) : (
                 <>
