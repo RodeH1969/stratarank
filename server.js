@@ -953,30 +953,26 @@ app.post('/api/drill/submit', async (req, res) => {
 // most recent launched day's, so the last winners stay up until the next
 // task goes live.
 app.get('/api/drill/winners', async (req, res) => {
-  // The Reigning Laureate: the winner of the previous contest day (Mon-Fri).
-  // The contest day rolls over at 4:30pm Brisbane, so a winner announced at
-  // 4:30pm is Reigning as soon as the next question is up.
-  const cur = new Date(`${drillDayStr()}T00:00:00Z`);
-  do { cur.setUTCDate(cur.getUTCDate() - 1); } while (cur.getUTCDay() === 0 || cur.getUTCDay() === 6);
-  const drillDate = cur.toISOString().slice(0, 10);
-  const { data, error } = await supabase
+  // The Reigning Laureate: the most recent weekday winner before the current
+  // contest day. If a day went without a winner, it falls back to the last
+  // one named. The contest day rolls over at 4:30pm Brisbane.
+  const { data: rows, error } = await supabase
     .from('strata_drill_entries')
-    .select('name, role, company, answers, photo_url, logo_url')
-    .eq('drill_date', drillDate)
+    .select('name, role, company, answers, photo_url, logo_url, drill_date')
     .eq('is_winner', true)
-    .limit(1);
-  if (error) return res.status(500).json({ error: error.message });
-  const { data: pastRows } = await supabase
-    .from('strata_drill_entries')
-    .select('name, company, photo_url, logo_url, drill_date')
-    .eq('is_winner', true)
-    .lt('drill_date', drillDate)
+    .lt('drill_date', drillDayStr())
     .order('drill_date', { ascending: false })
     .limit(200);
+  if (error) return res.status(500).json({ error: error.message });
+  const weekday = (r) => { const d = new Date(`${r.drill_date}T00:00:00Z`).getUTCDay(); return d !== 0 && d !== 6; };
+  const all = (rows || []).filter(weekday);
+  const reign = all[0] || null;
+  const drillDate = reign ? reign.drill_date : drillDayStr();
+  const past = all.filter((r) => r.drill_date < drillDate);
   res.json({
     drillDate,
-    past: (pastRows || []).map((p) => ({ name: p.name, company: p.company, photoUrl: p.photo_url || '', logoUrl: p.logo_url || '' })),
-    entries: data.map((e, i) => ({
+    past: past.map((p) => ({ name: p.name, company: p.company, photoUrl: p.photo_url || '', logoUrl: p.logo_url || '' })),
+    entries: (reign ? [reign] : []).map((e) => ({
       name: e.name,
       role: e.role,
       company: e.company,
