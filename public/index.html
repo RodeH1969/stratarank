@@ -32,8 +32,10 @@
   @keyframes cloudPink { 0%,100% { stroke-width: 9px; stroke: #f472b6; } 50% { stroke-width: 17px; stroke: #ec4899; } }
   @keyframes cloudGlow { 0%,100% { filter: drop-shadow(0 0 4px rgba(236,72,153,0.35)); } 50% { filter: drop-shadow(0 0 16px rgba(236,72,153,0.9)); } }
   @keyframes brainPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.3); } }
-  .cloud-outline { animation: cloudPink 1.6s ease-in-out infinite; }
-  .cloud-wrap { animation: cloudGlow 1.6s ease-in-out infinite; }
+  @keyframes capPulse { 0%,100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(245,158,11,0.3)); } 50% { transform: scale(1.035); filter: drop-shadow(0 0 16px rgba(245,158,11,0.85)); } }
+  @keyframes capEdge { 0%,100% { stroke-width: 5px; } 50% { stroke-width: 9px; } }
+  .cap-wrap { animation: capPulse 1.6s ease-in-out infinite; }
+  .cap-edge { animation: capEdge 1.6s ease-in-out infinite; }
   .brain-pulse { display: inline-block; animation: brainPulse 1.2s ease-in-out infinite; }
   @keyframes drillBar { 0%,100% { height: 8px; } 50% { height: 100%; } }
   .drill-bars { height: 34px; }
@@ -1470,7 +1472,7 @@ function DrillAudioBrain({ title }) {
     return (
       <button
         onClick={() => toggle(name)}
-        className={`rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 border-2 ${on ? "bg-amber-400 text-slate-900 border-slate-900" : "bg-slate-900 text-amber-400 border-slate-900"} ${current === null && name === "scenario" ? "gold-pulse-ring" : ""}`}
+        className={`rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 border-2 ${on ? "bg-white text-slate-900 border-white" : "bg-amber-400 text-slate-900 border-amber-400"} ${current === null && name === "scenario" ? "gold-pulse-ring" : ""}`}
       >
         {on ? "❚❚" : heard[name] ? "↻" : "▶"} {label}
       </button>
@@ -1480,50 +1482,44 @@ function DrillAudioBrain({ title }) {
   const bars = Array.from({ length: 22 }, (_, i) => (
     <i key={i} className="drill-bar" style={{ animationDelay: `${(i * 0.13) % 0.9}s`, animationDuration: `${0.7 + ((i * 37) % 5) / 10}s` }} />
   ));
-  const shapes = (
+  const cap = (
     <>
-      <ellipse cx="300" cy="215" rx="252" ry="125" /><circle cx="130" cy="150" r="85" /><circle cx="240" cy="100" r="95" />
-      <circle cx="360" cy="100" r="95" /><circle cx="470" cy="150" r="85" /><circle cx="90" cy="250" r="70" />
-      <circle cx="510" cy="250" r="70" /><circle cx="190" cy="290" r="70" /><circle cx="410" cy="290" r="70" />
+      <path d="M56 128 v150 q144 70 288 0 v-150 l-144 52z" fill="#1e293b" />
+      <polygon points="200,10 392,84 200,158 8,84" fill="#0f172a" stroke="#f59e0b" strokeWidth="5" strokeLinejoin="round" className="cap-edge" />
+      <circle cx="200" cy="84" r="6" fill="#f59e0b" />
+      <path d="M200 84 L362 104 V224" fill="none" stroke="#f59e0b" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M351 224 h22 l5 40 h-32z" fill="#f59e0b" />
     </>
   );
-  const folds = ["M60 150 q22 -34 56 -14", "M150 62 q30 -14 52 8", "M398 70 q30 -14 52 8", "M484 136 q34 -20 56 14", "M52 262 q20 28 50 18", "M498 280 q26 10 50 -18", "M150 335 q26 18 54 2", "M396 337 q28 16 54 -2"];
+  const titleLines = (() => {
+    if (!title) return null;
+    const w = title.trim().split(/\s+/);
+    let best = 1, diff = Infinity;
+    for (let i = 1; i < w.length; i++) { const d = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length); if (d < diff) { diff = d; best = i; } }
+    return [w.length > 1 ? w.slice(0, best).join(" ") : title, w.length > 1 ? w.slice(best).join(" ") : ""];
+  })();
 
   return (
     <div className="max-w-md mx-auto mb-4">
-      <div className="cloud-wrap relative w-full">
-        <svg viewBox="-8 -10 616 420" className="w-full block" aria-hidden="true">
-          <rect x="268" y="320" width="64" height="76" rx="26" fill="#fff" stroke="#ec4899" strokeWidth="9" className="cloud-outline" />
-          <g className="cloud-outline" fill="#ec4899" stroke="#ec4899" strokeWidth="9">{shapes}</g>
-          <g fill="#fff">{shapes}</g>
-          <g fill="none" stroke="#f9a8d4" strokeWidth="6" strokeLinecap="round">
-            <path d="M300 28 V86" stroke="#ec4899" />
-            {folds.map((d, i) => <path key={i} d={d} />)}
-          </g>
-        </svg>
-        <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "30%", height: "46%" }}>
-          {title ? ((() => {
-            const w = title.trim().split(/\s+/);
-            let best = 1, diff = Infinity;
-            for (let i = 1; i < w.length; i++) { const d = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length); if (d < diff) { diff = d; best = i; } }
-            const l1 = w.length > 1 ? w.slice(0, best).join(" ") : title;
-            const l2 = w.length > 1 ? w.slice(best).join(" ") : "";
-            return (
-              <p className="font-serif font-extrabold text-slate-900 leading-tight" style={{ fontSize: "clamp(0.7rem, 2.8vw, 1.05rem)" }}>
-                <span className="block whitespace-nowrap">{l1}</span>
-                {l2 && <span className="block whitespace-nowrap">{l2}</span>}
-              </p>
-            );
-          })()
-) : (
-            <p className="drill-lab font-extrabold uppercase text-amber-800 whitespace-nowrap" style={{ letterSpacing: "0.06em" }}>🎧 Laureate Scenario</p>
+      <div className="cap-wrap relative w-full">
+        <svg viewBox="-10 0 420 330" className="w-full block" aria-hidden="true">{cap}</svg>
+        <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "13%", height: "21%" }}>
+          {titleLines ? (
+            <p className="font-serif font-extrabold text-amber-400 leading-tight" style={{ fontSize: "clamp(0.75rem, 3.2vw, 1.2rem)" }}>
+              <span className="block whitespace-nowrap">{titleLines[0]}</span>
+              {titleLines[1] && <span className="block whitespace-nowrap">{titleLines[1]}</span>}
+            </p>
+          ) : (
+            <p className="drill-lab font-extrabold uppercase text-amber-400 whitespace-nowrap" style={{ letterSpacing: "0.06em" }}>Laureate Scenario</p>
           )}
-          <div className={`drill-bars flex items-center my-1.5 sm:my-2 ${playing ? "on" : ""}`}>{bars}</div>
+        </div>
+        <div className="absolute flex flex-col items-center justify-center text-center" style={{ top: "47%", left: "17%", right: "17%", height: "40%" }}>
+          <div className={`drill-bars flex items-center mb-1.5 sm:mb-2 ${playing ? "on" : ""}`}>{bars}</div>
           <div className="flex items-center justify-center gap-2">
             {btn("scenario", "Facts")}
             {btn("question", "Question")}
           </div>
-          <p className="drill-sub font-semibold text-slate-700 mt-1.5">
+          <p className="drill-sub font-semibold text-amber-100 mt-1.5">
             {playing ? (current === "scenario" ? "Playing: facts" : "Playing: question") : heard.scenario && heard.question ? "Replay anytime" : "Facts first, then question"}
           </p>
         </div>
