@@ -1502,7 +1502,8 @@ function DrillAudioBrain({ title }) {
     <div className="max-w-md mx-auto mb-4">
       <div className="cap-wrap relative w-full">
         <svg viewBox="-10 0 420 330" className="w-full block" aria-hidden="true">{cap}</svg>
-        <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "13%", height: "21%" }}>
+        <div className="absolute left-0 right-0 flex flex-col items-center justify-center text-center" style={{ top: "14%", height: "24%" }}>
+          {titleLines && <p className="font-extrabold uppercase text-amber-200 mb-1" style={{ fontSize: "clamp(0.5rem, 1.9vw, 0.65rem)", letterSpacing: "0.18em" }}>Today's dispute</p>}
           {titleLines ? (
             <p className="font-serif font-extrabold text-amber-400 leading-tight" style={{ fontSize: "clamp(0.75rem, 3.2vw, 1.2rem)" }}>
               <span className="block whitespace-nowrap">{titleLines[0]}</span>
