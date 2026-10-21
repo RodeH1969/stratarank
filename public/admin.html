@@ -1835,6 +1835,31 @@ function DrillEntryReview({ entry, tasks, onVerdict, onImageSaved, onCrown, onDe
 
 const brisbaneTime = (iso) => new Date(iso).toLocaleTimeString("en-AU", { timeZone: "Australia/Brisbane", hour: "numeric", minute: "2-digit" });
 
+function DrillQuestionLog({ tasks }) {
+  const [open, setOpen] = useState(true);
+  const rows = [];
+  for (const t of tasks) for (const d of t.usedOn || []) rows.push({ d, t });
+  rows.sort((x, y) => (x.d < y.d ? 1 : -1));
+  if (rows.length === 0) return null;
+  const dayName = (d) => new Date(d + "T00:00:00Z").toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6">
+      <button onClick={() => setOpen((o) => !o)} className="text-xs font-bold uppercase tracking-wide text-slate-700">{open ? "▾" : "▸"} Question log</button>
+      {open && (
+        <div className="mt-3 divide-y divide-slate-100">
+          {rows.slice(0, 30).map((r) => (
+            <div key={r.d} className="flex items-baseline gap-3 py-1.5">
+              <span className="w-24 shrink-0 text-xs font-bold text-slate-500">{dayName(r.d)}</span>
+              <span className="text-sm text-slate-900">{r.t.title}</span>
+              <span className="text-xs text-slate-400 ml-auto shrink-0">#{r.t.num || r.t.id}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DrillAudioUploader({ library, onDone }) {
   const [log, setLog] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -2467,6 +2492,8 @@ function DrillAdmin() {
           )}
 
           {isToday && <DrillSponsor />}
+
+          {isToday && library && <DrillQuestionLog tasks={library.tasks} />}
 
           <DrillManualWinner date={date} hasLaunch={!!payload.launch} onAdded={() => load(date, true)} />
 
