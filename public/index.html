@@ -1518,9 +1518,6 @@ function DrillAudioBrain({ title }) {
             {btn("scenario", "Facts")}
             {btn("question", "Question")}
           </div>
-          <p className="drill-sub font-semibold text-amber-100 mt-1.5">
-            {playing ? (current === "scenario" ? "Playing: facts" : "Playing: question") : heard.scenario && heard.question ? "Replay anytime" : "Facts first, then question"}
-          </p>
         </div>
       </div>
       {audioError && <p className="text-sm text-rose-700 text-center mt-2">{audioError}</p>}
@@ -1706,7 +1703,7 @@ function LaureateLightbox({ entry, onClose }) {
             <img src={entry.logoUrl} alt={entry.company} className="h-28 max-w-full object-contain" />
           </div>
         )}
-        <p className="text-base font-extrabold text-amber-900 mt-3 break-words">{entry.company}</p>
+        {!entry.logoUrl && <p className="text-base font-extrabold text-amber-900 mt-3 break-words">{entry.company}</p>}
       </div>
     </div>
   );
