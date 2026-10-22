@@ -1628,7 +1628,7 @@ function ShareWinnerButton({ entry, dateLabel }) {
       if (!blob) throw new Error("no image");
       const file = new File([blob], "strata-laureate.png", { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], text: `${entry.name} is the Reigning Strata Laureate! stratarank.onrender.com` });
+        await navigator.share({ files: [file], text: "Check out who is the reigning Strata Laureate! stratarank.onrender.com" });
       } else {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob); a.download = "strata-laureate.png"; a.click();
