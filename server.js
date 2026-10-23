@@ -875,7 +875,11 @@ app.get('/api/drill/audio/:part', async (req, res) => {
   const part = req.params.part;
   if (part !== 'scenario' && part !== 'question') return res.status(404).end();
   try {
-    const launch = await getDrillLaunch(drillDayStr());
+    // Optional ?date= lets the Reigning Laureate section replay a past day's
+    // clip — but only days already finished, never today's or a future day's.
+    const q = req.query.date;
+    const day = isDateStr(q) && q < drillDayStr() ? q : drillDayStr();
+    const launch = await getDrillLaunch(day);
     if (!launch) return res.status(403).end();
     const { data, error } = await supabase
       .from('strata_drill_audio')
@@ -969,6 +973,18 @@ app.get('/api/drill/winners', async (req, res) => {
   const reign = all[0] || null;
   const drillDate = reign ? reign.drill_date : drillDayStr();
   const past = all.filter((r) => r.drill_date < drillDate);
+  // The dispute the Laureate answered: its title and which clips exist.
+  let dispute = { title: '', parts: [] };
+  if (reign) {
+    try {
+      const launch = await getDrillLaunch(reign.drill_date);
+      const task = launch ? drillTaskById(launch.task_id) : null;
+      if (launch) {
+        const { data: au } = await supabase.from('strata_drill_audio').select('part').eq('task_id', launch.task_id);
+        dispute = { title: (task && task.title) || '', parts: (au || []).map((a) => a.part).filter((x) => x === 'scenario' || x === 'question') };
+      }
+    } catch (e) { /* audio is optional */ }
+  }
   res.json({
     drillDate,
     past: past.map((p) => ({ name: p.name, company: p.company, photoUrl: p.photo_url || '', logoUrl: p.logo_url || '' })),
@@ -979,6 +995,9 @@ app.get('/api/drill/winners', async (req, res) => {
       answer: (Array.isArray(e.answers) ? e.answers : []).map((a) => String((a && a.text) || '').trim()).filter(Boolean).join('\n\n'),
       photoUrl: e.photo_url || '',
       logoUrl: e.logo_url || '',
+      drillDate: e.drill_date,
+      disputeTitle: dispute.title,
+      audioParts: dispute.parts,
     })),
   });
 });
