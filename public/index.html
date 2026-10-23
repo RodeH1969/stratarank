@@ -1647,7 +1647,6 @@ function LaureateDispute({ entry }) {
     setCurrent(name); setErr(null);
     a.play().then(() => setPlaying(true)).catch(() => { setPlaying(false); setErr("Tap again to start the audio."); });
   };
-  const first = (entry.name || "").split(/\s+/)[0];
   const row = (name, label) => {
     if (!parts.includes(name)) return null;
     const on = current === name && playing;
@@ -1661,8 +1660,7 @@ function LaureateDispute({ entry }) {
   };
   return (
     <div className="mt-4 text-left rounded-2xl border-2 border-amber-500 bg-white/75 p-3">
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-amber-700">The dispute {first} answered</p>
-      {entry.disputeTitle && <p className="font-serif font-extrabold text-xl leading-tight text-slate-900 mt-0.5 mb-2.5">{entry.disputeTitle}</p>}
+      {entry.disputeTitle && <p className="font-serif font-extrabold text-xl leading-tight text-slate-900 text-center mb-3" style={{ textWrap: "balance" }}>{entry.disputeTitle}</p>}
       <div className="grid gap-2">{row("scenario", "Hear the facts")}{row("question", "Hear the question")}</div>
       {err && <p className="text-xs font-bold text-rose-600 mt-2">{err}</p>}
     </div>
