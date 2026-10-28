@@ -1,0 +1,15 @@
+[
+ {
+  "id": 201,
+  "set": 3,
+  "num": 1,
+  "section": "Governance",
+  "title": "The Poll Demand",
+  "scenario": "Chairperson: “At our 80-lot Standard Module scheme’s AGM, owners considered 5 motions in identical form, each approving a separate $3,200 garden maintenance quote for a different section of common property. After the show of hands on the first motion, an eligible owner called for a poll. She says the poll should cover all 5 motions together, because they are the same motion repeated. I say each motion needs its own poll.”",
+  "instructions": "“What should the body corporate manager advise the chairperson about the poll request?”",
+  "difficulty": "Advanced",
+  "topic": "Poll votes",
+  "modelAnswer": "Advise the chairperson that the owner is entitled to have the poll taken, and that it can be taken on all 5 motions together. Because the motions are the same in form, the chairperson should not insist on a separate poll for each one. The steps: (1) confirm the person calling for the poll is an eligible voter; (2) accept the call and stop treating the show of hands as the result; (3) explain that voters will mark one poll paper covering all 5 motions, voting for or against each one separately; (4) count the poll by votes entitled to be cast, not by hands, and announce each motion's result separately; (5) record the poll and each result in the minutes. A motion can still pass or fail on its own result.",
+  "markingGuide": "Strong answers: allow the poll; one poll for the group of same-form motions; each motion still decided on its own result; poll replaces the show of hands; record in minutes. Weak answers: refuse the poll, or insist on 5 separate polls."
+ }
+]

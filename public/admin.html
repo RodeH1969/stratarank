@@ -1879,9 +1879,9 @@ function DrillAudioUploader({ library, onDone }) {
     setLog([]);
     const out = [];
     for (const f of files) {
-      const m = /^(?:set\s*([12])[\s_-]*)?(scenario|question)[\s_-]*(\d+)/i.exec(f.name);
-      if (!m) { out.push({ name: f.name, ok: false, msg: "Name must be like Scenario 12.mp3 or Set 2 Question 12.mp3" }); setLog([...out]); continue; }
-      const taskId = (m[1] === "2" ? 100 : 0) + Number(m[3]);
+      const m = /^(?:set\s*([123])[\s_-]*)?(scenario|question)[\s_-]*(\d+)/i.exec(f.name);
+      if (!m) { out.push({ name: f.name, ok: false, msg: "Name must be like Scenario 12.mp3 or Set 2 Question 12.mp3 (Set 3 works too)" }); setLog([...out]); continue; }
+      const taskId = (m[1] ? (Number(m[1]) - 1) * 100 : 0) + Number(m[3]);
       try {
         const data = await readB64(f);
         await api("/api/admin/drill/audio", { method: "POST", body: JSON.stringify({ taskId, part: m[2].toLowerCase(), data }) });
@@ -1963,14 +1963,14 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId, 
   const q = query.trim().toLowerCase();
   const setCount = (n) => library.filter((t) => (t.set || 1) === n).length;
   const rows = library.filter((t) => (t.set || 1) === setNo && (!q || `${t.num || t.id} ${t.title} ${t.section} ${t.scenario}`.toLowerCase().includes(q)));
-  const fileBase = (t) => `${(t.set || 1) === 2 ? "Set 2 " : ""}`;
+  const fileBase = (t) => `${(t.set || 1) > 1 ? `Set ${t.set} ` : ""}`;
   const locked = !!launch && hasSubmissions;
 
   return (
     <div className="mb-8">
       <h3 className="font-semibold text-slate-900 mb-2">Question bank</h3>
       <div className="flex gap-2 mb-3">
-        {[1, 2].map((n) => (
+        {[1, 2, 3].map((n) => (
           <button key={n} onClick={() => setSetNo(n)} className={`flex-1 sm:flex-none px-4 py-2 rounded-full text-sm font-bold ${setNo === n ? "bg-slate-900 text-amber-400" : "bg-white border border-slate-300 text-slate-700"}`}>
             Set {n} ({setCount(n)})
           </button>

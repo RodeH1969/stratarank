@@ -696,6 +696,13 @@ try {
 } catch (err) {
   console.error('Could not load Daily Drill set 2:', err.message);
 }
+// Set 3 — ids 201+.
+try {
+  const set3 = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'Daily Drill', 'tasks-set3.json'), 'utf8'));
+  DRILL_TASKS = DRILL_TASKS.concat(set3);
+} catch (err) {
+  console.error('Could not load Daily Drill set 3:', err.message);
+}
 const drillTaskById = (id) => DRILL_TASKS.find((t) => t.id === id) || null;
 
 // Queensland doesn't observe daylight saving, so Brisbane is always a
