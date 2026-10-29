@@ -1075,15 +1075,7 @@ app.post('/api/admin/drill/launch', async (req, res) => {
     const { data: clips, error: aErr } = await supabase.from('strata_drill_audio').select('part').eq('task_id', taskId);
     if (aErr) return res.status(500).json({ error: aErr.message });
     if (!clips || clips.length < 2) return res.status(400).json({ error: "This question has no audio yet. Upload its scenario and question clips first." });
-    const existing = await getDrillLaunch(drillDate);
-    if (existing) {
-      const { count, error: cErr } = await supabase
-        .from('strata_drill_entries')
-        .select('id', { count: 'exact', head: true })
-        .eq('drill_date', drillDate);
-      if (cErr) return res.status(500).json({ error: cErr.message });
-      if (count > 0) return res.status(409).json({ error: "Today's drill already has submissions, so the question can't be changed." });
-    }
+    // Switching is allowed even after answers are in: those entries stay as they are.
     const launchedAt = new Date().toISOString();
     const { error } = await supabase
       .from('strata_drill_launches')

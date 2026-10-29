@@ -1964,7 +1964,7 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId, 
   const setCount = (n) => library.filter((t) => (t.set || 1) === n).length;
   const rows = library.filter((t) => (t.set || 1) === setNo && (!q || `${t.num || t.id} ${t.title} ${t.section} ${t.scenario}`.toLowerCase().includes(q)));
   const fileBase = (t) => `${(t.set || 1) > 1 ? `Set ${t.set} ` : ""}`;
-  const locked = !!launch && hasSubmissions;
+  const locked = false;
 
   return (
     <div className="mb-8">
@@ -1978,8 +1978,8 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId, 
       </div>
       <p className="text-xs text-slate-500 mb-3">
         {launch
-          ? locked
-            ? "Today's question is live and already has submissions, so it can't be switched."
+          ? hasSubmissions
+            ? "Today's question is live and has answers. You can still switch it, but those answers stay with the old question."
             : "Today's question is live. Nobody's answered yet, so you can still switch it."
           : "Pick today's question and hit Launch — the clock starts the moment you do."}
       </p>
@@ -2387,7 +2387,7 @@ function DrillAdmin() {
   const launchTask = async (t) => {
     const switching = !!(payload && payload.launch);
     const msg = switching
-      ? `Switch today's question to "${t.title}"? Nobody has answered yet.`
+      ? `Switch today's question to "${t.title}"?${payload && payload.entries.length > 0 ? ` ${payload.entries.length} answer(s) already in will stay, but they were written for the old question.` : ""}`
       : `Launch "${t.title}" now? The public clock starts immediately.`;
     if (!window.confirm(msg)) return;
     setBusyId(t.id);
