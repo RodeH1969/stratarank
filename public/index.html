@@ -1399,9 +1399,9 @@ function DrillInfoPopup({ onClose }) {
               <ul className="mt-3 space-y-1.5 text-sm text-slate-900 font-medium">
                 <li>⏰ A new Laureate Scenario every weekday.</li>
                 <li>🎧 You hear it, you don't read it. Facts first, then the question.</li>
-                <li>✍️ Write your answer. Make it thorough. Hit submit.</li>
+                <li>✍️ Write your answer. Make it interesting. Hit submit.</li>
                 <li>✅ Cover everything and you're in the running.</li>
-                <li>⚡ The most thorough answer becomes the Reigning Strata Laureate.</li>
+                <li>⚡ The most interesting answer becomes the Reigning Strata Laureate.</li>
               </ul>
               <p className="mt-3 text-sm text-slate-900 font-extrabold">Win it for the bragging rights — and a $20 Dan Murphy's voucher.</p>
               <button
@@ -1902,7 +1902,7 @@ function DailyDrill() {
         </div>
         <div className="mt-5 inline-flex items-center justify-center gap-x-2 gap-y-1 flex-wrap rounded-2xl bg-white border-2 border-amber-400 shadow-sm px-3 py-3">
           <span className="text-base">🏆</span>
-          <span className="font-extrabold text-sm text-slate-900">Most <span className="bg-amber-400 text-slate-900 rounded px-1.5 py-0.5">thorough</span> answer wins a</span>
+          <span className="font-extrabold text-sm text-slate-900">Most <span className="bg-amber-400 text-slate-900 rounded px-1.5 py-0.5">interesting</span> answer wins a</span>
           <span className="bg-white rounded-md px-1.5 py-0.5 inline-flex"><img src="/prizes/dan-murphys.jpg" alt="Dan Murphy's" className="h-6 sm:h-7 inline-block" onError={(e) => { e.target.parentNode.style.display = "none"; }} /></span>
           <span className="font-extrabold text-sm text-amber-800">$20 voucher</span>
         </div>
@@ -1930,7 +1930,7 @@ function DailyDrill() {
       ) : result ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-teal-900">Submitted! 🎉</p>
-          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR reads every answer, and the most thorough becomes the Reigning Strata Laureate. Check back at 4:30pm.</p>
+          <p className="text-sm text-slate-900 mt-2">Your answer is in. QSR reads every answer, and the most interesting becomes the Reigning Strata Laureate. Check back at 4:30pm.</p>
           <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
           <DrillShareButton text={shareText} />
         </div>

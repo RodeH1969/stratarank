@@ -958,7 +958,7 @@ app.post('/api/drill/submit', async (req, res) => {
   res.json({ drillDate, elapsedSeconds });
 });
 
-// The day's winner — the entry QSR crowned as the most thorough answer. The first
+// The day's winner — the entry QSR crowned as the most interesting answer. The first
 // five get their photo/logo (if the admin's attached one). With no date
 // given: today's winners if today's task has been launched, otherwise the
 // most recent launched day's, so the last winners stay up until the next
@@ -1183,7 +1183,7 @@ app.patch('/api/admin/drill/:id/answer', async (req, res) => {
   }
 });
 
-// Admin: crown this entry as that day's winner (most thorough answer).
+// Admin: crown this entry as that day's winner (most interesting answer).
 app.post('/api/admin/drill/:id/winner', async (req, res) => {
   try {
     const { data: e, error } = await supabase.from('strata_drill_entries').select('id, drill_date').eq('id', req.params.id).single();
