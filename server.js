@@ -1070,13 +1070,17 @@ app.post('/api/admin/drill/audio', async (req, res) => {
 app.post('/api/admin/drill/launch', async (req, res) => {
   const taskId = Number(req.body && req.body.taskId);
   if (!drillTaskById(taskId)) return res.status(400).json({ error: 'Unknown question.' });
-  const drillDate = drillDayStr();
+  // Optional date: re-pick the question for an earlier day (same or past, never future).
+  const reqDate = req.body && req.body.date;
+  const drillDate = isDateStr(reqDate) && reqDate <= drillDayStr() ? reqDate : drillDayStr();
   try {
     const { data: clips, error: aErr } = await supabase.from('strata_drill_audio').select('part').eq('task_id', taskId);
     if (aErr) return res.status(500).json({ error: aErr.message });
     if (!clips || clips.length < 2) return res.status(400).json({ error: "This question has no audio yet. Upload its scenario and question clips first." });
     // Switching is allowed even after answers are in: those entries stay as they are.
-    const launchedAt = new Date().toISOString();
+    // An earlier day keeps its original launch time, so entry timings stay put.
+    const prior = drillDate !== drillDayStr() ? await getDrillLaunch(drillDate) : null;
+    const launchedAt = prior && prior.launched_at ? new Date(prior.launched_at).toISOString() : new Date().toISOString();
     const { error } = await supabase
       .from('strata_drill_launches')
       .upsert({ drill_date: drillDate, task_id: taskId, launched_at: launchedAt }, { onConflict: 'drill_date' });
