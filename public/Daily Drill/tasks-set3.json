@@ -11,5 +11,18 @@
   "topic": "Poll votes",
   "modelAnswer": "Let her have her poll, and run it once for all five. Five identical motions don't need five identical rituals. Once a poll is called, the show of hands is dead. Voters mark a single paper, a yes or no on each motion, and every motion still wins or loses on its own count. Refuse, or drag out five separate polls, and you've handed her a reason to challenge the whole meeting.",
   "markingGuide": "Best answer is the one that is clear, sharp and memorable, not the longest. It should: allow the poll; use one poll for the group of same-form motions; keep each motion's result separate. Bonus for a vivid line that makes the point stick."
+ },
+ {
+  "id": 202,
+  "set": 3,
+  "num": 2,
+  "section": "Governance",
+  "title": "Coin Flip",
+  "scenario": "Candidate B: “At our Standard Module scheme’s AGM, the chair accepted 3 floor votes from a proxyholder representing 3 lot owners. The count for Chair came out 20–20 between me and Candidate A. The strata manager assisting the meeting immediately announced the tie would be decided by chance, flipped a coin, and declared Candidate A the winner.”",
+  "instructions": "“What legal advice would you give Candidate B about the validity of this election process and the outcome?”",
+  "difficulty": "Advanced",
+  "topic": "Committee elections and ties",
+  "modelAnswer": "A tie can be settled by chance, so the coin isn't the problem. The problem is who called it. The meeting decides how chance is used, not the strata manager, and the manager only assists the chair. Then there's the count: committee elections run by ballot, so 3 floor votes from a proxyholder are doubtful. If they shouldn't have counted, there was never a tie. Object, get it minuted, collect the ballots, proxies and minutes, write to the body corporate, and get proper legal advice before escalating.",
+  "markingGuide": "Best answer is the one that is clear, sharp and memorable, not the longest. It should: accept that chance is a valid way to break a tie; spot that the meeting, not the strata manager, decides the method and the chair runs the election; question whether the proxy floor votes were valid in a ballot election; give practical steps (object, get it minuted, get the papers, write to the body corporate, seek legal advice). Bonus for a vivid line that makes the point stick."
  }
 ]
