@@ -859,16 +859,19 @@ app.put('/api/admin/drill/sponsor', async (req, res) => {
 app.get('/api/drill/today', async (req, res) => {
   const drillDate = drillDayStr();
   try {
+    // Winner already named for today (even if awarded by hand, with no launch row):
+    // the question area closes until the next question.
+    const { data: won } = await supabase.from('strata_drill_entries').select('id').eq('drill_date', drillDate).eq('is_winner', true).limit(1);
+    const closed = !!(won && won.length);
+    if (closed) return res.json({ drillDate, postedAt: null, locked: false, closed: true, tasks: [], sponsor: await getDrillSponsor() });
     const launch = await getDrillLaunch(drillDate);
     const task = launch ? drillTaskById(launch.task_id) : null;
-    if (!launch || !task) return res.json({ drillDate, postedAt: null, locked: true, tasks: [], sponsor: await getDrillSponsor() });
-    // Winner already named for today: the question area closes until the next question.
-    const { data: won } = await supabase.from('strata_drill_entries').select('id').eq('drill_date', drillDate).eq('is_winner', true).limit(1);
+    if (!launch || !task) return res.json({ drillDate, postedAt: null, locked: true, closed: false, tasks: [], sponsor: await getDrillSponsor() });
     res.json({
       drillDate,
       postedAt: new Date(launch.launched_at).toISOString(),
       locked: false,
-      closed: !!(won && won.length),
+      closed: false,
       // Audio only: the task's text is never sent to visitors.
       tasks: [{ id: task.id, title: task.title || '' }],
       sponsor: await getDrillSponsor(),
