@@ -967,14 +967,14 @@ app.post('/api/drill/submit', async (req, res) => {
 // most recent launched day's, so the last winners stay up until the next
 // task goes live.
 app.get('/api/drill/winners', async (req, res) => {
-  // The Reigning Laureate: the most recent weekday winner before the current
-  // contest day. If a day went without a winner, it falls back to the last
+  // The Reigning Laureate: the most recent weekday winner, including today's
+  // the moment QSR crowns them. If a day went without a winner, it falls back to the last
   // one named. The contest day rolls over at 4:30pm Brisbane.
   const { data: rows, error } = await supabase
     .from('strata_drill_entries')
     .select('name, role, company, answers, photo_url, logo_url, drill_date')
     .eq('is_winner', true)
-    .lt('drill_date', drillDayStr())
+    .lte('drill_date', drillDayStr())
     .order('drill_date', { ascending: false })
     .limit(200);
   if (error) return res.status(500).json({ error: error.message });
