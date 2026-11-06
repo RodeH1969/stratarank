@@ -1803,8 +1803,8 @@ function DailyDrill() {
   // Task not launched yet: keep checking, so the page unlocks by itself
   // the moment it goes live.
   useEffect(() => {
-    if (!drill || !drill.locked) return;
-    const id = setInterval(() => setReloadKey((k) => k + 1), 10000);
+    if (!drill || !(drill.locked || !drill.closed)) return;
+    const id = setInterval(() => setReloadKey((k) => k + 1), drill.locked ? 10000 : 30000);
     return () => clearInterval(id);
   }, [drill]);
 
@@ -1921,7 +1921,13 @@ function DailyDrill() {
 
 
       <div id="laureate-play" style={{ scrollMarginTop: "12px" }} />
-      {drill.locked ? (
+      {drill.closed ? (
+        <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
+          <p className="font-serif text-xl font-bold text-slate-900">Today's Laureate is crowned</p>
+          <p className="text-base text-slate-900 mt-2">Next question: {dp.dow === 5 || dp.dow === 6 || dp.dow === 0 ? "Monday" : ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dp.dow + 1]}.</p>
+          <DrillSponsorLine sponsor={drill.sponsor} className="mt-4" />
+        </div>
+      ) : drill.locked ? (
         <div className="bg-white border border-slate-400 rounded-2xl p-5 sm:p-6 shadow-sm text-center">
           <p className="font-serif text-xl font-bold text-slate-900">{isWeekend ? "Strata Laureate is back Monday" : `${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dp.dow]}'s Scenario isn't up yet`}</p>
           <p className="text-base text-slate-900 mt-2">{isWeekend ? "It runs Monday to Friday. See you then." : "Check back soon."}</p>
