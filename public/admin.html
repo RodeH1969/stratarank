@@ -2439,11 +2439,11 @@ function DrillManualWinner({ date, hasLaunch, onAdded }) {
 
   const input = "w-full border border-slate-300 rounded px-3 py-2 text-base sm:text-sm";
   if (!open) {
-    return <button onClick={() => setOpen(true)} className="mb-6 text-sm font-bold px-4 py-2 rounded-full bg-slate-900 text-amber-400">＋ Add a past winner</button>;
+    return <button onClick={() => setOpen(true)} className="mb-6 text-sm font-bold px-4 py-2 rounded-full bg-slate-900 text-amber-400">＋ Add a winner</button>;
   }
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6 space-y-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Add a winner for any day</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Add a winner (today or any day)</p>
       <label className="block text-sm text-slate-700">Day they won
         <input type="date" className={input + " mt-1"} value={d} onChange={(e) => setD(e.target.value)} />
       </label>
@@ -2540,7 +2540,7 @@ function DrillAdmin() {
 
   const unlaunch = async () => {
     const n = payload && payload.entries ? payload.entries.length : 0;
-    if (!window.confirm(n > 0 ? `Take this question offline? The ${n} entr${n === 1 ? "y" : "ies"} (winner included) stay. The public page goes back to 'isn't up yet'.` : "Take this question offline? The public page goes back to 'isn't up yet'.")) return;
+    if (!window.confirm(n > 0 ? `You don't need to take it offline to crown a winner. Take this question offline anyway? The ${n} entr${n === 1 ? "y" : "ies"} (winner included) stay. The public page goes back to 'isn't up yet'.` : "You don't need to take it offline to crown a winner. Take this question offline anyway? The public page goes back to 'isn't up yet'.")) return;
     setError(null);
     try {
       await api("/api/admin/drill/unlaunch", { method: "POST", body: JSON.stringify({ date }) });
@@ -2626,6 +2626,21 @@ function DrillAdmin() {
               )}
             </div>
           )}
+
+          {isToday && (() => {
+            const w = payload.entries.find((e) => e.isWinner);
+            return w ? (
+              <div className="rounded-xl p-4 mb-6 border-2 bg-amber-100 border-amber-400">
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-900">👑 Winner crowned: {w.name}</p>
+                <p className="text-sm text-slate-900 mt-1">The public page now shows them as Reigning Laureate and says the next question is the next weekday. Nothing else to do.</p>
+              </div>
+            ) : (
+              <div className="rounded-xl p-4 mb-6 border border-slate-300 bg-slate-50">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-700">To crown a winner, any time</p>
+                <p className="text-sm text-slate-900 mt-1">Hit 👑 Make winner on an answer below, or use ＋ Add a winner for someone who answered elsewhere. Don't take the question offline first. The public page switches straight away.</p>
+              </div>
+            );
+          })()}
 
           {!isToday && library && (
             <DrillPastQuestion date={date} library={library.tasks} currentId={payload.launch ? payload.launch.taskId : null} onPick={launchTask} busyId={busyId} />
