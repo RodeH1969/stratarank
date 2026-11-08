@@ -30,12 +30,12 @@
   "set": 3,
   "num": 3,
   "section": "Governance",
-  "title": "The Debtor's Dissent",
-  "scenario": "Chairperson: “At our Standard Module scheme’s AGM, one owner is 4 months behind on levies and hasn’t paid by the meeting. She voted against two motions: an ordinary resolution to repaint the stairwells, and a motion that needs a resolution without dissent. Every other owner present voted in favour of both. I ruled her votes out on both because she owes levies, and declared both motions carried.”",
-  "instructions": "“What should the body corporate manager advise the chairperson about the two rulings?”",
+  "title": "The Transfer in Transit",
+  "scenario": "Chairperson: “At our Standard Module scheme’s AGM, an owner owed 4 months of levies. Before the meeting she transferred the full amount from her bank, and she shows me the transfer receipt on her phone. Our bank hasn’t confirmed the money has arrived. She votes against an ordinary motion to repaint the stairwells. Without her vote it carries 12 to 11. I ruled her vote out because she owes levies, and declared the motion carried.”",
+  "instructions": "“What should the body corporate manager advise the chairperson about her vote?”",
   "difficulty": "Advanced",
   "topic": "Voting rights and levy arrears",
-  "modelAnswer": "One ruling was right and one was wrong. Owing levies costs her the vote on ordinary motions, so the stairwell paint stands. But a resolution without dissent is the one exception: she keeps her vote, and her single no is enough to kill it. The chair should reverse that ruling and declare the motion lost. Throw out a valid dissent and a lost motion becomes a challengeable one.",
-  "markingGuide": "Best answer is the one that is clear, sharp and memorable, not the longest. It should: confirm the arrears rule was right for the ordinary motion; spot that a resolution without dissent is the exception, so her vote counts; recognise that one valid vote against defeats it; advise the chair to correct the ruling and declare it lost. Bonus for a vivid line that makes the point stick."
+  "modelAnswer": "Don't rule her out on a hunch, and don't wave her through on her say-so. The test is whether she owes at the time of voting, and a transfer that hasn't landed hasn't paid the debt yet. So check the body corporate's account or ledger first. If the money's there, her vote counts, it's 12 all, and the motion fails. If it isn't, the rule stands, but record her vote as disputed so the result can be fixed if the money turns up. With a one-vote margin, a guess is the wrong call.",
+  "markingGuide": "Best answer is the one that is clear, sharp and memorable, not the longest. It should: identify that the test is whether she owes levies at the time of voting; recognise that a transfer sent but not received may still be owing; advise verifying receipt rather than ruling either way on assumption; note that counting her vote makes it 12 all and the motion fails; suggest recording her vote as disputed if it can't be confirmed. Bonus for a vivid line that makes the point stick."
  }
 ]
