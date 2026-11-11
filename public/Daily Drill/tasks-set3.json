@@ -37,5 +37,18 @@
   "topic": "Voting rights and levy arrears",
   "modelAnswer": "This one is grey, and the best answer says so. The test is whether she owes at the time of voting. Her word isn't proof, and an empty bank screen isn't proof either. So don't decide on say-so. Ask her for bank proof on the spot and check the body corporate's account. If she can show the money was sent and it lands, her vote should have counted: it's 12 all and the motion fails. If nothing can be shown, the rule stands, but record her vote as disputed so the result can be fixed. A one-vote margin is no place for a guess.",
   "markingGuide": "Best answer is the one that is clear, sharp and memorable, not the longest. It should: identify that the test is whether she owes levies at the time of voting; recognise this is a grey area (paid but not yet received, and no proof at the meeting); advise getting proof or checking the account rather than ruling on assumption; note that counting her vote makes it 12 all and the motion fails; suggest recording her vote as disputed if it can't be confirmed. Bonus for a vivid line that makes the point stick."
+ },
+ {
+  "id": 204,
+  "set": 3,
+  "num": 4,
+  "section": "Invoice and transaction management",
+  "title": "The Fee Blowout",
+  "scenario": "A scheme’s fee-for-service (FFS) charges finished the financial year at 200% of budget. Most of the overrun came from a long legal dispute with lot buyers, who relied on an unregistered community management statement (CMS) that gave the wrong carpark allocations. The treasurer asks the community manager to explain the FFS total. Going through the ledger, the manager finds several entries with next to no description. Together they make up about 3% of the FFS charges.",
+  "instructions": "What should the community manager do?",
+  "difficulty": "Advanced",
+  "topic": "Fee for service charges and transparency",
+  "modelAnswer": "Don't dodge it, and don't tidy it. The treasurer asked for an explanation, so give one. Break the FFS down by matter: dispute work on one side, routine work on the other. That shows where the 200% came from. Then raise the thin entries yourself before the treasurer finds them. Three per cent is small, but unexplained charges make the other 97% look shaky. Check each one against what the body corporate actually authorised (the engagement agreement or a committee instruction) and the backup: instruction, timesheet, invoice. Anything that stacks up gets a proper description. Anything that doesn't gets credited. Never go back and rewrite a description to make an entry look better. Fix it with a credit, not a better story.",
+  "markingGuide": "Best answer is the one that is clear, sharp and memorable, not the longest. It should: give the treasurer a real explanation by splitting the FFS between the dispute and routine work; raise the unexplained entries openly rather than leave them or hope they pass; check each against the authority to do the work and the backup (instruction, timesheet, invoice); credit or correct anything that can't be supported; and not alter or embellish records after the fact. Don't mark down for mentioning that the overrun was or wasn't authorised, but the core is honesty and substantiating the charges. Bonus for a vivid line that makes the point stick."
  }
 ]
