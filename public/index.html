@@ -1479,8 +1479,10 @@ function DrillVideoBrain({ title, parts, cover }) {
             style={{ border: "3px solid #f59e0b" }}
           >
             <img src={cover} alt="" className="block w-full h-auto" />
-            <span className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "rgba(15,23,42,0.35)" }}>
-              <span className="w-14 h-14 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center text-xl shadow-lg" style={{ paddingLeft: "3px" }}>▶</span>
+            <span className="absolute inset-0 flex flex-col items-center justify-center text-center px-4" style={{ background: "rgba(15,23,42,0.55)" }}>
+              <span className="font-extrabold uppercase text-amber-400 mb-0.5" style={{ fontSize: "0.65rem", letterSpacing: "0.18em", textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>Today's dispute</span>
+              {title && <span className="font-serif font-extrabold text-white leading-tight" style={{ fontSize: "clamp(1.25rem, 6vw, 1.8rem)", textWrap: "balance", textShadow: "0 2px 6px rgba(0,0,0,0.8)" }}>{title}</span>}
+              <span className="mt-2 w-14 h-14 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center text-xl shadow-lg" style={{ paddingLeft: "3px" }}>▶</span>
               <span className="mt-2 text-xs font-extrabold uppercase text-white" style={{ letterSpacing: "0.12em", textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>Tap to watch</span>
             </span>
           </button>
