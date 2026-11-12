@@ -202,10 +202,10 @@ create table if not exists strata_drill_audio (
 );
 
 -- Daily Drill video (optional, alongside the audio). MP4s live in the private
--- storage bucket 'drill-video' (30 MB cap, video/mp4 only); this table links each
+-- storage bucket 'drill-video' (50 MB cap, video/mp4 only); this table links each
 -- file to its question. Served via short-lived signed links, only for the launched task.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('drill-video', 'drill-video', false, 31457280, array['video/mp4'])
+values ('drill-video', 'drill-video', false, 52428800, array['video/mp4'])
 on conflict (id) do nothing;
 
 create table if not exists strata_drill_video (
