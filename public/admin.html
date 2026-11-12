@@ -1977,6 +1977,119 @@ function DrillQuestionLog({ tasks }) {
   );
 }
 
+// Sends one MP4 straight to storage (too big to pass through the server),
+// then records it against the question.
+async function uploadDrillVideo(taskId, part, file) {
+  if (file.size > 30 * 1024 * 1024) throw new Error("Over 30 MB. Compress it more first.");
+  const slot = await api("/api/admin/drill/video/upload-url", { method: "POST", body: JSON.stringify({ taskId, part }) });
+  const form = new FormData();
+  form.append("cacheControl", "3600");
+  form.append("", file);
+  const put = await fetch(slot.signedUrl, { method: "PUT", headers: { "x-upsert": "true" }, body: form });
+  if (!put.ok) throw new Error("Upload failed (" + put.status + ")");
+  await api("/api/admin/drill/video", { method: "POST", body: JSON.stringify({ taskId, part, path: slot.path, size: file.size }) });
+}
+
+function DrillVideoUploader({ library, onDone }) {
+  const [log, setLog] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+
+  const upload = async (fileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+    setBusy(true);
+    setLog([]);
+    const out = [];
+    for (const f of files) {
+      const m = /^(?:set\s*([123])[\s_-]*)?(scenario|question)[\s_-]*(\d+)/i.exec(f.name);
+      if (!m) { out.push({ name: f.name, ok: false, msg: "Name must be like Scenario 12.mp4 or Set 3 Question 5.mp4" }); setLog([...out]); continue; }
+      const taskId = (m[1] ? (Number(m[1]) - 1) * 100 : 0) + Number(m[3]);
+      try {
+        await uploadDrillVideo(taskId, m[2].toLowerCase(), f);
+        out.push({ name: f.name, ok: true });
+      } catch (e) {
+        out.push({ name: f.name, ok: false, msg: e.message });
+      }
+      setLog([...out]);
+    }
+    setBusy(false);
+    if (inputRef.current) inputRef.current.value = "";
+    onDone();
+  };
+
+  const complete = library.filter((t) => t.video && t.video.scenario && t.video.question).length;
+  const failed = log.filter((l) => !l.ok);
+
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Video ({complete} of {library.length} questions ready)</p>
+      <p className="text-xs text-slate-500 mt-1 mb-3">Optional, alongside the audio. Pick as many MP4s as you like, 30 MB max each. Same names as the audio but .mp4, for example <span className="font-semibold">Set 3 Scenario 5.mp4</span> and <span className="font-semibold">Set 3 Question 5.mp4</span>. When a question has video, visitors get the video. Otherwise they get the audio. Re-uploading replaces the old clip.</p>
+      <input ref={inputRef} type="file" accept="video/mp4,.mp4" multiple disabled={busy} onChange={(e) => upload(e.target.files)} className="text-sm" />
+      {busy && <p className="text-xs text-slate-600 mt-2">Uploading… {log.length}</p>}
+      {!busy && log.length > 0 && (
+        <p className={`text-xs mt-2 font-semibold ${failed.length ? "text-rose-600" : "text-teal-700"}`}>
+          {log.length - failed.length} uploaded{failed.length ? `, ${failed.length} failed` : ""}
+        </p>
+      )}
+      {failed.map((l, i) => <p key={i} className="text-xs text-rose-600">{l.name}: {l.msg}</p>)}
+    </div>
+  );
+}
+
+function DrillRowVideo({ t, onDone }) {
+  const [busy, setBusy] = useState(null);
+  const [err, setErr] = useState(null);
+  const set = (t.video || {});
+
+  const send = async (part, file) => {
+    if (!file) return;
+    setBusy(part);
+    setErr(null);
+    try {
+      await uploadDrillVideo(t.id, part, file);
+      await onDone();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const remove = async (part) => {
+    if (!window.confirm("Remove this video clip? The audio stays.")) return;
+    setBusy(part);
+    setErr(null);
+    try {
+      await api("/api/admin/drill/video", { method: "DELETE", body: JSON.stringify({ taskId: t.id, part }) });
+      await onDone();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="w-full flex flex-wrap items-center gap-2 pl-10">
+      {["scenario", "question"].map((part) => (
+        <span key={part} className="inline-flex items-center gap-1">
+          <label
+            className={`cursor-pointer text-xs font-bold px-3 py-1.5 rounded-full border ${set[part] ? "border-teal-300 bg-teal-50 text-teal-800" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+          >
+            {busy === part ? "Uploading…" : `${set[part] ? "✓ " : "⬆ "}Video ${part === "scenario" ? "scenario" : "question"}${set[part] ? " (replace)" : ""}`}
+            <input type="file" accept="video/mp4,.mp4" className="hidden" disabled={busy !== null} onChange={(e) => { send(part, e.target.files[0]); e.target.value = ""; }} />
+          </label>
+          {set[part] && busy === null && (
+            <button type="button" onClick={() => remove(part)} className="text-xs text-slate-400 hover:text-rose-600" title="Remove video">✕</button>
+          )}
+        </span>
+      ))}
+      {err && <span className="text-xs text-rose-600">{err}</span>}
+    </div>
+  );
+}
+
 function DrillAudioUploader({ library, onDone }) {
   const [log, setLog] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -2154,6 +2267,7 @@ function DrillQuestionBank({ library, launch, hasSubmissions, onLaunch, busyId, 
                   </button>
                 )}
                 <DrillRowAudio t={t} onDone={onAudioChanged} />
+                <DrillRowVideo t={t} onDone={onAudioChanged} />
               </div>
               {open && (
                 <div className="px-4 pb-4 text-sm text-slate-700 space-y-2">
@@ -2695,6 +2809,7 @@ function DrillAdmin() {
           <DrillManualWinner date={date} hasLaunch={!!payload.launch} onAdded={() => load(date, true)} />
 
           {isToday && library && <DrillAudioUploader library={library.tasks} onDone={loadLibrary} />}
+          {isToday && library && <DrillVideoUploader library={library.tasks} onDone={loadLibrary} />}
 
           {isToday && library && (
             <DrillQuestionBank

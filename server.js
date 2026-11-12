@@ -705,6 +705,14 @@ try {
 }
 const drillTaskById = (id) => DRILL_TASKS.find((t) => t.id === id) || null;
 
+// Which video clips exist for a task ('scenario' / 'question'). Videos are optional.
+async function getDrillVideoParts(taskId) {
+  try {
+    const { data } = await supabase.from('strata_drill_video').select('part').eq('task_id', taskId);
+    return (data || []).map((r) => r.part).filter((x) => x === 'scenario' || x === 'question');
+  } catch (e) { return []; }
+}
+
 // Queensland doesn't observe daylight saving, so Brisbane is always a
 // fixed UTC+10 — no timezone-DB lookup needed.
 function brisbaneDateStr(d = new Date()) {
@@ -873,11 +881,39 @@ app.get('/api/drill/today', async (req, res) => {
       locked: false,
       closed: false,
       // Audio only: the task's text is never sent to visitors.
-      tasks: [{ id: task.id, title: task.title || '' }],
+      tasks: [{ id: task.id, title: task.title || '', video: await getDrillVideoParts(task.id) }],
       sponsor: await getDrillSponsor(),
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// Today's video clip — 'scenario' or 'question'. Same gate as the audio: only
+// the task launched today (or a finished past day via ?date=). The file sits in
+// a private bucket; this hands the browser a short-lived signed link.
+app.get('/api/drill/video/:part', async (req, res) => {
+  const part = req.params.part;
+  if (part !== 'scenario' && part !== 'question') return res.status(404).end();
+  try {
+    const q = req.query.date;
+    const day = isDateStr(q) && q < drillDayStr() ? q : drillDayStr();
+    const launch = await getDrillLaunch(day);
+    if (!launch) return res.status(403).end();
+    const { data: row, error } = await supabase
+      .from('strata_drill_video')
+      .select('path')
+      .eq('task_id', launch.task_id)
+      .eq('part', part)
+      .maybeSingle();
+    if (error) return res.status(500).end();
+    if (!row) return res.status(404).end();
+    const { data: signed, error: sErr } = await supabase.storage.from('drill-video').createSignedUrl(row.path, 3600);
+    if (sErr || !signed) return res.status(500).end();
+    res.set('Cache-Control', 'private, no-store');
+    res.redirect(302, signed.signedUrl);
+  } catch (e) {
+    res.status(500).end();
   }
 });
 
@@ -987,14 +1023,14 @@ app.get('/api/drill/winners', async (req, res) => {
   const drillDate = reign ? reign.drill_date : drillDayStr();
   const past = all.filter((r) => r.drill_date < drillDate);
   // The dispute the Laureate answered: its title and which clips exist.
-  let dispute = { title: '', parts: [] };
+  let dispute = { title: '', parts: [], videoParts: [] };
   if (reign) {
     try {
       const launch = await getDrillLaunch(reign.drill_date);
       const task = launch ? drillTaskById(launch.task_id) : null;
       if (launch) {
         const { data: au } = await supabase.from('strata_drill_audio').select('part').eq('task_id', launch.task_id);
-        dispute = { title: (task && task.title) || '', parts: (au || []).map((a) => a.part).filter((x) => x === 'scenario' || x === 'question') };
+        dispute = { title: (task && task.title) || '', parts: (au || []).map((a) => a.part).filter((x) => x === 'scenario' || x === 'question'), videoParts: await getDrillVideoParts(launch.task_id) };
       }
     } catch (e) { /* audio is optional */ }
   }
@@ -1011,6 +1047,7 @@ app.get('/api/drill/winners', async (req, res) => {
       drillDate: e.drill_date,
       disputeTitle: dispute.title,
       audioParts: dispute.parts,
+      videoParts: dispute.videoParts,
     })),
   });
 });
@@ -1044,12 +1081,15 @@ app.get('/api/admin/drill/tasks', async (req, res) => {
   if (aErr) return res.status(500).json({ error: aErr.message });
   const audio = {};
   for (const a of audioRows) (audio[a.task_id] = audio[a.task_id] || {})[a.part] = true;
+  const { data: videoRows } = await supabase.from('strata_drill_video').select('task_id, part');
+  const video = {};
+  for (const v of videoRows || []) (video[v.task_id] = video[v.task_id] || {})[v.part] = true;
   const today = drillDayStr();
   const todays = data.find((l) => l.drill_date === today);
   res.json({
     today,
     launch: todays ? { taskId: todays.task_id, launchedAt: todays.launched_at } : null,
-    tasks: DRILL_TASKS.map((t) => ({ ...drillTaskFull(t), usedOn: usedOn[t.id] || [], audio: { scenario: !!(audio[t.id] && audio[t.id].scenario), question: !!(audio[t.id] && audio[t.id].question) } })),
+    tasks: DRILL_TASKS.map((t) => ({ ...drillTaskFull(t), usedOn: usedOn[t.id] || [], audio: { scenario: !!(audio[t.id] && audio[t.id].scenario), question: !!(audio[t.id] && audio[t.id].question) }, video: { scenario: !!(video[t.id] && video[t.id].scenario), question: !!(video[t.id] && video[t.id].question) } })),
   });
 });
 
@@ -1068,6 +1108,58 @@ app.post('/api/admin/drill/audio', async (req, res) => {
     .upsert({ task_id: taskId, part, mime: 'audio/mpeg', size, data_b64: b64, updated_at: new Date().toISOString() }, { onConflict: 'task_id,part' });
   if (error) return res.status(500).json({ error: error.message });
   res.json({ taskId, part, size });
+});
+
+// Admin: video upload, step 1. Returns a signed upload link so the browser can
+// send the MP4 straight to storage (videos are too big to pass through here).
+app.post('/api/admin/drill/video/upload-url', async (req, res) => {
+  const taskId = Number(req.body && req.body.taskId);
+  const part = req.body && req.body.part;
+  if (!drillTaskById(taskId)) return res.status(400).json({ error: 'Unknown question number.' });
+  if (part !== 'scenario' && part !== 'question') return res.status(400).json({ error: 'Part must be scenario or question.' });
+  const path = `${taskId}/${part}-${Date.now()}.mp4`;
+  const { data, error } = await supabase.storage.from('drill-video').createSignedUploadUrl(path);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ path, token: data.token, signedUrl: data.signedUrl });
+});
+
+// Admin: video upload, step 2. Records the uploaded file against the question
+// and removes the old file if this replaces one.
+app.post('/api/admin/drill/video', async (req, res) => {
+  const taskId = Number(req.body && req.body.taskId);
+  const part = req.body && req.body.part;
+  const path = String((req.body && req.body.path) || '');
+  const size = Number(req.body && req.body.size) || 0;
+  if (!drillTaskById(taskId)) return res.status(400).json({ error: 'Unknown question number.' });
+  if (part !== 'scenario' && part !== 'question') return res.status(400).json({ error: 'Part must be scenario or question.' });
+  if (!path.startsWith(`${taskId}/${part}-`) || !path.endsWith('.mp4')) return res.status(400).json({ error: 'Bad file path.' });
+  try {
+    const { data: prior } = await supabase.from('strata_drill_video').select('path').eq('task_id', taskId).eq('part', part).maybeSingle();
+    const { error } = await supabase
+      .from('strata_drill_video')
+      .upsert({ task_id: taskId, part, path, size, updated_at: new Date().toISOString() }, { onConflict: 'task_id,part' });
+    if (error) return res.status(500).json({ error: error.message });
+    if (prior && prior.path && prior.path !== path) await supabase.storage.from('drill-video').remove([prior.path]);
+    res.json({ taskId, part, size });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: remove one video clip.
+app.delete('/api/admin/drill/video', async (req, res) => {
+  const taskId = Number(req.body && req.body.taskId);
+  const part = req.body && req.body.part;
+  if (!drillTaskById(taskId) || (part !== 'scenario' && part !== 'question')) return res.status(400).json({ error: 'Bad question or part.' });
+  try {
+    const { data: prior } = await supabase.from('strata_drill_video').select('path').eq('task_id', taskId).eq('part', part).maybeSingle();
+    if (prior && prior.path) await supabase.storage.from('drill-video').remove([prior.path]);
+    const { error } = await supabase.from('strata_drill_video').delete().eq('task_id', taskId).eq('part', part);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ taskId, part, removed: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Admin: launch today's question — records the pick and starts the clock.
