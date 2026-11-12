@@ -2002,8 +2002,8 @@ function DrillVideoUploader({ library, onDone }) {
     setLog([]);
     const out = [];
     for (const f of files) {
-      const m = /^(?:set\s*([123])[\s_-]*)?(scenario|question)[\s_-]*(\d+)/i.exec(f.name);
-      if (!m) { out.push({ name: f.name, ok: false, msg: "Name must be like Scenario 12.mp4 or Set 3 Question 5.mp4" }); setLog([...out]); continue; }
+      const m = /^(?:set\s*([123])[\s_-]*)?(scenario|question|full)[\s_-]*(\d+)/i.exec(f.name);
+      if (!m) { out.push({ name: f.name, ok: false, msg: "Name must be like Scenario 12.mp4, Set 3 Question 5.mp4 or Set 3 Full 5.mp4" }); setLog([...out]); continue; }
       const taskId = (m[1] ? (Number(m[1]) - 1) * 100 : 0) + Number(m[3]);
       try {
         await uploadDrillVideo(taskId, m[2].toLowerCase(), f);
@@ -2018,13 +2018,13 @@ function DrillVideoUploader({ library, onDone }) {
     onDone();
   };
 
-  const complete = library.filter((t) => t.video && t.video.scenario && t.video.question).length;
+  const complete = library.filter((t) => t.video && (t.video.full || (t.video.scenario && t.video.question))).length;
   const failed = log.filter((l) => !l.ok);
 
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
       <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Video ({complete} of {library.length} questions ready)</p>
-      <p className="text-xs text-slate-500 mt-1 mb-3">Optional, alongside the audio. Pick as many MP4s as you like, 30 MB max each. Same names as the audio but .mp4, for example <span className="font-semibold">Set 3 Scenario 5.mp4</span> and <span className="font-semibold">Set 3 Question 5.mp4</span>. When a question has video, visitors get the video. Otherwise they get the audio. Re-uploading replaces the old clip.</p>
+      <p className="text-xs text-slate-500 mt-1 mb-3">Optional, alongside the audio. Pick as many MP4s as you like, 30 MB max each. Same names as the audio but .mp4, for example <span className="font-semibold">Set 3 Scenario 5.mp4</span> and <span className="font-semibold">Set 3 Question 5.mp4</span>, or one combined clip named <span className="font-semibold">Set 3 Full 5.mp4</span>. When a question has video, visitors get the video. Otherwise they get the audio. Re-uploading replaces the old clip.</p>
       <input ref={inputRef} type="file" accept="video/mp4,.mp4" multiple disabled={busy} onChange={(e) => upload(e.target.files)} className="text-sm" />
       {busy && <p className="text-xs text-slate-600 mt-2">Uploading… {log.length}</p>}
       {!busy && log.length > 0 && (
@@ -2072,12 +2072,12 @@ function DrillRowVideo({ t, onDone }) {
 
   return (
     <div className="w-full flex flex-wrap items-center gap-2 pl-10">
-      {["scenario", "question"].map((part) => (
+      {["scenario", "question", "full"].map((part) => (
         <span key={part} className="inline-flex items-center gap-1">
           <label
             className={`cursor-pointer text-xs font-bold px-3 py-1.5 rounded-full border ${set[part] ? "border-teal-300 bg-teal-50 text-teal-800" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
           >
-            {busy === part ? "Uploading…" : `${set[part] ? "✓ " : "⬆ "}Video ${part === "scenario" ? "scenario" : "question"}${set[part] ? " (replace)" : ""}`}
+            {busy === part ? "Uploading…" : `${set[part] ? "✓ " : "⬆ "}Video ${part === "scenario" ? "scenario" : part === "question" ? "question" : "combined"}${set[part] ? " (replace)" : ""}`}
             <input type="file" accept="video/mp4,.mp4" className="hidden" disabled={busy !== null} onChange={(e) => { send(part, e.target.files[0]); e.target.value = ""; }} />
           </label>
           {set[part] && busy === null && (

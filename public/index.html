@@ -1442,7 +1442,7 @@ function DrillVideoBrain({ title, parts }) {
     <div className="max-w-md mx-auto mb-4">
       {title && <p className="text-center font-extrabold uppercase text-amber-700 mb-0.5" style={{ fontSize: "0.65rem", letterSpacing: "0.18em" }}>Today's dispute</p>}
       {title && <p className="font-serif font-extrabold text-slate-900 text-center leading-tight text-lg mb-3" style={{ textWrap: "balance" }}>{title}</p>}
-      <div className="flex items-center justify-center gap-2 mb-2">
+      <div className={`flex items-center justify-center gap-2 mb-2 ${parts.length < 2 ? "hidden" : ""}`}>
         {parts.map((name) => (
           <button
             key={name}
@@ -1983,8 +1983,8 @@ function DailyDrill() {
           {drill.tasks.map((t, i) => (
             <div key={t.id} className={i > 0 ? "border-t border-slate-100 pt-4" : ""}>
               {(() => {
-                const vparts = ["scenario", "question"].filter((x) => (t.video || []).includes(x));
-                return vparts.length === 2
+                const vparts = (t.video || []).includes("full") ? ["full"] : ["scenario", "question"].filter((x) => (t.video || []).includes(x));
+                return vparts.length === 2 || vparts[0] === "full"
                   ? <DrillVideoBrain title={t.title} parts={vparts} />
                   : <DrillAudioBrain title={drill.tasks[0] && drill.tasks[0].title} />;
               })()}

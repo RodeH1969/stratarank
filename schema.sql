@@ -210,7 +210,7 @@ on conflict (id) do nothing;
 
 create table if not exists strata_drill_video (
   task_id int not null,
-  part text not null check (part in ('scenario','question')),
+  part text not null check (part in ('scenario','question','full')),
   path text not null,
   size int not null default 0,
   updated_at timestamptz default now(),
