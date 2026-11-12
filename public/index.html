@@ -1436,37 +1436,53 @@ function DrillInfoButton() {
 
 function DrillVideoBrain({ title, parts }) {
   const [current, setCurrent] = useState(parts[0]);
+  const [started, setStarted] = useState(false);
   const [vidError, setVidError] = useState(null);
   const label = { scenario: "Facts", question: "Question" };
   return (
     <div className="max-w-md mx-auto mb-4">
-      {title && <p className="text-center font-extrabold uppercase text-amber-700 mb-0.5" style={{ fontSize: "0.65rem", letterSpacing: "0.18em" }}>Today's dispute</p>}
-      {title && <p className="font-serif font-extrabold text-slate-900 text-center leading-tight text-lg mb-3" style={{ textWrap: "balance" }}>{title}</p>}
-      <div className={`flex items-center justify-center gap-2 mb-2 ${parts.length < 2 ? "hidden" : ""}`}>
-        {parts.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => { setCurrent(name); setVidError(null); }}
-            className={`rounded-full px-4 py-2 text-sm font-extrabold border-2 ${current === name ? "bg-slate-900 text-amber-400 border-slate-900" : "bg-amber-400 text-slate-900 border-amber-400"}`}
-          >
-            {label[name]}
-          </button>
-        ))}
-      </div>
-      <video
-        key={current}
-        src={`/api/drill/video/${current}`}
-        controls
-        playsInline
-        preload="metadata"
-        controlsList="nodownload noplaybackrate"
-        disablePictureInPicture
-        onContextMenu={(e) => e.preventDefault()}
-        onError={() => setVidError("Couldn't load the video. Try again.")}
-        className="w-full rounded-xl bg-black"
-        style={{ maxHeight: "70vh" }}
-      />
+      {parts.length > 1 && (
+        <div className="flex items-center justify-center gap-2 mb-2">
+          {parts.map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => { setCurrent(name); setStarted(true); setVidError(null); }}
+              className={`rounded-full px-4 py-2 text-sm font-extrabold border-2 ${started && current === name ? "bg-slate-900 text-amber-400 border-slate-900" : "bg-amber-400 text-slate-900 border-amber-400"}`}
+            >
+              {label[name]}
+            </button>
+          ))}
+        </div>
+      )}
+      {started ? (
+        <video
+          key={current}
+          src={`/api/drill/video/${current}`}
+          controls
+          autoPlay
+          playsInline
+          controlsList="nodownload noplaybackrate"
+          disablePictureInPicture
+          onContextMenu={(e) => e.preventDefault()}
+          onError={() => setVidError("Couldn't load the video. Try again.")}
+          className="w-full rounded-xl bg-black"
+          style={{ maxHeight: "70vh" }}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setStarted(true)}
+          aria-label="Play today's scenario"
+          className="relative w-full rounded-xl overflow-hidden flex flex-col items-center justify-center text-center px-6"
+          style={{ aspectRatio: "16 / 9", background: "radial-gradient(circle at 50% 35%, #1e293b 0%, #0f172a 75%)", border: "3px solid #f59e0b" }}
+        >
+          <span className="font-extrabold uppercase text-amber-400 mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.18em" }}>Today's dispute</span>
+          {title && <span className="font-serif font-extrabold text-white leading-tight" style={{ fontSize: "clamp(1.1rem, 5.5vw, 1.6rem)", textWrap: "balance" }}>{title}</span>}
+          <span className="mt-3 w-14 h-14 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center text-xl shadow-lg gold-pulse-ring" style={{ paddingLeft: "3px" }}>▶</span>
+          <span className="mt-2 text-xs font-bold uppercase text-amber-200" style={{ letterSpacing: "0.12em" }}>Tap to watch</span>
+        </button>
+      )}
       {vidError && <p className="text-sm text-rose-700 text-center mt-2">{vidError}</p>}
     </div>
   );
