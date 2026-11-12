@@ -881,7 +881,7 @@ app.get('/api/drill/today', async (req, res) => {
       locked: false,
       closed: false,
       // Audio only: the task's text is never sent to visitors.
-      tasks: [{ id: task.id, title: task.title || '', video: await getDrillVideoParts(task.id) }],
+      tasks: [{ id: task.id, title: task.title || '', video: await getDrillVideoParts(task.id), cover: fs.existsSync(path.join(__dirname, 'public', 'drill-covers', task.id + '.jpg')) ? `/drill-covers/${task.id}.jpg` : '' }],
       sponsor: await getDrillSponsor(),
     });
   } catch (e) {

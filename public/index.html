@@ -1434,7 +1434,7 @@ function DrillInfoButton() {
   );
 }
 
-function DrillVideoBrain({ title, parts }) {
+function DrillVideoBrain({ title, parts, cover }) {
   const [current, setCurrent] = useState(parts[0]);
   const [started, setStarted] = useState(false);
   const [vidError, setVidError] = useState(null);
@@ -1470,6 +1470,21 @@ function DrillVideoBrain({ title, parts }) {
           style={{ maxHeight: "70vh" }}
         />
       ) : (
+        cover ? (
+          <button
+            type="button"
+            onClick={() => setStarted(true)}
+            aria-label="Play today's scenario"
+            className="relative block w-full rounded-xl overflow-hidden"
+            style={{ border: "3px solid #f59e0b" }}
+          >
+            <img src={cover} alt="" className="block w-full h-auto" />
+            <span className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "rgba(15,23,42,0.35)" }}>
+              <span className="w-14 h-14 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center text-xl shadow-lg" style={{ paddingLeft: "3px" }}>▶</span>
+              <span className="mt-2 text-xs font-extrabold uppercase text-white" style={{ letterSpacing: "0.12em", textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>Tap to watch</span>
+            </span>
+          </button>
+        ) : (
         <button
           type="button"
           onClick={() => setStarted(true)}
@@ -1482,6 +1497,7 @@ function DrillVideoBrain({ title, parts }) {
           <span className="mt-3 w-14 h-14 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center text-xl shadow-lg gold-pulse-ring" style={{ paddingLeft: "3px" }}>▶</span>
           <span className="mt-2 text-xs font-bold uppercase text-amber-200" style={{ letterSpacing: "0.12em" }}>Tap to watch</span>
         </button>
+        )
       )}
       {vidError && <p className="text-sm text-rose-700 text-center mt-2">{vidError}</p>}
     </div>
@@ -2001,7 +2017,7 @@ function DailyDrill() {
               {(() => {
                 const vparts = (t.video || []).includes("full") ? ["full"] : ["scenario", "question"].filter((x) => (t.video || []).includes(x));
                 return vparts.length === 2 || vparts[0] === "full"
-                  ? <DrillVideoBrain title={t.title} parts={vparts} />
+                  ? <DrillVideoBrain title={t.title} parts={vparts} cover={t.cover} />
                   : <DrillAudioBrain title={drill.tasks[0] && drill.tasks[0].title} />;
               })()}
               <DrillSponsorLine sponsor={drill.sponsor} className="-mt-1 mb-4" />
